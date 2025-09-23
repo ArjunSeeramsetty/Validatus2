@@ -9,7 +9,7 @@ class GCPSettings(BaseSettings):
     """Google Cloud Platform configuration settings"""
     
     # Project configuration
-    project_id: str = Field(..., env="GCP_PROJECT_ID")
+    project_id: str = Field(default="validatus-prod", env="GCP_PROJECT_ID")
     region: str = Field(default="us-central1", env="GCP_REGION")
     zone: str = Field(default="us-central1-a", env="GCP_ZONE")
     
@@ -24,10 +24,10 @@ class GCPSettings(BaseSettings):
     embedding_model: str = Field(default="text-embedding-004", env="VERTEX_EMBEDDING_MODEL")
     
     # Cloud SQL configuration
-    cloud_sql_instance: str = Field(..., env="CLOUD_SQL_INSTANCE")
+    cloud_sql_instance: str = Field(default="validatus-db", env="CLOUD_SQL_INSTANCE")
     cloud_sql_database: str = Field(default="validatus", env="CLOUD_SQL_DATABASE")
-    cloud_sql_user: str = Field(..., env="CLOUD_SQL_USER")
-    cloud_sql_password: str = Field(..., env="CLOUD_SQL_PASSWORD")
+    cloud_sql_user: str = Field(default="validatus_user", env="CLOUD_SQL_USER")
+    cloud_sql_password: str = Field(default="validatus_password", env="CLOUD_SQL_PASSWORD")
     
     # Cloud Tasks configuration
     task_queue_location: str = Field(default="us-central1", env="CLOUD_TASKS_LOCATION")

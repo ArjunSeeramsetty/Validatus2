@@ -142,11 +142,7 @@ class APIEndpointVerifier:
             logger.error(f"❌ List topics failed: {result.error_message}")
         
         # Create topic
-        result = self.test_endpoint("POST", "/api/v3/topics/create", 
-                                  json={
-                                      "topic": "test-verification-topic",
-                                      "urls": self.sample_urls
-                                  })
+        result = self.test_endpoint("POST", f"/api/v3/topics/create?topic=test-verification-topic&urls={','.join(self.sample_urls)}", json=[])
         self.test_results.append(result)
         
         if result.success:
@@ -157,11 +153,7 @@ class APIEndpointVerifier:
             topic_id = "test-topic"
         
         # Collect URLs
-        result = self.test_endpoint("POST", f"/api/v3/topics/{topic_id}/collect-urls",
-                                  json={
-                                      "search_query": "artificial intelligence",
-                                      "max_urls": 10
-                                  })
+        result = self.test_endpoint("POST", f"/api/v3/topics/{topic_id}/collect-urls?search_query=artificial intelligence&max_urls=10")
         self.test_results.append(result)
         
         if result.success:
@@ -183,12 +175,7 @@ class APIEndpointVerifier:
         logger.info("🔍 Verifying Phase 2 enhanced endpoints...")
         
         # Create enhanced topic
-        result = self.test_endpoint("POST", "/api/v3/enhanced/topics/create",
-                                  json={
-                                      "topic": "enhanced-test-topic",
-                                      "urls": self.sample_urls,
-                                      "quality_threshold": 0.7
-                                  })
+        result = self.test_endpoint("POST", f"/api/v3/enhanced/topics/create?topic=enhanced-test-topic&urls={','.join(self.sample_urls)}&quality_threshold=0.7", json=[])
         self.test_results.append(result)
         
         if result.success:
@@ -208,11 +195,7 @@ class APIEndpointVerifier:
             logger.error(f"❌ Get enhanced knowledge failed: {result.error_message}")
         
         # Update enhanced topic
-        result = self.test_endpoint("PUT", f"/api/v3/enhanced/topics/{topic_id}/update",
-                                  json={
-                                      "new_urls": ["https://example.com/new-article"],
-                                      "quality_threshold": 0.8
-                                  })
+        result = self.test_endpoint("PUT", f"/api/v3/enhanced/topics/{topic_id}/update?new_urls=https://example.com/new-article&quality_threshold=0.8", json=[])
         self.test_results.append(result)
         
         if result.success:
@@ -234,15 +217,7 @@ class APIEndpointVerifier:
         logger.info("🔍 Verifying strategic analysis endpoints...")
         
         # Create analysis session
-        result = self.test_endpoint("POST", "/api/v3/analysis/sessions/create",
-                                  json={
-                                      "topic": "strategic-analysis-test",
-                                      "user_id": "test-user-123",
-                                      "analysis_parameters": {
-                                          "quality_threshold": 0.7,
-                                          "include_competitive_analysis": True
-                                      }
-                                  })
+        result = self.test_endpoint("POST", "/api/v3/analysis/sessions/create?topic=strategic-analysis-test&user_id=test-user-123")
         self.test_results.append(result)
         
         if result.success:
@@ -284,12 +259,7 @@ class APIEndpointVerifier:
         logger.info("🔍 Verifying content processing endpoints...")
         
         # Analyze content quality
-        result = self.test_endpoint("POST", "/api/v3/content/analyze-quality",
-                                  json={
-                                      "content": self.sample_content,
-                                      "url": "https://example.com/test-article",
-                                      "topic": "artificial intelligence"
-                                  })
+        result = self.test_endpoint("POST", f"/api/v3/content/analyze-quality?content={self.sample_content[:100]}&url=https://example.com/test-article&topic=artificial intelligence")
         self.test_results.append(result)
         
         if result.success:
@@ -315,22 +285,23 @@ class APIEndpointVerifier:
         logger.info("🔍 Verifying optimization endpoints...")
         
         # Optimize parallel processing
+        analysis_tasks = [
+            {
+                "id": "task_1",
+                "type": "layer_scoring",
+                "complexity": "medium",
+                "layer": "consumer"
+            },
+            {
+                "id": "task_2",
+                "type": "factor_calculation",
+                "complexity": "light",
+                "factor": "market_attractiveness"
+            }
+        ]
         result = self.test_endpoint("POST", "/api/v3/optimization/parallel-processing",
                                   json={
-                                      "analysis_tasks": [
-                                          {
-                                              "id": "task_1",
-                                              "type": "layer_scoring",
-                                              "complexity": "medium",
-                                              "layer": "consumer"
-                                          },
-                                          {
-                                              "id": "task_2",
-                                              "type": "factor_calculation",
-                                              "complexity": "light",
-                                              "factor": "market_attractiveness"
-                                          }
-                                      ],
+                                      "analysis_tasks": analysis_tasks,
                                       "max_concurrent": 10
                                   })
         self.test_results.append(result)
@@ -354,11 +325,7 @@ class APIEndpointVerifier:
             logger.error(f"❌ Error handling failed: Expected 404, got {result.status_code}")
         
         # Test invalid request data
-        result = self.test_endpoint("POST", "/api/v3/topics/create",
-                                  json={
-                                      "topic": "",  # Empty topic
-                                      "urls": []    # Empty URLs
-                                  })
+        result = self.test_endpoint("POST", "/api/v3/topics/create?topic=&urls=", json=[])
         self.test_results.append(result)
         
         if result.status_code == 422:  # Validation error

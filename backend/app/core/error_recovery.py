@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 import json
 from datetime import datetime, timezone
+from functools import wraps
 
 logger = logging.getLogger(__name__)
 
@@ -626,6 +627,9 @@ def with_error_recovery(recovery_strategy: RecoveryStrategy = RecoveryStrategy.R
     
     return decorator
 
+# Alias for backward compatibility
+with_exponential_backoff = with_error_recovery
+
 # Export the classes and functions
 __all__ = [
     'ErrorRecoveryManager',
@@ -635,5 +639,6 @@ __all__ = [
     'ErrorSeverity',
     'RecoveryStrategy',
     'error_recovery_manager',
-    'with_error_recovery'
+    'with_error_recovery',
+    'with_exponential_backoff'
 ]

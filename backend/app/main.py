@@ -16,6 +16,13 @@ from .services.analysis_session_manager import AnalysisSessionManager
 from .services.content_quality_analyzer import ContentQualityAnalyzer
 from .services.content_deduplication_service import ContentDeduplicationService
 from .services.analysis_optimization_service import AnalysisOptimizationService
+from .services.analysis_results_manager import AnalysisResultsManager
+
+# Phase 1 Integration - Import new analytical engines
+from .services.pdf_formula_engine import PDFFormulaEngine
+from .services.action_layer_calculator import ActionLayerCalculator
+from .services.pattern_library_monte_carlo import PatternLibraryMonteCarloEngine
+from .api.v3 import results as results_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,15 +36,22 @@ analysis_session_manager = None
 quality_analyzer = None
 deduplication_service = None
 optimization_service = None
+results_manager = None
+
+# Phase 1 Integration - Global instances for new analytical engines
+pdf_formula_engine = None
+action_layer_calculator = None
+pattern_engine = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan management"""
     global topic_manager, enhanced_topic_manager, url_orchestrator, analysis_session_manager
-    global quality_analyzer, deduplication_service, optimization_service
+    global quality_analyzer, deduplication_service, optimization_service, results_manager
+    global pdf_formula_engine, action_layer_calculator, pattern_engine
     
     # Startup
-    logger.info("🚀 Starting Validatus Backend with Phase 2 Components...")
+    logger.info("🚀 Starting Validatus Backend with Phase 1 Enhanced Analytical Engines...")
     
     try:
         # Initialize GCP settings
@@ -55,7 +69,15 @@ async def lifespan(app: FastAPI):
         deduplication_service = ContentDeduplicationService()
         optimization_service = AnalysisOptimizationService()
         
-        logger.info("✅ All Phase 1 and Phase 2 services initialized successfully")
+        # Initialize Phase 3 services
+        results_manager = AnalysisResultsManager()
+        
+        # Initialize Phase 1 Enhanced Analytical Engines
+        pdf_formula_engine = PDFFormulaEngine()
+        action_layer_calculator = ActionLayerCalculator()
+        pattern_engine = PatternLibraryMonteCarloEngine()
+        
+        logger.info("✅ All Phase 1, Phase 2, and Phase 3 services with Enhanced Analytical Engines initialized successfully")
         
     except Exception as e:
         logger.error(f"❌ Failed to initialize services: {e}")
@@ -69,8 +91,8 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app
 app = FastAPI(
     title="Validatus API",
-    description="AI-Powered Strategic Analysis Platform - Phase 2 Complete",
-    version="3.0.0",
+    description="AI-Powered Strategic Analysis Platform - Phase 1 Enhanced Analytical Engines Integrated",
+    version="3.1.0",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -86,6 +108,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include Phase 3 routers
+app.include_router(results_router.router)
 
 @app.get("/health")
 async def health_check():

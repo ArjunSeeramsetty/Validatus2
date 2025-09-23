@@ -152,10 +152,62 @@ class EnhancedTopicMetadata:
     high_quality_documents: int = 0
     average_quality_score: float = 0.0
 
+@dataclass
+class AnalysisResults:
+    """Complete analysis results model"""
+    session_id: str
+    topic: str
+    user_id: str
+    status: AnalysisStatus
+    layer_scores: List[LayerScore]
+    factor_calculations: List[FactorCalculation]
+    segment_scores: List[SegmentScore]
+    enhanced_analysis: Dict[str, Any]
+    comprehensive_insights: List[str]
+    unified_recommendations: List[str]
+    confidence_metrics: Dict[str, float]
+    processing_metadata: Dict[str, Any]
+    created_at: datetime
+    completed_at: datetime
+
+class ExportFormat(Enum):
+    """Export format enumeration"""
+    PDF = "pdf"
+    EXCEL = "excel"
+    JSON = "json"
+    CSV = "csv"
+
+@dataclass
+class ExportRequest:
+    """Analysis results export request model"""
+    session_id: str
+    user_id: str
+    export_format: ExportFormat
+    include_charts: bool = True
+    include_raw_data: bool = False
+    include_metadata: bool = True
+    custom_filters: Optional[Dict[str, Any]] = None
+    requested_at: Optional[datetime] = None
+
+@dataclass
+class ExportResult:
+    """Export operation result model"""
+    export_id: str
+    session_id: str
+    user_id: str
+    export_format: ExportFormat
+    created_at: datetime
+    file_url: Optional[str] = None
+    file_size: Optional[int] = None
+    export_status: str = "pending"
+    error_message: Optional[str] = None
+    completed_at: Optional[datetime] = None
+
 # Export all models
 __all__ = [
-    'AnalysisStatus', 'DuplicateType',
+    'AnalysisStatus', 'DuplicateType', 'ExportFormat',
     'AnalysisSession', 'AnalysisProgress', 'LayerScore', 'FactorCalculation',
     'SegmentScore', 'ContentQualityScores', 'DuplicationResult',
-    'TopicClassification', 'OptimizationMetrics', 'EnhancedTopicMetadata'
+    'TopicClassification', 'OptimizationMetrics', 'EnhancedTopicMetadata',
+    'AnalysisResults', 'ExportRequest', 'ExportResult'
 ]

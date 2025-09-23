@@ -11,7 +11,6 @@ from datetime import datetime, timezone
 
 # Google Cloud imports
 from google.cloud import storage
-from google.cloud import sql
 from google.cloud import aiplatform
 from google.cloud.aiplatform import MatchingEngineIndex, MatchingEngineIndexEndpoint
 from google.cloud import firestore

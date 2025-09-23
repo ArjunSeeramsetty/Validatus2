@@ -1,0 +1,39 @@
+# docker-compose.yml
+
+version: '3.8'
+
+services:
+  validatus-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.gcp
+    ports:
+      - "8000:8000"
+    environment:
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GCP_REGION=${GCP_REGION}
+      - CLOWD_SQL_INSTANCE=${CLOWD_SQL_INSTANCE}
+    env_file:
+      - .env
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - validatus-network
+
+  validatus-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - validatus-backend
+    networks:
+      - validatus-network
+
+networks:
+  validatus-network:
+    driver: bridge

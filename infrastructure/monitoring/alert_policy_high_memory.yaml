@@ -1,0 +1,59 @@
+# Alert Policy: High Memory Usage
+# Triggers when memory utilization exceeds 90%
+
+displayName: "Validatus - High Memory Usage"
+documentation:
+  content: |
+    # High Memory Usage Alert
+    
+    This alert triggers when memory utilization exceeds 90%.
+    
+    ## Threshold
+    - **Condition**: Memory utilization > 90%
+    - **Duration**: 5 minutes
+    - **Aggregation**: Mean across all instances
+    
+    ## Actions
+    1. Check memory usage patterns in Cloud Run logs
+    2. Review for memory leaks in application code
+    3. Analyze large data processing operations
+    4. Check for inefficient data structures or caching
+    
+    ## Resolution
+    - Optimize memory usage in application code
+    - Implement memory-efficient data processing
+    - Increase memory allocation for service instances
+    - Review and optimize caching strategies
+    - Check for memory leaks and fix them
+  mimeType: "text/markdown"
+
+conditions:
+  - displayName: "Memory usage condition"
+    conditionThreshold:
+      filter: |
+        resource.type="cloud_run_revision" AND
+        resource.labels.service_name="validatus-backend" AND
+        metric.type="run.googleapis.com/container/memory/utilizations"
+      comparison: "COMPARISON_GREATER_THAN"
+      thresholdValue: 0.9
+      duration: "300s"
+      aggregations:
+        - alignmentPeriod: "60s"
+          perSeriesAligner: "ALIGN_MEAN"
+          crossSeriesReducer: "REDUCE_MEAN"
+          groupByFields:
+            - "resource.labels.service_name"
+      trigger:
+        count: 1
+      evaluationMissingData: "EVALUATION_MISSING_DATA_NO_OP"
+
+combiner: "OR"
+enabled: true
+
+alertStrategy:
+  autoClose: "1800s"
+  notificationRateLimit:
+    period: "3600s"
+
+notificationChannels:
+  - "projects/validatus-prod/notificationChannels/email-alerts"

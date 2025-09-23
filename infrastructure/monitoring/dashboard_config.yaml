@@ -1,0 +1,517 @@
+# GCP Monitoring Dashboard Configuration
+# This file defines comprehensive monitoring dashboards for the Validatus platform
+
+dashboard:
+  displayName: "Validatus Platform Monitoring"
+  description: "Comprehensive monitoring dashboard for Validatus AI-powered strategic analysis platform"
+  
+  # Dashboard layout configuration
+  gridLayout:
+    widgets:
+      
+      # System Health Overview
+      - title: "System Health Overview"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'resource.type="cloud_run_revision" AND resource.labels.service_name="validatus-backend"'
+                  aggregation:
+                    alignmentPeriod: "60s"
+                    perSeriesAligner: "ALIGN_RATE"
+                    crossSeriesReducer: "REDUCE_SUM"
+                    groupByFields: ["metric.labels.response_code"]
+                  secondaryAggregation:
+                    alignmentPeriod: "300s"
+                    perSeriesAligner: "ALIGN_MEAN"
+                    crossSeriesReducer: "REDUCE_MEAN"
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'resource.type="cloud_run_revision" AND resource.labels.service_name="validatus-backend"'
+                  aggregation:
+                    alignmentPeriod: "60s"
+                    perSeriesAligner: "ALIGN_MEAN"
+                    crossSeriesReducer: "REDUCE_MEAN"
+                    groupByFields: ["metric.labels.method"]
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "Requests/sec"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 6
+        height: 4
+        position:
+          x: 0
+          y: 0
+
+      # API Endpoint Performance
+      - title: "API Endpoint Performance"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'resource.type="cloud_run_revision" AND metric.type="run.googleapis.com/request_latencies"'
+                  aggregation:
+                    alignmentPeriod: "60s"
+                    perSeriesAligner: "ALIGN_PERCENTILE_95"
+                    crossSeriesReducer: "REDUCE_MEAN"
+                    groupByFields: ["metric.labels.method", "metric.labels.route"]
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "Response Time (ms)"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 6
+        height: 4
+        position:
+          x: 6
+          y: 0
+
+      # Error Rate Monitoring
+      - title: "Error Rate by Endpoint"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'resource.type="cloud_run_revision" AND metric.type="run.googleapis.com/request_count" AND metric.labels.response_code_class!="2xx"'
+                  aggregation:
+                    alignmentPeriod: "60s"
+                    perSeriesAligner: "ALIGN_RATE"
+                    crossSeriesReducer: "REDUCE_SUM"
+                    groupByFields: ["metric.labels.route"]
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "Errors/sec"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 6
+        height: 4
+        position:
+          x: 0
+          y: 4
+
+      # Memory Usage
+      - title: "Memory Usage"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'resource.type="cloud_run_revision" AND metric.type="run.googleapis.com/container/memory/utilizations"'
+                  aggregation:
+                    alignmentPeriod: "60s"
+                    perSeriesAligner: "ALIGN_MEAN"
+                    crossSeriesReducer: "REDUCE_MEAN"
+                    groupByFields: ["resource.labels.service_name"]
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "Memory Utilization (%)"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 6
+        height: 4
+        position:
+          x: 6
+          y: 4
+
+      # CPU Usage
+      - title: "CPU Usage"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'resource.type="cloud_run_revision" AND metric.type="run.googleapis.com/container/cpu/utilizations"'
+                  aggregation:
+                    alignmentPeriod: "60s"
+                    perSeriesAligner: "ALIGN_MEAN"
+                    crossSeriesReducer: "REDUCE_MEAN"
+                    groupByFields: ["resource.labels.service_name"]
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "CPU Utilization (%)"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 6
+        height: 4
+        position:
+          x: 0
+          y: 8
+
+      # Active Instances
+      - title: "Active Instances"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'resource.type="cloud_run_revision" AND metric.type="run.googleapis.com/container/instance_count"'
+                  aggregation:
+                    alignmentPeriod: "60s"
+                    perSeriesAligner: "ALIGN_MEAN"
+                    crossSeriesReducer: "REDUCE_MEAN"
+                    groupByFields: ["resource.labels.service_name"]
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "Instance Count"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 6
+        height: 4
+        position:
+          x: 6
+          y: 8
+
+      # Vertex AI Usage
+      - title: "Vertex AI API Usage"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'resource.type="aiplatform.googleapis.com/Endpoint" AND metric.type="aiplatform.googleapis.com/prediction/request_count"'
+                  aggregation:
+                    alignmentPeriod: "300s"
+                    perSeriesAligner: "ALIGN_RATE"
+                    crossSeriesReducer: "REDUCE_SUM"
+                    groupByFields: ["metric.labels.model"]
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "Requests/sec"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 12
+        height: 4
+        position:
+          x: 0
+          y: 12
+
+      # Firestore Operations
+      - title: "Firestore Operations"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'resource.type="firestore_database" AND metric.type="firestore.googleapis.com/api/request_count"'
+                  aggregation:
+                    alignmentPeriod: "300s"
+                    perSeriesAligner: "ALIGN_RATE"
+                    crossSeriesReducer: "REDUCE_SUM"
+                    groupByFields: ["metric.labels.method"]
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "Operations/sec"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 6
+        height: 4
+        position:
+          x: 0
+          y: 16
+
+      # Cloud Storage Operations
+      - title: "Cloud Storage Operations"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'resource.type="gcs_bucket" AND metric.type="storage.googleapis.com/api/request_count"'
+                  aggregation:
+                    alignmentPeriod: "300s"
+                    perSeriesAligner: "ALIGN_RATE"
+                    crossSeriesReducer: "REDUCE_SUM"
+                    groupByFields: ["metric.labels.method"]
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "Operations/sec"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 6
+        height: 4
+        position:
+          x: 6
+          y: 16
+
+      # Pub/Sub Message Throughput
+      - title: "Pub/Sub Message Throughput"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'resource.type="pubsub_subscription" AND metric.type="pubsub.googleapis.com/subscription/num_undelivered_messages"'
+                  aggregation:
+                    alignmentPeriod: "60s"
+                    perSeriesAligner: "ALIGN_MEAN"
+                    crossSeriesReducer: "REDUCE_SUM"
+                    groupByFields: ["resource.labels.subscription_id"]
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "Undelivered Messages"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 6
+        height: 4
+        position:
+          x: 0
+          y: 20
+
+      # Cloud Tasks Queue Depth
+      - title: "Cloud Tasks Queue Depth"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'resource.type="cloud_tasks_queue" AND metric.type="cloudtasks.googleapis.com/queue/depth"'
+                  aggregation:
+                    alignmentPeriod: "60s"
+                    perSeriesAligner: "ALIGN_MEAN"
+                    crossSeriesReducer: "REDUCE_SUM"
+                    groupByFields: ["resource.labels.queue_id"]
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "Queue Depth"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 6
+        height: 4
+        position:
+          x: 6
+          y: 20
+
+      # Business Metrics
+      - title: "Analysis Sessions Created"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'metric.type="custom.googleapis.com/validatus/analysis_sessions_created"'
+                  aggregation:
+                    alignmentPeriod: "3600s"
+                    perSeriesAligner: "ALIGN_RATE"
+                    crossSeriesReducer: "REDUCE_SUM"
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "Sessions/hour"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 4
+        height: 4
+        position:
+          x: 0
+          y: 24
+
+      - title: "Topics Created"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'metric.type="custom.googleapis.com/validatus/topics_created"'
+                  aggregation:
+                    alignmentPeriod: "3600s"
+                    perSeriesAligner: "ALIGN_RATE"
+                    crossSeriesReducer: "REDUCE_SUM"
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "Topics/hour"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 4
+        height: 4
+        position:
+          x: 4
+          y: 24
+
+      - title: "Content Quality Scores"
+        xyChart:
+          dataSets:
+            - timeSeriesQuery:
+                timeSeriesFilter:
+                  filter: 'metric.type="custom.googleapis.com/validatus/content_quality_scores"'
+                  aggregation:
+                    alignmentPeriod: "300s"
+                    perSeriesAligner: "ALIGN_MEAN"
+                    crossSeriesReducer: "REDUCE_MEAN"
+          timeshiftDuration: "0s"
+          yAxis:
+            label: "Average Quality Score"
+            scale: "LINEAR"
+          chartOptions:
+            mode: "COLOR"
+        width: 4
+        height: 4
+        position:
+          x: 8
+          y: 24
+
+      # Alert Status
+      - title: "Alert Status"
+        alertChart:
+          name: "projects/validatus-prod/alertPolicies/validatus-critical-alerts"
+        width: 12
+        height: 4
+        position:
+          x: 0
+          y: 28
+
+# Alert Policies Configuration
+alertPolicies:
+  - displayName: "High Error Rate"
+    documentation:
+      content: "Alert when error rate exceeds 5% for any endpoint"
+      mimeType: "text/markdown"
+    conditions:
+      - displayName: "Error rate condition"
+        conditionThreshold:
+          filter: 'resource.type="cloud_run_revision" AND metric.type="run.googleapis.com/request_count" AND metric.labels.response_code_class!="2xx"'
+          comparison: "COMPARISON_GREATER_THAN"
+          thresholdValue: 0.05
+          duration: "300s"
+          aggregations:
+            - alignmentPeriod: "60s"
+              perSeriesAligner: "ALIGN_RATE"
+              crossSeriesReducer: "REDUCE_MEAN"
+              groupByFields: ["metric.labels.route"]
+    combiner: "OR"
+    enabled: true
+    notificationChannels:
+      - "projects/validatus-prod/notificationChannels/email-alerts"
+      - "projects/validatus-prod/notificationChannels/slack-alerts"
+
+  - displayName: "High Response Time"
+    documentation:
+      content: "Alert when 95th percentile response time exceeds 5 seconds"
+      mimeType: "text/markdown"
+    conditions:
+      - displayName: "Response time condition"
+        conditionThreshold:
+          filter: 'resource.type="cloud_run_revision" AND metric.type="run.googleapis.com/request_latencies"'
+          comparison: "COMPARISON_GREATER_THAN"
+          thresholdValue: 5000
+          duration: "300s"
+          aggregations:
+            - alignmentPeriod: "60s"
+              perSeriesAligner: "ALIGN_PERCENTILE_95"
+              crossSeriesReducer: "REDUCE_MEAN"
+    combiner: "OR"
+    enabled: true
+    notificationChannels:
+      - "projects/validatus-prod/notificationChannels/email-alerts"
+
+  - displayName: "High Memory Usage"
+    documentation:
+      content: "Alert when memory utilization exceeds 90%"
+      mimeType: "text/markdown"
+    conditions:
+      - displayName: "Memory usage condition"
+        conditionThreshold:
+          filter: 'resource.type="cloud_run_revision" AND metric.type="run.googleapis.com/container/memory/utilizations"'
+          comparison: "COMPARISON_GREATER_THAN"
+          thresholdValue: 0.9
+          duration: "300s"
+          aggregations:
+            - alignmentPeriod: "60s"
+              perSeriesAligner: "ALIGN_MEAN"
+              crossSeriesReducer: "REDUCE_MEAN"
+    combiner: "OR"
+    enabled: true
+    notificationChannels:
+      - "projects/validatus-prod/notificationChannels/email-alerts"
+
+  - displayName: "Analysis Session Failures"
+    documentation:
+      content: "Alert when analysis session failure rate exceeds 10%"
+      mimeType: "text/markdown"
+    conditions:
+      - displayName: "Analysis failure condition"
+        conditionThreshold:
+          filter: 'metric.type="custom.googleapis.com/validatus/analysis_session_failures"'
+          comparison: "COMPARISON_GREATER_THAN"
+          thresholdValue: 0.1
+          duration: "600s"
+          aggregations:
+            - alignmentPeriod: "300s"
+              perSeriesAligner: "ALIGN_RATE"
+              crossSeriesReducer: "REDUCE_MEAN"
+    combiner: "OR"
+    enabled: true
+    notificationChannels:
+      - "projects/validatus-prod/notificationChannels/email-alerts"
+      - "projects/validatus-prod/notificationChannels/slack-alerts"
+
+# Custom Metrics Configuration
+customMetrics:
+  - metricType: "custom.googleapis.com/validatus/analysis_sessions_created"
+    metricKind: "COUNTER"
+    valueType: "INT64"
+    description: "Number of analysis sessions created"
+    displayName: "Analysis Sessions Created"
+    unit: "1"
+
+  - metricType: "custom.googleapis.com/validatus/topics_created"
+    metricKind: "COUNTER"
+    valueType: "INT64"
+    description: "Number of topics created"
+    displayName: "Topics Created"
+    unit: "1"
+
+  - metricType: "custom.googleapis.com/validatus/content_quality_scores"
+    metricKind: "GAUGE"
+    valueType: "DOUBLE"
+    description: "Average content quality scores"
+    displayName: "Content Quality Scores"
+    unit: "1"
+
+  - metricType: "custom.googleapis.com/validatus/analysis_session_failures"
+    metricKind: "COUNTER"
+    valueType: "INT64"
+    description: "Number of failed analysis sessions"
+    displayName: "Analysis Session Failures"
+    unit: "1"
+
+  - metricType: "custom.googleapis.com/validatus/urls_processed"
+    metricKind: "COUNTER"
+    valueType: "INT64"
+    description: "Number of URLs processed"
+    displayName: "URLs Processed"
+    unit: "1"
+
+  - metricType: "custom.googleapis.com/validatus/vector_embeddings_generated"
+    metricKind: "COUNTER"
+    valueType: "INT64"
+    description: "Number of vector embeddings generated"
+    displayName: "Vector Embeddings Generated"
+    unit: "1"
+
+  - metricType: "custom.googleapis.com/validatus/expert_persona_analyses"
+    metricKind: "COUNTER"
+    valueType: "INT64"
+    description: "Number of expert persona analyses performed"
+    displayName: "Expert Persona Analyses"
+    unit: "1"
+
+# Notification Channels Configuration
+notificationChannels:
+  - displayName: "Email Alerts"
+    type: "email"
+    labels:
+      email_address: "alerts@validatus.ai"
+
+  - displayName: "Slack Alerts"
+    type: "slack"
+    labels:
+      channel_name: "#validatus-alerts"
+      webhook_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+
+  - displayName: "PagerDuty Alerts"
+    type: "pagerduty"
+    labels:
+      service_key: "YOUR_PAGERDUTY_SERVICE_KEY"

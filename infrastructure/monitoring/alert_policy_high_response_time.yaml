@@ -1,0 +1,60 @@
+# Alert Policy: High Response Time
+# Triggers when 95th percentile response time exceeds 5 seconds
+
+displayName: "Validatus - High Response Time"
+documentation:
+  content: |
+    # High Response Time Alert
+    
+    This alert triggers when the 95th percentile response time exceeds 5 seconds.
+    
+    ## Threshold
+    - **Condition**: 95th percentile response time > 5 seconds
+    - **Duration**: 5 minutes
+    - **Aggregation**: Mean across all instances
+    
+    ## Actions
+    1. Check Cloud Run service performance metrics
+    2. Review database query performance
+    3. Analyze Vertex AI API response times
+    4. Check for resource constraints (CPU, memory)
+    
+    ## Resolution
+    - Optimize slow database queries
+    - Scale up service instances
+    - Implement caching for frequently accessed data
+    - Review and optimize AI model inference times
+    - Check for external service dependencies
+  mimeType: "text/markdown"
+
+conditions:
+  - displayName: "Response time condition"
+    conditionThreshold:
+      filter: |
+        resource.type="cloud_run_revision" AND
+        resource.labels.service_name="validatus-backend" AND
+        metric.type="run.googleapis.com/request_latencies"
+      comparison: "COMPARISON_GREATER_THAN"
+      thresholdValue: 5000
+      duration: "300s"
+      aggregations:
+        - alignmentPeriod: "60s"
+          perSeriesAligner: "ALIGN_PERCENTILE_95"
+          crossSeriesReducer: "REDUCE_MEAN"
+          groupByFields:
+            - "metric.labels.route"
+            - "metric.labels.method"
+      trigger:
+        count: 1
+      evaluationMissingData: "EVALUATION_MISSING_DATA_NO_OP"
+
+combiner: "OR"
+enabled: true
+
+alertStrategy:
+  autoClose: "1800s"
+  notificationRateLimit:
+    period: "3600s"
+
+notificationChannels:
+  - "projects/validatus-prod/notificationChannels/email-alerts"

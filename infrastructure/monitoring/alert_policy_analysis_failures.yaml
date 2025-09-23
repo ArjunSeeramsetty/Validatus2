@@ -1,0 +1,58 @@
+# Alert Policy: Analysis Session Failures
+# Triggers when analysis session failure rate exceeds 10%
+
+displayName: "Validatus - Analysis Session Failures"
+documentation:
+  content: |
+    # Analysis Session Failures Alert
+    
+    This alert triggers when the analysis session failure rate exceeds 10%.
+    
+    ## Threshold
+    - **Condition**: Analysis failure rate > 10%
+    - **Duration**: 10 minutes
+    - **Aggregation**: Mean failure rate
+    
+    ## Actions
+    1. Check analysis session logs for error patterns
+    2. Review Vertex AI service availability and quotas
+    3. Verify Firestore database connectivity and performance
+    4. Check for issues with content processing pipelines
+    
+    ## Resolution
+    - Fix identified issues in analysis workflow
+    - Check and increase Vertex AI quotas if needed
+    - Optimize database queries and operations
+    - Review and fix content processing errors
+    - Implement better error handling and retry logic
+  mimeType: "text/markdown"
+
+conditions:
+  - displayName: "Analysis failure condition"
+    conditionThreshold:
+      filter: |
+        resource.type="cloud_run_revision" AND
+        resource.labels.service_name="validatus-backend" AND
+        metric.type="custom.googleapis.com/validatus/analysis_session_failures"
+      comparison: "COMPARISON_GREATER_THAN"
+      thresholdValue: 0.1
+      duration: "600s"
+      aggregations:
+        - alignmentPeriod: "300s"
+          perSeriesAligner: "ALIGN_RATE"
+          crossSeriesReducer: "REDUCE_MEAN"
+      trigger:
+        count: 1
+      evaluationMissingData: "EVALUATION_MISSING_DATA_NO_OP"
+
+combiner: "OR"
+enabled: true
+
+alertStrategy:
+  autoClose: "3600s"
+  notificationRateLimit:
+    period: "7200s"
+
+notificationChannels:
+  - "projects/validatus-prod/notificationChannels/email-alerts"
+  - "projects/validatus-prod/notificationChannels/slack-alerts"

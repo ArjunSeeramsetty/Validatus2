@@ -2,6 +2,8 @@
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.openapi.utils import get_openapi
 from contextlib import asynccontextmanager
 import logging
 from typing import List, Dict, Any, Optional
@@ -67,9 +69,12 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app
 app = FastAPI(
     title="Validatus API",
-    description="AI-powered strategic analysis platform",
+    description="AI-Powered Strategic Analysis Platform - Phase 2 Complete",
     version="3.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
 
 # Configure CORS

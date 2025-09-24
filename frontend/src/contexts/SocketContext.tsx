@@ -1,6 +1,7 @@
 // frontend/src/contexts/SocketContext.tsx
 
 import React, { createContext, useContext } from 'react';
+import { WebSocketProvider } from '../hooks/useWebSocketConnection';
 
 interface SocketContextType {
   isConnected: boolean;
@@ -32,7 +33,14 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
   return (
     <SocketContext.Provider value={value}>
-      {children}
+      <WebSocketProvider
+        url={process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:8000/ws'}
+        autoReconnect={true}
+        maxReconnectAttempts={5}
+        reconnectInterval={3000}
+      >
+        {children}
+      </WebSocketProvider>
     </SocketContext.Provider>
   );
 };

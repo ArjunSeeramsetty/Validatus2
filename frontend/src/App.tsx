@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { SnackbarProvider } from 'notistack';
 import { motion } from 'framer-motion';
 
 // Store and services
@@ -23,6 +24,7 @@ import AnalysisSessionsPage from './pages/AnalysisSessionsPage';
 import AnalysisResultsPage from './pages/AnalysisResultsPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
+import EnhancedAnalyticsPage from './pages/EnhancedAnalyticsPage';
 
 // Protected route component
 import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -37,37 +39,91 @@ const queryClient = new QueryClient({
   },
 });
 
-// Create theme
+// Create theme with dark mode support
 const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: 'dark',
     primary: {
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
+      main: '#1890ff',
+      light: '#40a9ff',
+      dark: '#096dd9',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#52c41a',
+      light: '#73d13d',
+      dark: '#389e0d',
     },
     background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
+      default: '#0f0f23',
+      paper: '#1a1a35',
     },
+    text: {
+      primary: '#e8e8f0',
+      secondary: '#b8b8cc',
+    },
+    divider: '#3d3d56',
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
       fontWeight: 600,
+      color: '#e8e8f0',
     },
     h2: {
       fontWeight: 600,
+      color: '#e8e8f0',
     },
     h3: {
       fontWeight: 600,
+      color: '#e8e8f0',
+    },
+    h4: {
+      fontWeight: 600,
+      color: '#e8e8f0',
+    },
+    h5: {
+      fontWeight: 600,
+      color: '#e8e8f0',
+    },
+    h6: {
+      fontWeight: 600,
+      color: '#e8e8f0',
+    },
+    body1: {
+      color: '#e8e8f0',
+    },
+    body2: {
+      color: '#b8b8cc',
     },
   },
   shape: {
     borderRadius: 8,
+  },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#1a1a35',
+          border: '1px solid #3d3d56',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#1a1a35',
+          border: '1px solid #3d3d56',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 500,
+        },
+      },
+    },
   },
 });
 
@@ -78,8 +134,14 @@ const App: React.FC = () => {
         <QueryClientProvider client={queryClient}>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <AuthProvider>
-              <SocketProvider>
+            <SnackbarProvider 
+              maxSnack={3}
+              anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+              dense
+              preventDuplicate
+            >
+              <AuthProvider>
+                <SocketProvider>
                 <Router>
                   <motion.div
                     initial={{ opacity: 0 }}
@@ -101,6 +163,8 @@ const App: React.FC = () => {
                         <Route path="topics" element={<TopicManagementPage />} />
                         <Route path="analysis" element={<AnalysisSessionsPage />} />
                         <Route path="results/:sessionId" element={<AnalysisResultsPage />} />
+                        <Route path="enhanced-analytics" element={<EnhancedAnalyticsPage />} />
+                        <Route path="enhanced-analytics/:sessionId" element={<EnhancedAnalyticsPage />} />
                         <Route path="settings" element={<SettingsPage />} />
                       </Route>
                       
@@ -109,8 +173,9 @@ const App: React.FC = () => {
                     </Routes>
                   </motion.div>
                 </Router>
-              </SocketProvider>
-            </AuthProvider>
+                </SocketProvider>
+              </AuthProvider>
+            </SnackbarProvider>
           </ThemeProvider>
         </QueryClientProvider>
       </Provider>

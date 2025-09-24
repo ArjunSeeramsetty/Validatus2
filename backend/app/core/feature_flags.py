@@ -18,10 +18,12 @@ class FeatureFlags:
     ACTION_LAYER_CALCULATOR_ENABLED = os.getenv('ENABLE_ACTION_LAYER', 'false').lower() == 'true'
     PATTERN_RECOGNITION_ENABLED = os.getenv('ENABLE_PATTERN_RECOGNITION', 'false').lower() == 'true'
     
-    # Phase C feature flags (for future use)
+    # Phase C feature flags - Data Pipeline Enhancement
     BAYESIAN_PIPELINE_ENABLED = os.getenv('ENABLE_BAYESIAN_PIPELINE', 'false').lower() == 'true'
-    ADVANCED_RAG_ENABLED = os.getenv('ENABLE_ADVANCED_RAG', 'false').lower() == 'true'
+    EVENT_SHOCK_MODELING_ENABLED = os.getenv('ENABLE_EVENT_SHOCK_MODELING', 'false').lower() == 'true'
+    ENHANCED_CONTENT_PROCESSING_ENABLED = os.getenv('ENABLE_ENHANCED_CONTENT_PROCESSING', 'false').lower() == 'true'
     HYBRID_VECTOR_STORE_ENABLED = os.getenv('ENABLE_HYBRID_VECTOR_STORE', 'false').lower() == 'true'
+    ADVANCED_RAG_ENABLED = os.getenv('ENABLE_ADVANCED_RAG', 'false').lower() == 'true'
     
     # Phase D feature flags (for future use)
     ENHANCED_FRONTEND_ENABLED = os.getenv('ENABLE_ENHANCED_FRONTEND', 'false').lower() == 'true'
@@ -53,6 +55,8 @@ class FeatureFlags:
             
             # Phase C flags
             'bayesian_pipeline': cls.BAYESIAN_PIPELINE_ENABLED,
+            'event_shock_modeling': cls.EVENT_SHOCK_MODELING_ENABLED,
+            'enhanced_content_processing': cls.ENHANCED_CONTENT_PROCESSING_ENABLED,
             'advanced_rag': cls.ADVANCED_RAG_ENABLED,
             'hybrid_vector_store': cls.HYBRID_VECTOR_STORE_ENABLED,
             
@@ -83,6 +87,8 @@ class FeatureFlags:
             ]),
             'phase_c': any([
                 cls.BAYESIAN_PIPELINE_ENABLED,
+                cls.EVENT_SHOCK_MODELING_ENABLED,
+                cls.ENHANCED_CONTENT_PROCESSING_ENABLED,
                 cls.ADVANCED_RAG_ENABLED,
                 cls.HYBRID_VECTOR_STORE_ENABLED
             ]),

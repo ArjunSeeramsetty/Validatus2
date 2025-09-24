@@ -51,6 +51,27 @@ except ImportError:
     EnhancedAnalysisSessionManager = None
     logging.warning("Enhanced analytical engines not available - using basic services")
 
+# Phase C imports - Data Pipeline Enhancement
+try:
+    if FeatureFlags.is_phase_enabled('phase_c'):
+        from .services.enhanced_content_processor import EnhancedContentProcessor
+        from .services.enhanced_data_pipeline import BayesianDataBlender, EventShockModeler
+        from .services.enhanced_knowledge import HybridVectorStoreManager
+        from .services.phase_integrated_analysis_session_manager import PhaseIntegratedAnalysisSessionManager
+    else:
+        EnhancedContentProcessor = None
+        BayesianDataBlender = None
+        EventShockModeler = None
+        HybridVectorStoreManager = None
+        PhaseIntegratedAnalysisSessionManager = None
+except ImportError:
+    EnhancedContentProcessor = None
+    BayesianDataBlender = None
+    EventShockModeler = None
+    HybridVectorStoreManager = None
+    PhaseIntegratedAnalysisSessionManager = None
+    logging.warning("Phase C enhanced services not available - using basic services")
+
 try:
     if FeatureFlags.RESULTS_API_ENABLED:
         from .api.v3 import results as results_router
@@ -67,11 +88,12 @@ logger = logging.getLogger(__name__)
 # Global service instances with safe initialization
 core_services = {}
 enhanced_services = {}
+phase_c_services = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan management with gradual service initialization"""
-    global core_services, enhanced_services
+    global core_services, enhanced_services, phase_c_services
     
     # Startup
     logger.info("🚀 Starting Validatus Backend with Phased Service Initialization...")
@@ -120,8 +142,32 @@ async def lifespan(app: FastAPI):
             if EnhancedAnalysisSessionManager:
                 enhanced_services['enhanced_analysis_session_manager'] = EnhancedAnalysisSessionManager()
                 logger.info("✅ Enhanced Analysis Session Manager initialized")
+
+            # Phase 3: Initialize Phase C Services (Feature Flag Controlled)
+            if FeatureFlags.is_phase_enabled('phase_c'):
+                if EnhancedContentProcessor:
+                    phase_c_services['enhanced_content_processor'] = EnhancedContentProcessor()
+                    logger.info("✅ Enhanced Content Processor initialized")
+                
+                if BayesianDataBlender:
+                    phase_c_services['bayesian_data_blender'] = BayesianDataBlender()
+                    logger.info("✅ Bayesian Data Blender initialized")
+                
+                if EventShockModeler:
+                    phase_c_services['event_shock_modeler'] = EventShockModeler()
+                    logger.info("✅ Event Shock Modeler initialized")
+                
+                if HybridVectorStoreManager:
+                    phase_c_services['hybrid_vector_manager'] = HybridVectorStoreManager(
+                        project_id=settings.project_id
+                    )
+                    logger.info("✅ Hybrid Vector Store Manager initialized")
+                
+                if PhaseIntegratedAnalysisSessionManager:
+                    phase_c_services['phase_integrated_session_manager'] = PhaseIntegratedAnalysisSessionManager()
+                    logger.info("✅ Phase-Integrated Analysis Session Manager initialized")
         
-        logger.info(f"✅ All services initialized - Core: {len(core_services)}, Enhanced: {len(enhanced_services)}")
+        logger.info(f"✅ All services initialized - Core: {len(core_services)}, Enhanced: {len(enhanced_services)}, Phase C: {len(phase_c_services)}")
         
     except Exception as e:
         logger.error(f"❌ Failed to initialize services: {e}")
@@ -165,10 +211,16 @@ async def health_check():
     service_status = {
         "core_services": list(core_services.keys()),
         "enhanced_services": list(enhanced_services.keys()),
+        "phase_c_services": list(phase_c_services.keys()),
         "feature_flags": {
             "enhanced_analytics": FeatureFlags.ENHANCED_ANALYTICS_ENABLED,
             "results_manager": FeatureFlags.ANALYSIS_RESULTS_MANAGER_ENABLED,
-            "results_api": FeatureFlags.RESULTS_API_ENABLED
+            "results_api": FeatureFlags.RESULTS_API_ENABLED,
+            "phase_c_enabled": FeatureFlags.is_phase_enabled('phase_c'),
+            "bayesian_pipeline": FeatureFlags.BAYESIAN_PIPELINE_ENABLED,
+            "event_shock_modeling": FeatureFlags.EVENT_SHOCK_MODELING_ENABLED,
+            "enhanced_content_processing": FeatureFlags.ENHANCED_CONTENT_PROCESSING_ENABLED,
+            "hybrid_vector_store": FeatureFlags.HYBRID_VECTOR_STORE_ENABLED
         }
     }
     
@@ -188,9 +240,11 @@ async def get_system_status():
         "system_status": "operational",
         "core_services_count": len(core_services),
         "enhanced_services_count": len(enhanced_services),
+        "phase_c_services_count": len(phase_c_services),
         "available_services": {
             "core": list(core_services.keys()),
-            "enhanced": list(enhanced_services.keys())
+            "enhanced": list(enhanced_services.keys()),
+            "phase_c": list(phase_c_services.keys())
         },
         "feature_flags": FeatureFlags.get_all_flags()
     }
@@ -274,6 +328,49 @@ async def create_analysis_session(
     except Exception as e:
         logger.error(f"Failed to create analysis session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+    # Phase C comprehensive analysis endpoint
+    @app.post("/api/v3/analysis/comprehensive")
+    async def execute_comprehensive_analysis(
+        session_id: str,
+        topic: str,
+        user_id: str,
+        analysis_options: Optional[Dict[str, Any]] = None
+    ):
+        """Execute comprehensive analysis with Phase C enhancements"""
+        try:
+            # Check if Phase C is enabled
+            if not FeatureFlags.is_phase_enabled('phase_c'):
+                raise HTTPException(
+                    status_code=503, 
+                    detail="Phase C comprehensive analysis not enabled"
+                )
+            
+            # Get Phase C session manager
+            phase_c_manager = phase_c_services.get('phase_integrated_session_manager')
+            if not phase_c_manager:
+                raise HTTPException(
+                    status_code=503, 
+                    detail="Phase C session manager not available"
+                )
+            
+            # Execute comprehensive analysis
+            results = await phase_c_manager.execute_comprehensive_analysis(
+                session_id, topic, user_id, analysis_options
+            )
+            
+            return {
+                "success": True,
+                "session_id": session_id,
+                "analysis_type": "comprehensive_phase_c",
+                "results": results,
+                "phases_enabled": results.get('session_metadata', {}).get('phases_enabled', {}),
+                "message": "Comprehensive analysis completed successfully"
+            }
+            
+        except Exception as e:
+            logger.error(f"Comprehensive analysis failed: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
 # Phase B Enhanced Analysis Endpoint
 @app.post("/api/v3/analysis/enhanced")

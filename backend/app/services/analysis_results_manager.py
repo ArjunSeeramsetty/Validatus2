@@ -2,9 +2,14 @@
 
 import asyncio
 import logging
+import io
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timezone
 from dataclasses import dataclass, asdict
+
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from openpyxl import Workbook
 
 from google.cloud import firestore
 from google.cloud import storage
@@ -187,36 +192,92 @@ class AnalysisResultsManager:
             # For now, return a mock PDF export
             # In production, you would use reportlab or similar to generate actual PDF
             filename = f"exports/{user_id}/{results.session_id}/analysis_report.pdf"
-            bucket = self.storage_client.bucket(self.settings.gcp_storage_bucket)
+            bucket = self.storage_client.bucket(f"{self.settings.project_id}-{self.settings.storage_bucket_prefix}")
             blob = bucket.blob(filename)
             
-            # Create a simple text-based PDF content (mock)
-            pdf_content = f"""
-            Validatus Analysis Report
-            Session: {results.session_id}
-            Topic: {results.topic}
-            Generated: {datetime.now(timezone.utc).isoformat()}
+            # Create PDF using reportlab
+            buffer = io.BytesIO()
+            p = canvas.Canvas(buffer, pagesize=letter)
+            width, height = letter
             
-            Overall Score: {results.overall_metrics.get('overall_score', 0):.2f}
-            Confidence: {results.overall_metrics.get('confidence', 0):.2f}
+            # Title
+            p.setFont("Helvetica-Bold", 16)
+            p.drawString(100, height - 100, "Validatus Analysis Report")
             
-            Layer Scores:
-            {chr(10).join([f"- {score.layer_name}: {score.score:.2f}" for score in results.layer_scores])}
+            # Session info
+            p.setFont("Helvetica", 12)
+            p.drawString(100, height - 140, f"Session: {results.session_id}")
+            p.drawString(100, height - 160, f"Topic: {results.topic}")
+            p.drawString(100, height - 180, f"Generated: {datetime.now(timezone.utc).isoformat()}")
             
-            Key Insights:
-            {chr(10).join([f"- {insight}" for insight in results.insights[:5]])}
+            # Overall metrics
+            y_pos = height - 220
+            p.setFont("Helvetica-Bold", 14)
+            p.drawString(100, y_pos, "Overall Metrics")
             
-            Recommendations:
-            {chr(10).join([f"- {rec}" for rec in results.recommendations[:5]])}
-            """
+            y_pos -= 30
+            p.setFont("Helvetica", 12)
+            overall_score = results.overall_metrics.get('overall_score', 0)
+            confidence = results.overall_metrics.get('confidence', 0)
+            p.drawString(120, y_pos, f"Overall Score: {overall_score:.2f}")
+            y_pos -= 20
+            p.drawString(120, y_pos, f"Confidence: {confidence:.2f}")
             
-            blob.upload_from_string(pdf_content, content_type='application/pdf')
+            # Layer scores
+            y_pos -= 40
+            p.setFont("Helvetica-Bold", 14)
+            p.drawString(100, y_pos, "Layer Scores")
+            
+            y_pos -= 30
+            p.setFont("Helvetica", 12)
+            for score in results.layer_scores[:10]:  # Limit to first 10
+                if y_pos < 100:  # Start new page if needed
+                    p.showPage()
+                    y_pos = height - 100
+                p.drawString(120, y_pos, f"{score.layer_name}: {score.score:.2f}")
+                y_pos -= 20
+            
+            # Key insights
+            y_pos -= 40
+            p.setFont("Helvetica-Bold", 14)
+            p.drawString(100, y_pos, "Key Insights")
+            
+            y_pos -= 30
+            p.setFont("Helvetica", 12)
+            for insight in results.insights[:5]:
+                if y_pos < 100:
+                    p.showPage()
+                    y_pos = height - 100
+                p.drawString(120, y_pos, f"• {insight}")
+                y_pos -= 20
+            
+            # Recommendations
+            y_pos -= 40
+            p.setFont("Helvetica-Bold", 14)
+            p.drawString(100, y_pos, "Recommendations")
+            
+            y_pos -= 30
+            p.setFont("Helvetica", 12)
+            for rec in results.recommendations[:5]:
+                if y_pos < 100:
+                    p.showPage()
+                    y_pos = height - 100
+                p.drawString(120, y_pos, f"• {rec}")
+                y_pos -= 20
+            
+            p.save()
+            buffer.seek(0)
+            
+            # Upload to GCS
+            blob.upload_from_file(buffer, content_type='application/pdf')
+            
+            size = buffer.getbuffer().nbytes
             
             return {
                 'format': 'pdf',
                 'filename': filename,
                 'download_url': blob.public_url,
-                'size': len(pdf_content),
+                'size': size,
                 'created_at': datetime.now(timezone.utc).isoformat()
             }
             
@@ -230,18 +291,56 @@ class AnalysisResultsManager:
             # For now, return a mock Excel export
             # In production, you would use openpyxl to create actual Excel files
             filename = f"exports/{user_id}/{results.session_id}/analysis_data.xlsx"
-            bucket = self.storage_client.bucket(self.settings.gcp_storage_bucket)
+            bucket = self.storage_client.bucket(f"{self.settings.project_id}-{self.settings.storage_bucket_prefix}")
             blob = bucket.blob(filename)
             
-            # Create mock Excel content
-            excel_content = f"Session,{results.session_id}\nTopic,{results.topic}\nGenerated,{datetime.now(timezone.utc).isoformat()}\n"
-            blob.upload_from_string(excel_content, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            # Create Excel file using openpyxl
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Analysis Results"
+            
+            # Add session metadata
+            ws['A1'] = 'Session ID'
+            ws['B1'] = results.session_id
+            ws['A2'] = 'Topic'
+            ws['B2'] = results.topic
+            ws['A3'] = 'Generated'
+            ws['B3'] = datetime.now(timezone.utc).isoformat()
+            
+            # Add layer scores
+            ws['A5'] = 'Layer Scores'
+            ws['A6'] = 'Layer Name'
+            ws['B6'] = 'Score'
+            ws['C6'] = 'Confidence'
+            
+            row = 7
+            for score in results.layer_scores:
+                ws[f'A{row}'] = score.layer_name
+                ws[f'B{row}'] = score.score
+                ws[f'C{row}'] = score.confidence
+                row += 1
+            
+            # Add insights
+            ws[f'A{row+1}'] = 'Key Insights'
+            row += 2
+            for insight in results.insights:
+                ws[f'A{row}'] = insight
+                row += 1
+            
+            # Save to buffer
+            buffer = io.BytesIO()
+            wb.save(buffer)
+            buffer.seek(0)
+            
+            # Upload to GCS
+            blob.upload_from_file(buffer, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            size = buffer.getbuffer().nbytes
             
             return {
                 'format': 'excel',
                 'filename': filename,
                 'download_url': blob.public_url,
-                'size': len(excel_content),
+                'size': size,
                 'created_at': datetime.now(timezone.utc).isoformat()
             }
             
@@ -272,7 +371,7 @@ class AnalysisResultsManager:
             
             # Store in Cloud Storage
             filename = f"exports/{user_id}/{results.session_id}/analysis_results.json"
-            bucket = self.storage_client.bucket(self.settings.gcp_storage_bucket)
+            bucket = self.storage_client.bucket(f"{self.settings.project_id}-{self.settings.storage_bucket_prefix}")
             blob = bucket.blob(filename)
             
             import json

@@ -498,8 +498,9 @@ class PDFFormulaEngine:
         steps.append({"step": "maturity_data", "stage": maturity_stage, "adoption": adoption_rate})
         
         # Optimal maturity is growth stage (stage 2)
-        stage_scores = [0.3, 0.6, 1.0, 0.7, 0.4]  # Introduction, Growth, Maturity, Decline, Decline
-        stage_score = stage_scores[min(4, max(0, int(maturity_stage)))]
+        stage_scores = [0.3, 0.6, 1.0, 0.7, 0.4]  # Introduction, Growth, Maturity, Saturation, Decline
+        index = max(0, min(len(stage_scores) - 1, int(maturity_stage)))
+        stage_score = stage_scores[index]
         
         raw_score = (stage_score * 0.7) + (adoption_rate * 0.3)
         steps.append({"step": "calculation", "stage_score": stage_score, "raw_score": raw_score})

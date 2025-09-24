@@ -2,7 +2,8 @@
 
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
 from fastapi.responses import StreamingResponse
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Literal
+from pydantic import BaseModel
 import logging
 
 from ...services.analysis_results_manager import AnalysisResultsManager
@@ -14,6 +15,11 @@ logger = logging.getLogger(__name__)
 
 results_manager = AnalysisResultsManager()
 session_manager = AnalysisSessionManager()
+
+class ExportRequest(BaseModel):
+    """Export request model for analysis results"""
+    format: Literal['json', 'csv', 'pdf', 'excel'] = 'json'
+    user_id: str
 
 @router.get("/sessions/{session_id}/complete")
 @performance_monitor
@@ -27,8 +33,8 @@ async def get_complete_analysis_results(session_id: str):
             "results": results
         }
     except Exception as e:
-        logger.error(f"Failed to get complete results: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to get complete results")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/dashboard/{user_id}")
 @performance_monitor
@@ -51,20 +57,20 @@ async def get_dashboard_summary(
             "total_count": len(summaries)
         }
     except Exception as e:
-        logger.error(f"Failed to get dashboard summary: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to get dashboard summary")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/sessions/{session_id}/export")
 @performance_monitor
 async def export_analysis_results(
     session_id: str,
-    export_request: dict,
+    export_request: ExportRequest,
     background_tasks: BackgroundTasks
 ):
     """Export analysis results in specified format"""
     try:
-        format_type = export_request.get('format', 'json').lower()
-        user_id = export_request.get('user_id')
+        format_type = export_request.format.lower()
+        user_id = export_request.user_id
         
         if not user_id:
             raise HTTPException(status_code=400, detail="User ID required")
@@ -83,8 +89,8 @@ async def export_analysis_results(
             "message": "Export process initiated"
         }
     except Exception as e:
-        logger.error(f"Failed to initiate export: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to initiate export")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/sessions/{session_id}/progress")
 @performance_monitor
@@ -97,8 +103,8 @@ async def get_real_time_progress(session_id: str):
             "progress": progress
         }
     except Exception as e:
-        logger.error(f"Failed to get progress: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to get progress")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/analytics/trends")
 @performance_monitor
@@ -128,5 +134,5 @@ async def get_analytics_trends(
             "timeframe": timeframe
         }
     except Exception as e:
-        logger.error(f"Failed to get analytics trends: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to get analytics trends")
+        raise HTTPException(status_code=500, detail="Internal server error")

@@ -94,13 +94,21 @@ class GCPURLOrchestrator:
         self.region = region
         self.settings = GCPSettings()
         
-        # Initialize GCP clients
-        self._init_gcp_clients()
+        # Check if running in local development mode
+        # Only use local dev mode if explicitly set, not just because service account key is missing
+        self.local_dev_mode = self.settings.local_development_mode
         
-        # Configuration
-        self.bucket_name = f"{project_id}-validatus-scraping"
-        self.task_queue_name = "url-scraping-queue"
-        self.pubsub_topic = "url-scraping-results"
+        if self.local_dev_mode:
+            logger.info("Running GCPURLOrchestrator in local development mode")
+            self._init_local_dev_mode()
+        else:
+            # Configuration
+            self.bucket_name = f"{project_id}-validatus-scraping"
+            self.task_queue_name = "url-scraping-queue"
+            self.pubsub_topic = "url-scraping-results"
+            
+            # Initialize GCP clients
+            self._init_gcp_clients()
         
         # Rate limiting
         self.max_concurrent_requests = 50  # Increased for GCP
@@ -110,8 +118,26 @@ class GCPURLOrchestrator:
         self.min_word_count = 100
         self.min_quality_score = 0.3
         
-        # Ensure infrastructure
-        self._ensure_gcp_infrastructure()
+        if not self.local_dev_mode:
+            # Ensure infrastructure
+            self._ensure_gcp_infrastructure()
+    
+    def _init_local_dev_mode(self):
+        """Initialize for local development mode"""
+        logger.info("Initializing local development mode - using mock implementations")
+        
+        # Mock clients for local development
+        self.storage_client = None
+        self.tasks_client = None
+        self.publisher = None
+        self.monitoring_client = None
+        
+        # Configuration (not used in local mode)
+        self.bucket_name = "local-validatus-scraping"
+        self.task_queue_name = "local-url-scraping-queue"
+        self.pubsub_topic = "local-url-scraping-results"
+        
+        logger.info("Local development mode initialized successfully")
     
     def _init_gcp_clients(self):
         """Initialize GCP service clients"""

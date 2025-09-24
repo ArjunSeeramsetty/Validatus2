@@ -1,4 +1,6 @@
 // frontend/src/contexts/AuthContext.tsx
+// DEMO ONLY - This file contains demo authentication logic for development/testing purposes
+// In production, replace with secure server-side authentication using HttpOnly cookies and Authorization Code + PKCE
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
@@ -35,8 +37,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check for stored auth token
-    const token = localStorage.getItem('auth_token');
+    // DEMO ONLY - Check for stored auth token
+    // In production, this should use secure HttpOnly cookies and server-side session validation
+    const token = sessionStorage.getItem('demo_auth_token'); // Use sessionStorage with short lifetime for demo
     if (token) {
       // Mock user for demo
       setUser({
@@ -50,7 +53,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Mock login for demo
+    // DEMO ONLY - Mock login for demo
+    // In production, this should call backend auth endpoint with Authorization Code + PKCE
     const mockUser = {
       id: '1',
       email,
@@ -58,13 +62,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       role: 'analyst'
     };
     
-    localStorage.setItem('auth_token', 'mock_token');
+    sessionStorage.setItem('demo_auth_token', 'mock_token'); // Use sessionStorage for demo
     setUser(mockUser);
     setIsAuthenticated(true);
   };
 
   const logout = () => {
-    localStorage.removeItem('auth_token');
+    sessionStorage.removeItem('demo_auth_token'); // Use sessionStorage for demo
     setUser(null);
     setIsAuthenticated(false);
   };

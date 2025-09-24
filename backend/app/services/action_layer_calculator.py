@@ -341,15 +341,17 @@ class ActionLayerCalculator:
             elif factor_requirement.endswith('_factors'):
                 # Category reference (e.g., 'market_factors')
                 category_prefix = factor_requirement.replace('_factors', '')
-                if category_prefix == 'market':
-                    category_factors = {k: v for k, v in pdf_results.factor_results.items() if k.startswith(('F1_', 'F2_', 'F3_', 'F4_', 'F5_', 'F6_', 'F7_'))}
-                elif category_prefix == 'product':
-                    category_factors = {k: v for k, v in pdf_results.factor_results.items() if k.startswith(('F8_', 'F9_', 'F10_', 'F11_', 'F12_', 'F13_', 'F14_'))}
-                elif category_prefix == 'financial':
-                    category_factors = {k: v for k, v in pdf_results.factor_results.items() if k.startswith(('F15_', 'F16_', 'F17_', 'F18_', 'F19_', 'F20_', 'F21_'))}
-                elif category_prefix == 'strategic':
-                    category_factors = {k: v for k, v in pdf_results.factor_results.items() if k.startswith(('F22_', 'F23_', 'F24_', 'F25_', 'F26_', 'F27_', 'F28_'))}
                 
+                # Category prefix mapping
+                category_prefix_map = {
+                    'market': ('F1_', 'F2_', 'F3_', 'F4_', 'F5_', 'F6_', 'F7_'),
+                    'product': ('F8_', 'F9_', 'F10_', 'F11_', 'F12_', 'F13_', 'F14_'),
+                    'financial': ('F15_', 'F16_', 'F17_', 'F18_', 'F19_', 'F20_', 'F21_'),
+                    'strategic': ('F22_', 'F23_', 'F24_', 'F25_', 'F26_', 'F27_', 'F28_')
+                }
+                
+                prefix_tuple = category_prefix_map.get(category_prefix, ())
+                category_factors = {k: v for k, v in pdf_results.factor_results.items() if k.startswith(prefix_tuple)}
                 relevant_factors.update(category_factors)
             elif factor_requirement in ['strengths', 'weaknesses', 'opportunities', 'threats']:
                 # SWOT component - derive from existing action layer scores
@@ -654,10 +656,50 @@ class ActionLayerCalculator:
         risk_assessment = {}
         
         # Extract risk-related scores
-        financial_risk = 1.0 - layer_results.get('Financial_Health_Score', ActionLayerResult('', ActionLayerCategory.FINANCIAL, 0.5, 0.5, [], '', [], [], {})).score
-        market_risk = 1.0 - layer_results.get('Market_Attractiveness_Score', ActionLayerResult('', ActionLayerCategory.MARKET, 0.5, 0.5, [], '', [], [], {})).score
-        operational_risk = 1.0 - layer_results.get('Operational_Excellence_Score', ActionLayerResult('', ActionLayerCategory.OPERATIONAL, 0.5, 0.5, [], '', [], [], {})).score
-        strategic_risk = 1.0 - layer_results.get('Strategic_Position_Score', ActionLayerResult('', ActionLayerCategory.STRATEGIC, 0.5, 0.5, [], '', [], [], {})).score
+        financial_risk = 1.0 - layer_results.get('Financial_Health_Score', ActionLayerResult(
+            layer_name="Financial_Health_Score", 
+            category=ActionLayerCategory.FINANCIAL, 
+            score=0.5, 
+            confidence=0.5, 
+            recommendations=[], 
+            description='', 
+            influences=[], 
+            links=[], 
+            metadata={}
+        )).score
+        market_risk = 1.0 - layer_results.get('Market_Attractiveness_Score', ActionLayerResult(
+            layer_name="Market_Attractiveness_Score", 
+            category=ActionLayerCategory.MARKET, 
+            score=0.5, 
+            confidence=0.5, 
+            recommendations=[], 
+            description='', 
+            influences=[], 
+            links=[], 
+            metadata={}
+        )).score
+        operational_risk = 1.0 - layer_results.get('Operational_Excellence_Score', ActionLayerResult(
+            layer_name="Operational_Excellence_Score", 
+            category=ActionLayerCategory.OPERATIONAL, 
+            score=0.5, 
+            confidence=0.5, 
+            recommendations=[], 
+            description='', 
+            influences=[], 
+            links=[], 
+            metadata={}
+        )).score
+        strategic_risk = 1.0 - layer_results.get('Strategic_Position_Score', ActionLayerResult(
+            layer_name="Strategic_Position_Score", 
+            category=ActionLayerCategory.STRATEGIC, 
+            score=0.5, 
+            confidence=0.5, 
+            recommendations=[], 
+            description='', 
+            influences=[], 
+            links=[], 
+            metadata={}
+        )).score
         
         risk_assessment['financial_risk'] = financial_risk
         risk_assessment['market_risk'] = market_risk

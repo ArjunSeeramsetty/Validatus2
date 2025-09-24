@@ -31,6 +31,13 @@ logger = logging.getLogger(__name__)
 class AnalysisSessionManager:
     """Manages the complete lifecycle of strategic analysis sessions"""
     
+    # Default market data constants
+    DEFAULT_TAM_MULTIPLIER = 1_000_000_000
+    DEFAULT_GROWTH_RATE_MULTIPLIER = 20
+    DEFAULT_MARKET_PENETRATION = 0.3
+    DEFAULT_MATURITY_STAGE = 2.0
+    DEFAULT_TECH_ADOPTION_RATE = 0.2
+    
     def __init__(self):
         self.settings = GCPSettings()
         self.firestore_client = firestore.Client()
@@ -46,9 +53,23 @@ class AnalysisSessionManager:
         
         # Pub/Sub topic for analysis progress events
         self.analysis_topic = self.publisher.topic_path(
-            self.settings.gcp_project_id, 
+            self.settings.project_id, 
             "validatus-analysis-events"
         )
+    
+    def _get_factor_score(self, factor_results: Dict[str, Any], factor_key: str, default: float = 0.5) -> float:
+        """Helper function to safely extract normalized_score from factor results"""
+        try:
+            if factor_key in factor_results:
+                factor_result = factor_results[factor_key]
+                if hasattr(factor_result, 'normalized_score'):
+                    return factor_result.normalized_score
+                elif isinstance(factor_result, dict) and 'normalized_score' in factor_result:
+                    return factor_result['normalized_score']
+            return default
+        except (AttributeError, KeyError, TypeError):
+            logger.warning(f"Failed to extract normalized_score for {factor_key}, using default {default}")
+            return default
         
     @performance_monitor
     async def create_analysis_session(self, 
@@ -694,11 +715,11 @@ class AnalysisSessionManager:
         
         # Add default values for required PDF formula inputs
         market_data.update({
-            'total_addressable_market': market_data.get('market_size_score', 0.5) * 1000000000,
-            'market_growth_rate': market_data.get('growth_score', 0.1) * 20,
-            'market_penetration': market_data.get('penetration_score', 0.3),
-            'maturity_stage': market_data.get('maturity_score', 2.0),
-            'technology_adoption_rate': market_data.get('tech_adoption_score', 0.2)
+            'total_addressable_market': market_data.get('market_size_score', 0.5) * self.DEFAULT_TAM_MULTIPLIER,
+            'market_growth_rate': market_data.get('growth_score', 0.1) * self.DEFAULT_GROWTH_RATE_MULTIPLIER,
+            'market_penetration': market_data.get('penetration_score', self.DEFAULT_MARKET_PENETRATION),
+            'maturity_stage': market_data.get('maturity_score', self.DEFAULT_MATURITY_STAGE),
+            'technology_adoption_rate': market_data.get('tech_adoption_score', self.DEFAULT_TECH_ADOPTION_RATE)
         })
         
         competitive_data.update({
@@ -740,15 +761,31 @@ class AnalysisSessionManager:
     async def _get_topic_documents(self, session_id: str) -> List[str]:
         """Get topic documents for pattern analysis"""
         try:
-            # Simplified implementation - return sample documents
-            return [
-                "Market analysis shows strong growth potential in the technology sector",
-                "Competitive landscape is evolving with new entrants and innovation",
-                "Financial performance indicates positive trends in profitability",
-                "Operational efficiency improvements are driving cost reductions"
-            ]
+            # Query Firestore for session documents
+            session_doc = self.firestore_client.collection('analysis_sessions').document(session_id).get()
+            if not session_doc.exists:
+                logger.warning(f"Session {session_id} not found in Firestore")
+                return []
+            
+            session_data = session_doc.to_dict()
+            topic = session_data.get('topic', '')
+            
+            # Query documents collection for this topic
+            docs_query = self.firestore_client.collection('topic_documents').where('topic', '==', topic).limit(100)
+            docs = docs_query.stream()
+            
+            document_contents = []
+            for doc in docs:
+                doc_data = doc.to_dict()
+                content = doc_data.get('content', '')
+                if content:
+                    document_contents.append(content)
+            
+            logger.info(f"Retrieved {len(document_contents)} documents for session {session_id}")
+            return document_contents
+            
         except Exception as e:
-            logger.error(f"Failed to get topic documents: {e}")
+            logger.error(f"Failed to get topic documents for session {session_id}: {e}")
             return []
 
     def _prepare_pattern_context(self, session_id: str, pdf_results: PDFAnalysisResult, action_analysis: ActionLayerAnalysis) -> Dict[str, Any]:
@@ -756,12 +793,12 @@ class AnalysisSessionManager:
         
         return {
             'session_id': session_id,
-            'market_size': pdf_results.factor_results.get('F1_market_size', type('obj', (object,), {'normalized_score': 0.5})).normalized_score,
-            'market_growth_rate': pdf_results.factor_results.get('F2_market_growth', type('obj', (object,), {'normalized_score': 0.1})).normalized_score,
+            'market_size': self._get_factor_score(pdf_results.factor_results, 'F1_market_size', 0.5),
+            'market_growth_rate': self._get_factor_score(pdf_results.factor_results, 'F2_market_growth', 0.1),
             'market_penetration': 0.3,
-            'competitive_intensity': pdf_results.factor_results.get('F4_competitive_intensity', type('obj', (object,), {'normalized_score': 0.5})).normalized_score,
-            'technology_adoption': pdf_results.factor_results.get('F9_innovation_capability', type('obj', (object,), {'normalized_score': 0.2})).normalized_score,
-            'innovation_rate': pdf_results.factor_results.get('F9_innovation_capability', type('obj', (object,), {'normalized_score': 0.3})).normalized_score,
+            'competitive_intensity': self._get_factor_score(pdf_results.factor_results, 'F4_competitive_intensity', 0.5),
+            'technology_adoption': self._get_factor_score(pdf_results.factor_results, 'F9_innovation_capability', 0.2),
+            'innovation_rate': self._get_factor_score(pdf_results.factor_results, 'F9_innovation_capability', 0.3),
             'margin_trend': 'improving',
             'regulatory_environment': 'moderate',
             'overall_confidence': pdf_results.overall_confidence,

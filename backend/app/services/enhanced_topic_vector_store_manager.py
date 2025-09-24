@@ -30,7 +30,7 @@ class EnhancedTopicVectorStoreManager:
         self.settings = GCPSettings()
         self.embeddings = VertexAIEmbeddings(
             model_name="text-embedding-004",
-            project=self.settings.gcp_project_id
+            project=self.settings.project_id
         )
         self.quality_analyzer = ContentQualityAnalyzer()
         self.classification_service = TopicClassificationService()
@@ -299,12 +299,12 @@ class EnhancedTopicVectorStoreManager:
     async def _create_vertex_ai_index(self, topic: str) -> str:
         """Create Vertex AI Vector Search index for the topic"""
         try:
-            aiplatform.init(project=self.settings.gcp_project_id, 
-                          location=self.settings.gcp_region)
+            aiplatform.init(project=self.settings.project_id, 
+                          location=self.settings.region)
             
             index = aiplatform.MatchingEngineIndex.create_tree_ah_index(
                 display_name=f"validatus-{topic.lower().replace(' ', '-')}",
-                contents_delta_uri=f"gs://{self.settings.gcp_storage_bucket}/indexes/{topic}",
+                contents_delta_uri=f"gs://{self.settings.project_id}-{self.settings.storage_bucket_prefix}/indexes/{topic}",
                 dimensions=768,  # text-embedding-004 dimensions
                 approximate_neighbors_count=50,
                 leaf_node_embedding_count=1000,

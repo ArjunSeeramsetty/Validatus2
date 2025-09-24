@@ -95,9 +95,9 @@ class PatternLibraryMonteCarloEngine:
         # Initialize 41 strategic patterns
         self.pattern_library = self._initialize_pattern_library()
         
-        # Set random seed for reproducible results
-        random.seed(42)
-        np.random.seed(42)
+        # Initialize per-instance random number generators
+        self.rng = np.random.default_rng(42)
+        self.py_rng = random.Random(42)
 
     def _initialize_pattern_library(self) -> Dict[str, PatternDefinition]:
         """Initialize all 41 strategic pattern definitions"""
@@ -379,28 +379,28 @@ class PatternLibraryMonteCarloEngine:
             # Generate samples based on distribution type
             for _ in range(self.simulation_iterations):
                 if distribution == 'triangular':
-                    sample = np.random.triangular(
+                    sample = self.rng.triangular(
                         sim_params.get('min', 0.2),
                         sim_params.get('mode', 0.5),
                         sim_params.get('max', 0.8)
                     )
                 elif distribution == 'normal':
-                    sample = np.random.normal(
+                    sample = self.rng.normal(
                         sim_params.get('mean', 0.5),
                         sim_params.get('std', 0.15)
                     )
                 elif distribution == 'beta':
-                    sample = np.random.beta(
+                    sample = self.rng.beta(
                         sim_params.get('alpha', 2),
                         sim_params.get('beta', 2)
                     ) * sim_params.get('scale', 1.0)
                 elif distribution == 'log_normal':
-                    sample = np.random.lognormal(
+                    sample = self.rng.lognormal(
                         sim_params.get('mu', 0.0),
                         sim_params.get('sigma', 0.3)
                     )
                 else:  # uniform
-                    sample = np.random.uniform(
+                    sample = self.rng.uniform(
                         sim_params.get('min', 0.2),
                         sim_params.get('max', 0.8)
                     )

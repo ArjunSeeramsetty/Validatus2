@@ -1,6 +1,17 @@
 // frontend/src/components/Dashboard/InteractiveDashboard.tsx
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+
+// Type definitions
+interface SelectedFilters {
+  [key: string]: string | number | boolean | string[];
+}
+
+interface Progress {
+  percent: number;
+  status?: string;
+  message?: string;
+}
 import {
   Grid,
   Card,
@@ -49,11 +60,11 @@ const InteractiveDashboard: React.FC<InteractiveDashboardProps> = ({ sessionId }
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
-  const [selectedFilters, setSelectedFilters] = useState<any>({});
+  const [selectedFilters, setSelectedFilters] = useState<SelectedFilters>({});
   
   // Real-time updates
   const [isConnected, setIsConnected] = useState(true);
-  const [progress, setProgress] = useState<any>(null);
+  const [progress, setProgress] = useState<Progress | null>(null);
 
   // Effects
   useEffect(() => {

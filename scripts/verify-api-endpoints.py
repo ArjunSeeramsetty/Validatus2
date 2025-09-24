@@ -9,6 +9,7 @@ import json
 import time
 import asyncio
 import aiohttp
+import urllib.parse
 from typing import Dict, List, Any, Optional
 import logging
 from dataclasses import dataclass
@@ -142,7 +143,11 @@ class APIEndpointVerifier:
             logger.error(f"❌ List topics failed: {result.error_message}")
         
         # Create topic
-        result = self.test_endpoint("POST", f"/api/v3/topics/create?topic=test-verification-topic&urls={','.join(self.sample_urls)}", json=[])
+        topic = "test-verification-topic"
+        urls = ','.join(self.sample_urls)
+        encoded_topic = urllib.parse.quote_plus(topic)
+        encoded_urls = urllib.parse.quote_plus(urls)
+        result = self.test_endpoint("POST", f"/api/v3/topics/create?topic={encoded_topic}&urls={encoded_urls}", json=[])
         self.test_results.append(result)
         
         if result.success:
@@ -153,7 +158,9 @@ class APIEndpointVerifier:
             topic_id = "test-topic"
         
         # Collect URLs
-        result = self.test_endpoint("POST", f"/api/v3/topics/{topic_id}/collect-urls?search_query=artificial intelligence&max_urls=10")
+        search_query = "artificial intelligence"
+        encoded_query = urllib.parse.quote_plus(search_query)
+        result = self.test_endpoint("POST", f"/api/v3/topics/{topic_id}/collect-urls?search_query={encoded_query}&max_urls=10")
         self.test_results.append(result)
         
         if result.success:
@@ -175,7 +182,11 @@ class APIEndpointVerifier:
         logger.info("🔍 Verifying Phase 2 enhanced endpoints...")
         
         # Create enhanced topic
-        result = self.test_endpoint("POST", f"/api/v3/enhanced/topics/create?topic=enhanced-test-topic&urls={','.join(self.sample_urls)}&quality_threshold=0.7", json=[])
+        topic = "enhanced-test-topic"
+        urls = ','.join(self.sample_urls)
+        encoded_topic = urllib.parse.quote_plus(topic)
+        encoded_urls = urllib.parse.quote_plus(urls)
+        result = self.test_endpoint("POST", f"/api/v3/enhanced/topics/create?topic={encoded_topic}&urls={encoded_urls}&quality_threshold=0.7", json=[])
         self.test_results.append(result)
         
         if result.success:
@@ -195,7 +206,9 @@ class APIEndpointVerifier:
             logger.error(f"❌ Get enhanced knowledge failed: {result.error_message}")
         
         # Update enhanced topic
-        result = self.test_endpoint("PUT", f"/api/v3/enhanced/topics/{topic_id}/update?new_urls=https://example.com/new-article&quality_threshold=0.8", json=[])
+        new_urls = "https://example.com/new-article"
+        encoded_new_urls = urllib.parse.quote_plus(new_urls)
+        result = self.test_endpoint("PUT", f"/api/v3/enhanced/topics/{topic_id}/update?new_urls={encoded_new_urls}&quality_threshold=0.8", json=[])
         self.test_results.append(result)
         
         if result.success:
@@ -259,7 +272,13 @@ class APIEndpointVerifier:
         logger.info("🔍 Verifying content processing endpoints...")
         
         # Analyze content quality
-        result = self.test_endpoint("POST", f"/api/v3/content/analyze-quality?content={self.sample_content[:100]}&url=https://example.com/test-article&topic=artificial intelligence")
+        content = self.sample_content[:100]
+        url = "https://example.com/test-article"
+        topic = "artificial intelligence"
+        encoded_content = urllib.parse.quote_plus(content)
+        encoded_url = urllib.parse.quote_plus(url)
+        encoded_topic = urllib.parse.quote_plus(topic)
+        result = self.test_endpoint("POST", f"/api/v3/content/analyze-quality?content={encoded_content}&url={encoded_url}&topic={encoded_topic}")
         self.test_results.append(result)
         
         if result.success:

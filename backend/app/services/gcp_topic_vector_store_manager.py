@@ -68,25 +68,52 @@ class GCPTopicVectorStoreManager:
         self.project_id = project_id or self.settings.project_id
         self.region = region
         
-        # Initialize GCP clients
-        self._init_gcp_clients()
+        # Check if running in local development mode
+        # Only use local dev mode if explicitly set, not just because service account key is missing
+        self.local_dev_mode = self.settings.local_development_mode
         
         # Vector store configuration
         self.embedding_model = "text-embedding-004"  # Latest Vertex AI model
         self.chunk_size = 1000
         self.chunk_overlap = 200
         
-        # Storage paths
-        self.bucket_name = f"{self.project_id}-validatus-topics"
-        self.firestore_collection = "topic_metadata"
+        if self.local_dev_mode:
+            logger.info("Running GCPTopicVectorStoreManager in local development mode")
+            self._init_local_dev_mode()
+        else:
+            # Initialize GCP clients
+            self._init_gcp_clients()
+            
+            # Storage paths
+            self.bucket_name = f"{self.project_id}-validatus-topics"
+            self.firestore_collection = "topic_metadata"
+            
+            # Active stores cache
+            self._topic_stores: Dict[str, Any] = {}
+            self._topic_metadata: Dict[str, GCPTopicMetadata] = {}
+            
+            # Initialize infrastructure
+            self._ensure_gcp_infrastructure()
+            self._load_existing_topics()
+    
+    def _init_local_dev_mode(self):
+        """Initialize for local development mode"""
+        logger.info("Initializing local development mode - using mock implementations")
         
-        # Active stores cache
+        # Mock clients for local development
+        self.storage_client = None
+        self.firestore_client = None
+        self.vertex_client = None
+        
+        # Local storage simulation
         self._topic_stores: Dict[str, Any] = {}
         self._topic_metadata: Dict[str, GCPTopicMetadata] = {}
         
-        # Initialize infrastructure
-        self._ensure_gcp_infrastructure()
-        self._load_existing_topics()
+        # Storage paths (not used in local mode)
+        self.bucket_name = "local-validatus-topics"
+        self.firestore_collection = "topic_metadata"
+        
+        logger.info("Local development mode initialized successfully")
     
     def _init_gcp_clients(self):
         """Initialize Google Cloud service clients"""

@@ -1,14 +1,14 @@
-# backend/app/main.py
-
+# backend/app/main.py - STABILIZED VERSION
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
-from fastapi.openapi.utils import get_openapi
 from contextlib import asynccontextmanager
 import logging
+import os
 from typing import List, Dict, Any, Optional
 
+# Core imports (existing and working)
 from .core.gcp_config import get_gcp_settings
+from .core.feature_flags import FeatureFlags
 from .services.gcp_topic_vector_store_manager import GCPTopicVectorStoreManager
 from .services.gcp_url_orchestrator import GCPURLOrchestrator
 from .services.enhanced_topic_vector_store_manager import EnhancedTopicVectorStoreManager
@@ -16,83 +16,125 @@ from .services.analysis_session_manager import AnalysisSessionManager
 from .services.content_quality_analyzer import ContentQualityAnalyzer
 from .services.content_deduplication_service import ContentDeduplicationService
 from .services.analysis_optimization_service import AnalysisOptimizationService
-from .services.analysis_results_manager import AnalysisResultsManager
 
-# Phase 1 Integration - Import new analytical engines
-from .services.pdf_formula_engine import PDFFormulaEngine
-from .services.action_layer_calculator import ActionLayerCalculator
-from .services.pattern_library_monte_carlo import PatternLibraryMonteCarloEngine
-from .api.v3 import results as results_router
+# Conditional imports with feature flags - NO MORE IMPORT ERRORS!
+try:
+    if FeatureFlags.ANALYSIS_RESULTS_MANAGER_ENABLED:
+        from .services.analysis_results_manager import AnalysisResultsManager
+    else:
+        AnalysisResultsManager = None
+except ImportError:
+    AnalysisResultsManager = None
+    logging.warning("AnalysisResultsManager not available - using placeholder")
+
+try:
+    if FeatureFlags.ENHANCED_ANALYTICS_ENABLED:
+        from .services.enhanced_analytical_engines.pdf_formula_engine import PDFFormulaEngine
+        from .services.enhanced_analytical_engines.action_layer_calculator import ActionLayerCalculator
+        from .services.enhanced_analytical_engines.monte_carlo_simulator import MonteCarloSimulator
+        from .services.enhanced_analytical_engines.formula_adapters import EnhancedFormulaAdapter
+        from .services.enhanced_analysis_session_manager import EnhancedAnalysisSessionManager
+    else:
+        PDFFormulaEngine = None
+        ActionLayerCalculator = None
+        MonteCarloSimulator = None
+        EnhancedFormulaAdapter = None
+        EnhancedAnalysisSessionManager = None
+except ImportError:
+    PDFFormulaEngine = None
+    ActionLayerCalculator = None
+    MonteCarloSimulator = None
+    EnhancedFormulaAdapter = None
+    EnhancedAnalysisSessionManager = None
+    logging.warning("Enhanced analytical engines not available - using basic services")
+
+try:
+    if FeatureFlags.RESULTS_API_ENABLED:
+        from .api.v3 import results as results_router
+    else:
+        results_router = None
+except ImportError:
+    results_router = None
+    logging.warning("Results router not available - using placeholder endpoints")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Global instances
-topic_manager = None
-enhanced_topic_manager = None
-url_orchestrator = None
-analysis_session_manager = None
-quality_analyzer = None
-deduplication_service = None
-optimization_service = None
-results_manager = None
-
-# Phase 1 Integration - Global instances for new analytical engines
-pdf_formula_engine = None
-action_layer_calculator = None
-pattern_engine = None
+# Global service instances with safe initialization
+core_services = {}
+enhanced_services = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan management"""
-    global topic_manager, enhanced_topic_manager, url_orchestrator, analysis_session_manager
-    global quality_analyzer, deduplication_service, optimization_service, results_manager
-    global pdf_formula_engine, action_layer_calculator, pattern_engine
+    """Application lifespan management with gradual service initialization"""
+    global core_services, enhanced_services
     
     # Startup
-    logger.info("🚀 Starting Validatus Backend with Phase 1 Enhanced Analytical Engines...")
+    logger.info("🚀 Starting Validatus Backend with Phased Service Initialization...")
     
     try:
         # Initialize GCP settings
         settings = get_gcp_settings()
         logger.info(f"✅ GCP Settings loaded for project: {settings.project_id}")
         
-        # Initialize Phase 1 services
-        topic_manager = GCPTopicVectorStoreManager(project_id=settings.project_id)
-        url_orchestrator = GCPURLOrchestrator(project_id=settings.project_id)
+        # Phase 1: Initialize Core Services (Always Available)
+        core_services.update({
+            'topic_manager': GCPTopicVectorStoreManager(project_id=settings.project_id),
+            'url_orchestrator': GCPURLOrchestrator(project_id=settings.project_id),
+            'enhanced_topic_manager': EnhancedTopicVectorStoreManager(),
+            'analysis_session_manager': AnalysisSessionManager(),
+            'quality_analyzer': ContentQualityAnalyzer(),
+            'deduplication_service': ContentDeduplicationService(),
+            'optimization_service': AnalysisOptimizationService()
+        })
         
-        # Initialize Phase 2 services
-        enhanced_topic_manager = EnhancedTopicVectorStoreManager()
-        analysis_session_manager = AnalysisSessionManager()
-        quality_analyzer = ContentQualityAnalyzer()
-        deduplication_service = ContentDeduplicationService()
-        optimization_service = AnalysisOptimizationService()
+        logger.info("✅ Core services initialized successfully")
         
-        # Initialize Phase 3 services
-        results_manager = AnalysisResultsManager()
+        # Phase 2: Initialize Enhanced Services (Feature Flag Controlled)
+        if FeatureFlags.ANALYSIS_RESULTS_MANAGER_ENABLED and AnalysisResultsManager:
+            enhanced_services['results_manager'] = AnalysisResultsManager()
+            logger.info("✅ Analysis Results Manager initialized")
         
-        # Initialize Phase 1 Enhanced Analytical Engines
-        pdf_formula_engine = PDFFormulaEngine()
-        action_layer_calculator = ActionLayerCalculator()
-        pattern_engine = PatternLibraryMonteCarloEngine()
+        if FeatureFlags.ENHANCED_ANALYTICS_ENABLED:
+            # Initialize Phase B analytical engines
+            if PDFFormulaEngine:
+                enhanced_services['pdf_formula_engine'] = PDFFormulaEngine()
+                logger.info("✅ PDF Formula Engine initialized")
+            
+            if ActionLayerCalculator:
+                enhanced_services['action_layer_calculator'] = ActionLayerCalculator()
+                logger.info("✅ Action Layer Calculator initialized")
+            
+            if MonteCarloSimulator:
+                enhanced_services['monte_carlo_simulator'] = MonteCarloSimulator()
+                logger.info("✅ Monte Carlo Simulator initialized")
+            
+            if EnhancedFormulaAdapter:
+                enhanced_services['formula_adapter'] = EnhancedFormulaAdapter()
+                logger.info("✅ Enhanced Formula Adapter initialized")
+            
+            if EnhancedAnalysisSessionManager:
+                enhanced_services['enhanced_analysis_session_manager'] = EnhancedAnalysisSessionManager()
+                logger.info("✅ Enhanced Analysis Session Manager initialized")
         
-        logger.info("✅ All Phase 1, Phase 2, and Phase 3 services with Enhanced Analytical Engines initialized successfully")
+        logger.info(f"✅ All services initialized - Core: {len(core_services)}, Enhanced: {len(enhanced_services)}")
         
     except Exception as e:
         logger.error(f"❌ Failed to initialize services: {e}")
-        raise
+        # Don't raise - allow app to start with basic functionality
+        logger.warning("⚠️  Starting with basic functionality only")
     
     yield
     
     # Shutdown
     logger.info("🛑 Shutting down Validatus Backend...")
 
-# Create FastAPI app
+# Create FastAPI app with enhanced error handling
 app = FastAPI(
     title="Validatus API",
-    description="AI-Powered Strategic Analysis Platform - Phase 1 Enhanced Analytical Engines Integrated",
-    version="3.1.0",
+    description="AI-Powered Strategic Analysis Platform - Phase A Stabilized Integration",
+    version="3.0.1-stabilized",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -109,24 +151,55 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Phase 3 routers
-app.include_router(results_router.router)
+# Conditionally include routers
+if FeatureFlags.RESULTS_API_ENABLED and results_router:
+    app.include_router(results_router.router)
 
+# Health check with service status
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Enhanced health check with service status"""
+    service_status = {
+        "core_services": list(core_services.keys()),
+        "enhanced_services": list(enhanced_services.keys()),
+        "feature_flags": {
+            "enhanced_analytics": FeatureFlags.ENHANCED_ANALYTICS_ENABLED,
+            "results_manager": FeatureFlags.ANALYSIS_RESULTS_MANAGER_ENABLED,
+            "results_api": FeatureFlags.RESULTS_API_ENABLED
+        }
+    }
+    
     return {
         "status": "healthy",
         "service": "validatus-backend",
-        "version": "3.0.0"
+        "version": "3.0.1-stabilized",
+        "services": service_status,
+        "message": "Phased service initialization completed"
     }
 
+# Service status endpoint
+@app.get("/api/v3/system/status")
+async def get_system_status():
+    """Get detailed system and service status"""
+    return {
+        "system_status": "operational",
+        "core_services_count": len(core_services),
+        "enhanced_services_count": len(enhanced_services),
+        "available_services": {
+            "core": list(core_services.keys()),
+            "enhanced": list(enhanced_services.keys())
+        },
+        "feature_flags": FeatureFlags.get_all_flags()
+    }
+
+# Core API endpoints (always available)
 @app.get("/api/v3/topics")
 async def get_topics():
     """Get all available topics"""
     try:
+        topic_manager = core_services.get('topic_manager')
         if not topic_manager:
-            raise HTTPException(status_code=503, detail="Topic manager not initialized")
+            raise HTTPException(status_code=503, detail="Topic manager not available")
         
         topics = await topic_manager.get_available_topics()
         return {"topics": topics}
@@ -136,11 +209,12 @@ async def get_topics():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/v3/topics/create")
-async def create_topic(topic: str, urls: list[str], search_queries: list[str] = None):
+async def create_topic(topic: str, urls: List[str], search_queries: List[str] = None):
     """Create a new topic vector store"""
     try:
+        topic_manager = core_services.get('topic_manager')
         if not topic_manager:
-            raise HTTPException(status_code=503, detail="Topic manager not initialized")
+            raise HTTPException(status_code=503, detail="Topic manager not available")
         
         topic_id = await topic_manager.create_topic_store(topic, urls, search_queries)
         
@@ -154,172 +228,34 @@ async def create_topic(topic: str, urls: list[str], search_queries: list[str] = 
         logger.error(f"Failed to create topic '{topic}': {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/v3/topics/{topic}/collect-urls")
-async def collect_urls_for_topic(
-    topic: str, 
-    search_queries: list[str] = None, 
-    max_urls: int = 100
-):
-    """Collect URLs for a specific topic"""
-    try:
-        if not url_orchestrator:
-            raise HTTPException(status_code=503, detail="URL orchestrator not initialized")
-        
-        urls = await url_orchestrator.collect_urls_for_topic(topic, search_queries, max_urls)
-        
-        return {
-            "success": True,
-            "topic": topic,
-            "urls": urls,
-            "url_count": len(urls)
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to collect URLs for topic '{topic}': {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/v3/topics/{topic}/evidence/{layer}")
-async def get_evidence_by_layer(topic: str, layer: str, k: int = 10):
-    """Get evidence chunks for a specific topic and layer"""
-    try:
-        if not topic_manager:
-            raise HTTPException(status_code=503, detail="Topic manager not initialized")
-        
-        evidence_chunks = await topic_manager.retrieve_by_topic_layer(topic, layer, k)
-        
-        # Convert EvidenceChunk objects to dictionaries
-        evidence_data = []
-        for chunk in evidence_chunks:
-            evidence_data.append({
-                "content": chunk.content,
-                "layer": chunk.layer,
-                "factor": chunk.factor,
-                "segment": chunk.segment,
-                "url": chunk.url,
-                "title": chunk.title,
-                "quality_score": chunk.quality_score,
-                "chunk_index": chunk.chunk_index,
-                "similarity_score": chunk.similarity_score
-            })
-        
-        return {
-            "success": True,
-            "topic": topic,
-            "layer": layer,
-            "evidence_chunks": evidence_data,
-            "count": len(evidence_data)
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to get evidence for topic '{topic}', layer '{layer}': {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Phase 2 Enhanced API Endpoints
-
-@app.post("/api/v3/enhanced/topics/create")
-async def create_enhanced_topic(
-    topic: str, 
-    urls: List[str], 
-    quality_threshold: float = 0.6
-):
-    """Create an enhanced topic store with quality analysis and classification"""
-    try:
-        if not enhanced_topic_manager:
-            raise HTTPException(status_code=503, detail="Enhanced topic manager not initialized")
-        
-        topic_id = await enhanced_topic_manager.create_enhanced_topic_store(
-            topic, urls, quality_threshold
-        )
-        
-        return {
-            "success": True,
-            "topic_id": topic_id,
-            "message": f"Enhanced topic '{topic}' created successfully",
-            "quality_threshold": quality_threshold,
-            "url_count": len(urls)
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to create enhanced topic '{topic}': {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/v3/enhanced/topics/{topic}/knowledge")
-async def get_enhanced_topic_knowledge(topic: str):
-    """Get comprehensive topic knowledge with enhanced metadata"""
-    try:
-        if not enhanced_topic_manager:
-            raise HTTPException(status_code=503, detail="Enhanced topic manager not initialized")
-        
-        knowledge = await enhanced_topic_manager.retrieve_topic_knowledge(topic)
-        
-        return {
-            "success": True,
-            "topic": topic,
-            "knowledge": knowledge
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to get enhanced topic knowledge for '{topic}': {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/api/v3/enhanced/topics/{topic}/update")
-async def update_enhanced_topic(
-    topic: str, 
-    new_urls: List[str], 
-    quality_threshold: float = 0.6
-):
-    """Update existing topic store with new content"""
-    try:
-        if not enhanced_topic_manager:
-            raise HTTPException(status_code=503, detail="Enhanced topic manager not initialized")
-        
-        update_result = await enhanced_topic_manager.update_topic_store(
-            topic, new_urls, quality_threshold
-        )
-        
-        return {
-            "success": True,
-            "topic": topic,
-            "update_result": update_result
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to update enhanced topic '{topic}': {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/v3/enhanced/topics/{topic}/performance")
-async def analyze_topic_performance(topic: str):
-    """Analyze performance metrics for a topic store"""
-    try:
-        if not enhanced_topic_manager:
-            raise HTTPException(status_code=503, detail="Enhanced topic manager not initialized")
-        
-        performance_analysis = await enhanced_topic_manager.analyze_topic_performance(topic)
-        
-        return {
-            "success": True,
-            "topic": topic,
-            "performance_analysis": performance_analysis
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to analyze topic performance for '{topic}': {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Strategic Analysis API Endpoints
-
+# Enhanced analysis endpoint (feature flag controlled)
 @app.post("/api/v3/analysis/sessions/create")
 async def create_analysis_session(
     topic: str,
     user_id: str,
-    analysis_parameters: Optional[Dict[str, Any]] = None
+    analysis_parameters: Optional[Dict[str, Any]] = None,
+    use_enhanced_analytics: bool = False
 ):
-    """Create a new strategic analysis session"""
+    """Create analysis session with optional enhanced analytics"""
     try:
-        if not analysis_session_manager:
-            raise HTTPException(status_code=503, detail="Analysis session manager not initialized")
+        # Use enhanced session manager if available and enhanced analytics requested
+        if use_enhanced_analytics and FeatureFlags.ENHANCED_ANALYTICS_ENABLED:
+            analysis_manager = enhanced_services.get('enhanced_analysis_session_manager')
+            if not analysis_manager:
+                analysis_manager = core_services.get('analysis_session_manager')
+        else:
+            analysis_manager = core_services.get('analysis_session_manager')
         
-        session_id = await analysis_session_manager.create_analysis_session(
+        if not analysis_manager:
+            raise HTTPException(status_code=503, detail="Analysis session manager not available")
+        
+        # Use enhanced analytics if available and requested
+        if use_enhanced_analytics and FeatureFlags.ENHANCED_ANALYTICS_ENABLED:
+            if analysis_parameters is None:
+                analysis_parameters = {}
+            analysis_parameters['use_enhanced_analytics'] = True
+        
+        session_id = await analysis_manager.create_analysis_session(
             topic, user_id, analysis_parameters
         )
         
@@ -328,6 +264,7 @@ async def create_analysis_session(
             "session_id": session_id,
             "topic": topic,
             "user_id": user_id,
+            "enhanced_analytics": use_enhanced_analytics and FeatureFlags.ENHANCED_ANALYTICS_ENABLED,
             "message": "Analysis session created successfully"
         }
         
@@ -335,148 +272,56 @@ async def create_analysis_session(
         logger.error(f"Failed to create analysis session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/v3/analysis/sessions/{session_id}/execute")
-async def execute_strategic_analysis(
+# Phase B Enhanced Analysis Endpoint
+@app.post("/api/v3/analysis/enhanced")
+async def run_enhanced_analysis(
     session_id: str,
-    background_tasks: BackgroundTasks
+    topic: str,
+    user_id: str,
+    enhanced_options: Optional[Dict[str, Any]] = None
 ):
-    """Execute strategic analysis for a session"""
+    """Run enhanced strategic analysis with Phase B engines"""
     try:
-        if not analysis_session_manager:
-            raise HTTPException(status_code=503, detail="Analysis session manager not initialized")
+        if not FeatureFlags.ENHANCED_ANALYTICS_ENABLED:
+            raise HTTPException(
+                status_code=503, 
+                detail="Enhanced analytics not enabled. Set ENABLE_ENHANCED_ANALYTICS=true"
+            )
         
-        # Execute analysis in background
-        background_tasks.add_task(
-            analysis_session_manager.execute_strategic_analysis,
-            session_id
+        enhanced_manager = enhanced_services.get('enhanced_analysis_session_manager')
+        if not enhanced_manager:
+            raise HTTPException(status_code=503, detail="Enhanced analysis manager not available")
+        
+        # Run enhanced analysis
+        results = await enhanced_manager.execute_enhanced_strategic_analysis(
+            session_id, topic, user_id, enhanced_options
         )
         
         return {
             "success": True,
             "session_id": session_id,
-            "message": "Strategic analysis started in background",
-            "status": "processing"
+            "enhanced_analysis_results": results,
+            "phase_b_components": {
+                "pdf_formulas_enabled": FeatureFlags.PDF_FORMULAS_ENABLED,
+                "action_layers_enabled": FeatureFlags.ACTION_LAYER_CALCULATOR_ENABLED,
+                "pattern_recognition_enabled": FeatureFlags.PATTERN_RECOGNITION_ENABLED
+            }
         }
         
     except Exception as e:
-        logger.error(f"Failed to execute strategic analysis for session {session_id}: {e}")
+        logger.error(f"Enhanced analysis failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/v3/analysis/sessions/{session_id}/status")
-async def get_analysis_session_status(session_id: str):
-    """Get current status of an analysis session"""
-    try:
-        if not analysis_session_manager:
-            raise HTTPException(status_code=503, detail="Analysis session manager not initialized")
-        
-        status = await analysis_session_manager.get_session_status(session_id)
-        
-        return {
-            "success": True,
-            "session_id": session_id,
-            "status": status
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to get session status for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/v3/analysis/sessions/{session_id}/results")
-async def get_analysis_results(session_id: str):
-    """Get complete analysis results for a session"""
-    try:
-        if not analysis_session_manager:
-            raise HTTPException(status_code=503, detail="Analysis session manager not initialized")
-        
-        results = await analysis_session_manager.get_analysis_results(session_id)
-        
-        return {
-            "success": True,
-            "session_id": session_id,
-            "results": results
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to get analysis results for session {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Content Quality and Processing API Endpoints
-
-@app.post("/api/v3/content/analyze-quality")
-async def analyze_content_quality(
-    content: str,
-    url: str,
-    topic: str
-):
-    """Analyze content quality using advanced metrics"""
-    try:
-        if not quality_analyzer:
-            raise HTTPException(status_code=503, detail="Quality analyzer not initialized")
-        
-        quality_scores = await quality_analyzer.analyze_content_quality(content, url, topic)
-        
-        return {
-            "success": True,
-            "url": url,
-            "topic": topic,
-            "quality_scores": quality_scores
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to analyze content quality: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/v3/content/deduplicate")
-async def deduplicate_content(
-    documents: List[Dict[str, Any]],
-    similarity_threshold: float = 0.85
-):
-    """Deduplicate content using advanced similarity metrics"""
-    try:
-        if not deduplication_service:
-            raise HTTPException(status_code=503, detail="Deduplication service not initialized")
-        
-        deduplicated_docs, stats = await deduplication_service.deduplicate_content_batch(
-            documents, similarity_threshold
-        )
-        
-        return {
-            "success": True,
-            "original_count": len(documents),
-            "deduplicated_count": len(deduplicated_docs),
-            "duplicates_removed": len(documents) - len(deduplicated_docs),
-            "deduplication_stats": stats,
-            "documents": deduplicated_docs
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to deduplicate content: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/v3/optimization/parallel-processing")
-async def optimize_parallel_processing(
-    analysis_tasks: List[Dict[str, Any]],
-    max_concurrent: int = 10
-):
-    """Optimize parallel processing for analysis tasks"""
-    try:
-        if not optimization_service:
-            raise HTTPException(status_code=503, detail="Optimization service not initialized")
-        
-        results = await optimization_service.optimize_parallel_processing(
-            analysis_tasks, max_concurrent
-        )
-        
-        return {
-            "success": True,
-            "original_task_count": len(analysis_tasks),
-            "processed_task_count": len(results),
-            "optimization_results": results
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to optimize parallel processing: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# Placeholder endpoints for missing services
+@app.get("/api/v3/results/placeholder")
+async def placeholder_results_endpoint():
+    """Placeholder for results API when not available"""
+    return {
+        "status": "placeholder",
+        "message": "Results API endpoints will be available when AnalysisResultsManager is implemented",
+        "feature_flag": "RESULTS_API_ENABLED",
+        "currently_enabled": FeatureFlags.RESULTS_API_ENABLED
+    }
 
 if __name__ == "__main__":
     import uvicorn

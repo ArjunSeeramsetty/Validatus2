@@ -9,6 +9,9 @@ import math
 from .mathematical_models import MathematicalModels, FactorWeight
 from ..content_quality_analyzer import ContentQualityAnalyzer
 from ...core.feature_flags import FeatureFlags
+from ...core.gcp_config import GCPSettings
+from ...middleware.monitoring import performance_monitor
+from ...core.error_recovery import with_exponential_backoff
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -56,13 +59,16 @@ class PDFFormulaEngine:
     """
     
     def __init__(self):
+        # Initialize GCP settings for enhanced integration
+        self.settings = GCPSettings()
+        
         self.math_models = MathematicalModels()
         self.quality_analyzer = ContentQualityAnalyzer()
         
         # F1-F28 Factor calculation definitions
         self.factor_calculators = self._initialize_factor_calculators()
         
-        logger.info("✅ PDF Formula Engine initialized with F1-F28 calculations")
+        logger.info(f"✅ PDF Formula Engine initialized with F1-F28 calculations for project {self.settings.project_id}")
     
     def _initialize_factor_calculators(self) -> Dict[str, callable]:
         """Initialize all F1-F28 factor calculation methods"""
@@ -104,6 +110,8 @@ class PDFFormulaEngine:
             'F28_strategic_flexibility': self._calculate_f28_strategic_flexibility
         }
     
+    @performance_monitor
+    @with_exponential_backoff(max_retries=3)
     async def calculate_all_factors(self, factor_inputs: List[FactorInput]) -> PDFAnalysisResult:
         """Calculate all F1-F28 factors with enhanced mathematical precision"""
         start_time = datetime.now(timezone.utc)

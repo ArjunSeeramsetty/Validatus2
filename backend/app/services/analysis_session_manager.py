@@ -22,8 +22,9 @@ from .gcp_topic_vector_store_manager import GCPTopicVectorStoreManager
 from ..middleware.monitoring import performance_monitor
 
 # Phase 1 Integration - Import new analytical engines
-from .pdf_formula_engine import PDFFormulaEngine, FactorInputs, PDFAnalysisResult
-from .action_layer_calculator import ActionLayerCalculator, ActionLayerAnalysis
+from .enhanced_analytical_engines import PDFFormulaEngine, ActionLayerCalculator
+from .enhanced_analytical_engines.pdf_formula_engine import FactorInput, PDFAnalysisResult
+from .enhanced_analytical_engines.action_layer_calculator import ActionLayerAnalysis
 from .pattern_library_monte_carlo import PatternLibraryMonteCarloEngine, PatternLibraryAnalysis
 
 logger = logging.getLogger(__name__)
@@ -693,7 +694,7 @@ class AnalysisSessionManager:
 
     # Phase 1 Integration Helper Methods
     
-    def _prepare_pdf_inputs(self, session_id: str, layer_scores: List[LayerScore], factor_calculations: List[FactorCalculation]) -> FactorInputs:
+    def _prepare_pdf_inputs(self, session_id: str, layer_scores: List[LayerScore], factor_calculations: List[FactorCalculation]) -> List[FactorInput]:
         """Prepare inputs for PDF formula engine from existing analysis results"""
         
         # Extract market data from layer scores
@@ -745,18 +746,23 @@ class AnalysisSessionManager:
             'scalability_potential': operational_data.get('scalability_score', 0.5)
         })
         
-        return FactorInputs(
-            market_data=market_data,
-            competitive_data=competitive_data,
-            financial_data=financial_data,
-            operational_data=operational_data,
-            strategic_context={
+        return [FactorInput(
+            factor_id="comprehensive_analysis",
+            raw_data={
+                'market_data': market_data,
+                'competitive_data': competitive_data,
+                'financial_data': financial_data,
+                'operational_data': operational_data
+            },
+            context_data={
                 'session_id': session_id,
                 'analysis_timestamp': datetime.now(timezone.utc).isoformat(),
                 'data_source': 'enhanced_analysis',
                 'confidence_level': 0.8
-            }
-        )
+            },
+            quality_score=0.8,
+            confidence=0.7
+        )]
 
     async def _get_topic_documents(self, session_id: str) -> List[str]:
         """Get topic documents for pattern analysis"""

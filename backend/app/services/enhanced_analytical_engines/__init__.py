@@ -15,8 +15,8 @@ Components:
 """
 
 from .mathematical_models import MathematicalModels, NormalizationMethod, RobustnessMultipliers, FactorWeight
-from ..pdf_formula_engine import PDFFormulaEngine, FactorInput, FactorResult, PDFAnalysisResult
-from ..action_layer_calculator import ActionLayerCalculator, ActionLayerAnalysis, ActionLayerResult, ActionRecommendation
+from .pdf_formula_engine import PDFFormulaEngine, FactorInput, FactorResult, PDFAnalysisResult
+from .action_layer_calculator import ActionLayerCalculator, ActionLayerAnalysis, ActionLayerResult, ActionRecommendation
 from .monte_carlo_simulator import MonteCarloSimulator, SimulationParameters, SimulationResult
 from .formula_adapters import EnhancedFormulaAdapter
 

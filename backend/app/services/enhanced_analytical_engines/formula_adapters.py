@@ -3,7 +3,7 @@ import logging
 from typing import Dict, List, Any, Optional
 import asyncio
 
-from ..pdf_formula_engine import PDFFormulaEngine, FactorInput, PDFAnalysisResult
+from .pdf_formula_engine import PDFFormulaEngine, FactorInput, PDFAnalysisResult
 from ..formula_engine import FormulaEngine  # Existing service
 from ...core.feature_flags import FeatureFlags
 

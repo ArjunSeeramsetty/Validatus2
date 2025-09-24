@@ -5,9 +5,11 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime, timezone
 
 from .analysis_session_manager import AnalysisSessionManager  # Existing service
-from .enhanced_analytical_engines.pdf_formula_engine import PDFFormulaEngine, FactorInput
-from .enhanced_analytical_engines.action_layer_calculator import ActionLayerCalculator
-from .enhanced_analytical_engines.formula_adapters import EnhancedFormulaAdapter
+from .enhanced_analytical_engines import (
+    PDFFormulaEngine, 
+    ActionLayerCalculator,
+    EnhancedFormulaAdapter
+)
 from ..core.feature_flags import FeatureFlags
 
 logger = logging.getLogger(__name__)

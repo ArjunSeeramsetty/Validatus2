@@ -29,10 +29,13 @@ except ImportError:
 
 try:
     if FeatureFlags.ENHANCED_ANALYTICS_ENABLED:
-        from .services.enhanced_analytical_engines.pdf_formula_engine import PDFFormulaEngine
-        from .services.enhanced_analytical_engines.action_layer_calculator import ActionLayerCalculator
-        from .services.enhanced_analytical_engines.monte_carlo_simulator import MonteCarloSimulator
-        from .services.enhanced_analytical_engines.formula_adapters import EnhancedFormulaAdapter
+        # Import from consolidated enhanced_analytical_engines package
+        from .services.enhanced_analytical_engines import (
+            PDFFormulaEngine,
+            ActionLayerCalculator,
+            MonteCarloSimulator,
+            EnhancedFormulaAdapter
+        )
         from .services.enhanced_analysis_session_manager import EnhancedAnalysisSessionManager
     else:
         PDFFormulaEngine = None

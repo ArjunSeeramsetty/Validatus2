@@ -8,6 +8,9 @@ from enum import Enum
 
 from .pdf_formula_engine import PDFAnalysisResult
 from ...core.feature_flags import FeatureFlags
+from ...core.gcp_config import GCPSettings
+from ...middleware.monitoring import performance_monitor
+from ...core.error_recovery import with_exponential_backoff
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,9 @@ class ActionLayerCalculator:
     """18-Layer Action Calculator for strategic assessments"""
     
     def __init__(self):
+        # Initialize GCP settings for enhanced integration
+        self.settings = GCPSettings()
+        
         self.action_layers = {
             'L01_overall_attractiveness': {'name': 'Overall Strategic Attractiveness', 'weight': 0.15},
             'L02_competitive_position': {'name': 'Competitive Position Strength', 'weight': 0.13},
@@ -68,8 +74,10 @@ class ActionLayerCalculator:
             'L17_change_management': {'name': 'Change Management Capability', 'weight': 0.07},
             'L18_success_probability': {'name': 'Success Probability Assessment', 'weight': 0.08}
         }
-        logger.info("✅ Action Layer Calculator initialized with 18 strategic assessments")
+        logger.info(f"✅ Action Layer Calculator initialized with 18 strategic assessments for project {self.settings.project_id}")
     
+    @performance_monitor
+    @with_exponential_backoff(max_retries=3)
     async def calculate_all_action_layers(self, pdf_results: PDFAnalysisResult) -> ActionLayerAnalysis:
         """Calculate all 18 action layers from PDF factor results"""
         start_time = datetime.now(timezone.utc)

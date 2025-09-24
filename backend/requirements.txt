@@ -19,6 +19,8 @@ google-cloud-monitoring==2.16.0
 google-cloud-tasks==2.19.3
 google-cloud-functions==1.20.4
 google-cloud-secret-manager==2.24.0
+google-cloud-error-reporting==3.6.0    # Phase E: Enhanced error tracking
+google-cloud-memcache==0.1.0           # Phase E: Memorystore Memcached
 
 # Data Processing
 pandas==2.1.4
@@ -40,6 +42,11 @@ beautifulsoup4==4.12.2           # HTML parsing
 lxml==4.9.3                      # XML/HTML parser
 requests==2.31.0                 # HTTP requests
 psutil==7.1.0                    # System and process utilities
+
+# Phase E: Advanced Orchestration & Observability
+redis==5.0.1                     # Redis client for L2 cache
+msgpack==1.0.7                   # Fast serialization for cache
+python-memcached==1.62           # Memcached client (fallback)
 
 # Development and testing
 pytest==7.4.3

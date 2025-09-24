@@ -1,6 +1,6 @@
 # backend/app/core/feature_flags.py
 import os
-from typing import Dict, Any
+from typing import Dict, Any, List
 import logging
 
 logger = logging.getLogger(__name__)
@@ -30,10 +30,25 @@ class FeatureFlags:
     REAL_TIME_UPDATES_ENABLED = os.getenv('ENABLE_REAL_TIME_UPDATES', 'false').lower() == 'true'
     ADVANCED_VISUALIZATIONS_ENABLED = os.getenv('ENABLE_ADVANCED_VIZ', 'false').lower() == 'true'
     
-    # Phase E feature flags (for future use)
-    CIRCUIT_BREAKERS_ENABLED = os.getenv('ENABLE_CIRCUIT_BREAKERS', 'false').lower() == 'true'
-    MULTI_LEVEL_CACHING_ENABLED = os.getenv('ENABLE_MULTI_LEVEL_CACHE', 'false').lower() == 'true'
-    ADVANCED_MONITORING_ENABLED = os.getenv('ENABLE_ADVANCED_MONITORING', 'false').lower() == 'true'
+    # Phase E feature flags - Advanced Orchestration & Observability
+    ADVANCED_ORCHESTRATION_ENABLED = os.getenv('ENABLE_ADVANCED_ORCHESTRATION', 'false').lower() == 'true'
+    CIRCUIT_BREAKER_ENABLED = os.getenv('ENABLE_CIRCUIT_BREAKER', 'false').lower() == 'true'
+    MULTI_LEVEL_CACHE_ENABLED = os.getenv('ENABLE_MULTI_LEVEL_CACHE', 'false').lower() == 'true'
+    REDIS_CACHE_ENABLED = os.getenv('ENABLE_REDIS_CACHE', 'false').lower() == 'true'
+    EVENT_DRIVEN_PUBLISHER_ENABLED = os.getenv('ENABLE_EVENT_DRIVEN_PUBLISHER', 'false').lower() == 'true'
+    COMPREHENSIVE_MONITORING_ENABLED = os.getenv('ENABLE_COMPREHENSIVE_MONITORING', 'true').lower() == 'true'
+    
+    # Advanced observability
+    PERFORMANCE_PROFILING_ENABLED = os.getenv('ENABLE_PERFORMANCE_PROFILING', 'false').lower() == 'true'
+    DISTRIBUTED_TRACING_ENABLED = os.getenv('ENABLE_DISTRIBUTED_TRACING', 'false').lower() == 'true'
+    CUSTOM_METRICS_ENABLED = os.getenv('ENABLE_CUSTOM_METRICS', 'true').lower() == 'true'
+    ERROR_TRACKING_ENHANCED = os.getenv('ENABLE_ENHANCED_ERROR_TRACKING', 'true').lower() == 'true'
+    
+    # Production hardening
+    RATE_LIMITING_ENABLED = os.getenv('ENABLE_RATE_LIMITING', 'true').lower() == 'true'
+    REQUEST_VALIDATION_STRICT = os.getenv('ENABLE_STRICT_VALIDATION', 'false').lower() == 'true'
+    SECURITY_HEADERS_ENABLED = os.getenv('ENABLE_SECURITY_HEADERS', 'true').lower() == 'true'
+    AUDIT_LOGGING_ENABLED = os.getenv('ENABLE_AUDIT_LOGGING', 'true').lower() == 'true'
     
     # Development and testing flags
     DEBUG_MODE_ENABLED = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
@@ -66,9 +81,24 @@ class FeatureFlags:
             'advanced_visualizations': cls.ADVANCED_VISUALIZATIONS_ENABLED,
             
             # Phase E flags
-            'circuit_breakers': cls.CIRCUIT_BREAKERS_ENABLED,
-            'multi_level_caching': cls.MULTI_LEVEL_CACHING_ENABLED,
-            'advanced_monitoring': cls.ADVANCED_MONITORING_ENABLED,
+            'advanced_orchestration': cls.ADVANCED_ORCHESTRATION_ENABLED,
+            'circuit_breaker': cls.CIRCUIT_BREAKER_ENABLED,
+            'multi_level_cache': cls.MULTI_LEVEL_CACHE_ENABLED,
+            'redis_cache': cls.REDIS_CACHE_ENABLED,
+            'event_driven_publisher': cls.EVENT_DRIVEN_PUBLISHER_ENABLED,
+            'comprehensive_monitoring': cls.COMPREHENSIVE_MONITORING_ENABLED,
+            
+            # Observability flags
+            'performance_profiling': cls.PERFORMANCE_PROFILING_ENABLED,
+            'distributed_tracing': cls.DISTRIBUTED_TRACING_ENABLED,
+            'custom_metrics': cls.CUSTOM_METRICS_ENABLED,
+            'error_tracking_enhanced': cls.ERROR_TRACKING_ENHANCED,
+            
+            # Production hardening flags
+            'rate_limiting': cls.RATE_LIMITING_ENABLED,
+            'request_validation_strict': cls.REQUEST_VALIDATION_STRICT,
+            'security_headers': cls.SECURITY_HEADERS_ENABLED,
+            'audit_logging': cls.AUDIT_LOGGING_ENABLED,
             
             # Development flags
             'debug_mode': cls.DEBUG_MODE_ENABLED,
@@ -98,12 +128,68 @@ class FeatureFlags:
                 cls.ADVANCED_VISUALIZATIONS_ENABLED
             ]),
             'phase_e': any([
-                cls.CIRCUIT_BREAKERS_ENABLED,
-                cls.MULTI_LEVEL_CACHING_ENABLED,
-                cls.ADVANCED_MONITORING_ENABLED
+                cls.ADVANCED_ORCHESTRATION_ENABLED,
+                cls.CIRCUIT_BREAKER_ENABLED,
+                cls.MULTI_LEVEL_CACHE_ENABLED,
+                cls.EVENT_DRIVEN_PUBLISHER_ENABLED,
+                cls.COMPREHENSIVE_MONITORING_ENABLED
             ])
         }
         return phase_mappings.get(phase.lower(), False)
+    
+    @classmethod
+    def is_phase_e_enabled(cls) -> bool:
+        """Check if any Phase E features are enabled"""
+        return any([
+            cls.ADVANCED_ORCHESTRATION_ENABLED,
+            cls.CIRCUIT_BREAKER_ENABLED,
+            cls.MULTI_LEVEL_CACHE_ENABLED,
+            cls.EVENT_DRIVEN_PUBLISHER_ENABLED,
+            cls.COMPREHENSIVE_MONITORING_ENABLED
+        ])
+    
+    @classmethod
+    def get_enabled_phases(cls) -> set:
+        """Get list of enabled phases"""
+        phases = set()
+        
+        if cls.ENHANCED_ANALYTICS_ENABLED:
+            phases.add('phase_b')
+        
+        if any([cls.BAYESIAN_PIPELINE_ENABLED, cls.EVENT_SHOCK_MODELING_ENABLED, 
+                cls.ENHANCED_CONTENT_PROCESSING_ENABLED, cls.HYBRID_VECTOR_STORE_ENABLED]):
+            phases.add('phase_c')
+        
+        if any([cls.ENHANCED_FRONTEND_ENABLED, cls.REAL_TIME_UPDATES_ENABLED, 
+                cls.ADVANCED_VISUALIZATIONS_ENABLED]):
+            phases.add('phase_d')
+        
+        if cls.is_phase_e_enabled():
+            phases.add('phase_e')
+        
+        return phases
+    
+    @classmethod
+    def validate_feature_dependencies(cls) -> Dict[str, List[str]]:
+        """Validate feature flag dependencies"""
+        warnings = []
+        
+        # Multi-level cache requires Redis for L2
+        if cls.MULTI_LEVEL_CACHE_ENABLED and not cls.REDIS_CACHE_ENABLED:
+            warnings.append("Multi-level cache enabled but Redis cache disabled - L2 cache will be skipped")
+        
+        # Circuit breaker requires advanced orchestration
+        if cls.CIRCUIT_BREAKER_ENABLED and not cls.ADVANCED_ORCHESTRATION_ENABLED:
+            warnings.append("Circuit breaker enabled but advanced orchestration disabled")
+        
+        # Enhanced monitoring works best with all observability features
+        if cls.COMPREHENSIVE_MONITORING_ENABLED:
+            if not cls.CUSTOM_METRICS_ENABLED:
+                warnings.append("Comprehensive monitoring enabled but custom metrics disabled")
+            if not cls.ERROR_TRACKING_ENHANCED:
+                warnings.append("Comprehensive monitoring enabled but enhanced error tracking disabled")
+        
+        return {'warnings': warnings}
     
     @classmethod
     def log_current_configuration(cls):
@@ -114,6 +200,11 @@ class FeatureFlags:
         for phase in ['phase_b', 'phase_c', 'phase_d', 'phase_e']:
             if cls.is_phase_enabled(phase):
                 logger.info(f"Integration {phase.upper()} is enabled")
+        
+        # Log dependency warnings
+        validation_result = cls.validate_feature_dependencies()
+        for warning in validation_result.get('warnings', []):
+            logger.warning(f"Feature flag dependency warning: {warning}")
 
 # Initialize logging on import
 FeatureFlags.log_current_configuration()

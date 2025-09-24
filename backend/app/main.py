@@ -72,6 +72,21 @@ except ImportError:
     PhaseIntegratedAnalysisSessionManager = None
     logging.warning("Phase C enhanced services not available - using basic services")
 
+# Phase E imports - Advanced Orchestration & Observability
+try:
+    if FeatureFlags.is_phase_e_enabled():
+        from .services.enhanced_analysis_optimization_service import EnhancedAnalysisOptimizationService
+        from .services.enhanced_orchestration import AdvancedOrchestrator, MultiLevelCacheManager
+    else:
+        EnhancedAnalysisOptimizationService = None
+        AdvancedOrchestrator = None
+        MultiLevelCacheManager = None
+except ImportError:
+    EnhancedAnalysisOptimizationService = None
+    AdvancedOrchestrator = None
+    MultiLevelCacheManager = None
+    logging.warning("Phase E orchestration services not available - using basic services")
+
 try:
     if FeatureFlags.RESULTS_API_ENABLED:
         from .api.v3 import results as results_router
@@ -89,11 +104,12 @@ logger = logging.getLogger(__name__)
 core_services = {}
 enhanced_services = {}
 phase_c_services = {}
+phase_e_services = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan management with gradual service initialization"""
-    global core_services, enhanced_services, phase_c_services
+    global core_services, enhanced_services, phase_c_services, phase_e_services
     
     # Startup
     logger.info("🚀 Starting Validatus Backend with Phased Service Initialization...")
@@ -167,7 +183,31 @@ async def lifespan(app: FastAPI):
                     phase_c_services['phase_integrated_session_manager'] = PhaseIntegratedAnalysisSessionManager()
                     logger.info("✅ Phase-Integrated Analysis Session Manager initialized")
         
-        logger.info(f"✅ All services initialized - Core: {len(core_services)}, Enhanced: {len(enhanced_services)}, Phase C: {len(phase_c_services)}")
+        # Phase E: Initialize Advanced Orchestration & Observability Services
+        if FeatureFlags.is_phase_e_enabled():
+            logger.info("🔧 Initializing Phase E - Advanced Orchestration & Observability...")
+            
+            # Initialize Enhanced Analysis Optimization Service
+            if EnhancedAnalysisOptimizationService:
+                phase_e_services['enhanced_optimization_service'] = EnhancedAnalysisOptimizationService()
+                await phase_e_services['enhanced_optimization_service'].initialize_enhanced_components()
+                logger.info("✅ Enhanced Analysis Optimization Service initialized")
+            
+            # Initialize standalone Advanced Orchestrator if needed
+            if AdvancedOrchestrator and FeatureFlags.ADVANCED_ORCHESTRATION_ENABLED:
+                if not phase_e_services.get('enhanced_optimization_service') or not phase_e_services['enhanced_optimization_service'].orchestrator:
+                    phase_e_services['standalone_orchestrator'] = AdvancedOrchestrator(project_id=settings.project_id)
+                    await phase_e_services['standalone_orchestrator'].initialize()
+                    logger.info("✅ Standalone Advanced Orchestrator initialized")
+            
+            # Initialize standalone Multi-Level Cache Manager if needed
+            if MultiLevelCacheManager and FeatureFlags.MULTI_LEVEL_CACHE_ENABLED:
+                if not phase_e_services.get('enhanced_optimization_service') or not phase_e_services['enhanced_optimization_service'].cache_manager:
+                    phase_e_services['standalone_cache_manager'] = MultiLevelCacheManager(project_id=settings.project_id)
+                    await phase_e_services['standalone_cache_manager'].initialize()
+                    logger.info("✅ Standalone Multi-Level Cache Manager initialized")
+        
+        logger.info(f"✅ All services initialized - Core: {len(core_services)}, Enhanced: {len(enhanced_services)}, Phase C: {len(phase_c_services)}, Phase E: {len(phase_e_services)}")
         
     except Exception as e:
         logger.error(f"❌ Failed to initialize services: {e}")
@@ -212,15 +252,21 @@ async def health_check():
         "core_services": list(core_services.keys()),
         "enhanced_services": list(enhanced_services.keys()),
         "phase_c_services": list(phase_c_services.keys()),
+        "phase_e_services": list(phase_e_services.keys()),
         "feature_flags": {
             "enhanced_analytics": FeatureFlags.ENHANCED_ANALYTICS_ENABLED,
             "results_manager": FeatureFlags.ANALYSIS_RESULTS_MANAGER_ENABLED,
             "results_api": FeatureFlags.RESULTS_API_ENABLED,
             "phase_c_enabled": FeatureFlags.is_phase_enabled('phase_c'),
+            "phase_e_enabled": FeatureFlags.is_phase_e_enabled(),
             "bayesian_pipeline": FeatureFlags.BAYESIAN_PIPELINE_ENABLED,
             "event_shock_modeling": FeatureFlags.EVENT_SHOCK_MODELING_ENABLED,
             "enhanced_content_processing": FeatureFlags.ENHANCED_CONTENT_PROCESSING_ENABLED,
-            "hybrid_vector_store": FeatureFlags.HYBRID_VECTOR_STORE_ENABLED
+            "hybrid_vector_store": FeatureFlags.HYBRID_VECTOR_STORE_ENABLED,
+            "advanced_orchestration": FeatureFlags.ADVANCED_ORCHESTRATION_ENABLED,
+            "circuit_breaker": FeatureFlags.CIRCUIT_BREAKER_ENABLED,
+            "multi_level_cache": FeatureFlags.MULTI_LEVEL_CACHE_ENABLED,
+            "comprehensive_monitoring": FeatureFlags.COMPREHENSIVE_MONITORING_ENABLED
         }
     }
     
@@ -241,12 +287,15 @@ async def get_system_status():
         "core_services_count": len(core_services),
         "enhanced_services_count": len(enhanced_services),
         "phase_c_services_count": len(phase_c_services),
+        "phase_e_services_count": len(phase_e_services),
         "available_services": {
             "core": list(core_services.keys()),
             "enhanced": list(enhanced_services.keys()),
-            "phase_c": list(phase_c_services.keys())
+            "phase_c": list(phase_c_services.keys()),
+            "phase_e": list(phase_e_services.keys())
         },
-        "feature_flags": FeatureFlags.get_all_flags()
+        "feature_flags": FeatureFlags.get_all_flags(),
+        "enabled_phases": list(FeatureFlags.get_enabled_phases())
     }
 
 # Core API endpoints (always available)
@@ -410,6 +459,142 @@ async def run_enhanced_analysis(
         
     except Exception as e:
         logger.error(f"Enhanced analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Phase E Enhanced Orchestration Endpoints
+@app.get("/api/v3/orchestration/health")
+async def get_orchestration_health():
+    """Get orchestrator health status"""
+    try:
+        if not FeatureFlags.is_phase_e_enabled():
+            raise HTTPException(
+                status_code=503, 
+                detail="Phase E orchestration not enabled"
+            )
+        
+        # Get orchestrator from enhanced optimization service or standalone
+        orchestrator = None
+        if phase_e_services.get('enhanced_optimization_service'):
+            orchestrator = phase_e_services['enhanced_optimization_service'].orchestrator
+        elif phase_e_services.get('standalone_orchestrator'):
+            orchestrator = phase_e_services['standalone_orchestrator']
+        
+        if not orchestrator:
+            raise HTTPException(
+                status_code=503, 
+                detail="Orchestrator not available"
+            )
+        
+        health_status = await orchestrator.get_orchestrator_health()
+        
+        return {
+            "success": True,
+            "orchestrator_health": health_status,
+            "timestamp": health_status.get('timestamp')
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get orchestration health: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/v3/cache/performance")
+async def get_cache_performance():
+    """Get cache performance analysis"""
+    try:
+        if not FeatureFlags.MULTI_LEVEL_CACHE_ENABLED:
+            raise HTTPException(
+                status_code=503, 
+                detail="Multi-level cache not enabled"
+            )
+        
+        # Get cache manager from enhanced optimization service or standalone
+        cache_manager = None
+        if phase_e_services.get('enhanced_optimization_service'):
+            cache_manager = phase_e_services['enhanced_optimization_service'].cache_manager
+        elif phase_e_services.get('standalone_cache_manager'):
+            cache_manager = phase_e_services['standalone_cache_manager']
+        
+        if not cache_manager:
+            raise HTTPException(
+                status_code=503, 
+                detail="Cache manager not available"
+            )
+        
+        performance_analysis = await cache_manager.get_cache_stats()
+        
+        return {
+            "success": True,
+            "cache_performance": performance_analysis,
+            "timestamp": performance_analysis.get('timestamp')
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get cache performance: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v3/cache/invalidate")
+async def invalidate_cache(pattern: str = None):
+    """Invalidate cache entries by pattern"""
+    try:
+        if not FeatureFlags.MULTI_LEVEL_CACHE_ENABLED:
+            raise HTTPException(
+                status_code=503, 
+                detail="Multi-level cache not enabled"
+            )
+        
+        # Get cache manager from enhanced optimization service or standalone
+        cache_manager = None
+        if phase_e_services.get('enhanced_optimization_service'):
+            cache_manager = phase_e_services['enhanced_optimization_service'].cache_manager
+        elif phase_e_services.get('standalone_cache_manager'):
+            cache_manager = phase_e_services['standalone_cache_manager']
+        
+        if not cache_manager:
+            raise HTTPException(
+                status_code=503, 
+                detail="Cache manager not available"
+            )
+        
+        invalidated_count = await cache_manager.invalidate_by_pattern(pattern or "*")
+        
+        return {
+            "success": True,
+            "invalidated_count": invalidated_count,
+            "pattern": pattern or "*",
+            "message": f"Invalidated {invalidated_count} cache entries"
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to invalidate cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/v3/optimization/enhanced-metrics")
+async def get_enhanced_optimization_metrics():
+    """Get enhanced optimization metrics including Phase E components"""
+    try:
+        if not FeatureFlags.is_phase_e_enabled():
+            raise HTTPException(
+                status_code=503, 
+                detail="Phase E enhanced optimization not enabled"
+            )
+        
+        enhanced_optimization_service = phase_e_services.get('enhanced_optimization_service')
+        if not enhanced_optimization_service:
+            raise HTTPException(
+                status_code=503, 
+                detail="Enhanced optimization service not available"
+            )
+        
+        metrics = await enhanced_optimization_service.get_enhanced_optimization_metrics()
+        
+        return {
+            "success": True,
+            "enhanced_metrics": metrics,
+            "timestamp": metrics.get('timestamp')
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get enhanced optimization metrics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Placeholder endpoints for missing services

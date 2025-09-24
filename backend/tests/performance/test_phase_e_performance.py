@@ -103,7 +103,7 @@ class TestPhaseEPerformance:
         assert total_time < 10.0  # Should complete within 10 seconds
         
         # Check that bulkhead protection worked
-        assert len(performance_orchestrator.bulkhead_pools['analysis_execution'].current_count) <= 5
+        assert performance_orchestrator.bulkhead_pools['analysis_execution'].current_count <= 5
         
         # Calculate performance metrics
         operations_per_second = operation_count / total_time
@@ -433,9 +433,13 @@ class TestPhaseEPerformance:
                     await performance_cache_manager.set(f"sustained_key_{operation_count}", {"data": f"value_{operation_count}"})
                 elif operation_count % 3 == 1:
                     # Orchestrator operations
+                    async def mock_operation(op_id=operation_count):
+                        await asyncio.sleep(0.01)
+                        return f"result_{op_id}"
+                    
                     await performance_orchestrator.execute_with_circuit_breaker(
                         operation_name=f"sustained_op_{operation_count}",
-                        operation_func=lambda op_id=operation_count: asyncio.sleep(0.01),
+                        operation_func=mock_operation,
                         pool_name='analysis_execution'
                     )
                 else:

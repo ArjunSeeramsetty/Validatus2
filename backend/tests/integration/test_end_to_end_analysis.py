@@ -394,7 +394,7 @@ class TestEndToEndAnalysis:
         assert 'bulkhead_pool_status' in orchestration_health
 
     @pytest.mark.asyncio
-    async def test_graceful_degradation_scenarios(self, integrated_system):
+    async def test_graceful_degradation_scenarios(self, integrated_system, monkeypatch):
         """Test graceful degradation under various failure scenarios."""
         system = integrated_system
         
@@ -414,7 +414,8 @@ class TestEndToEndAnalysis:
         # Scenario 2: Circuit breaker open
         circuit = system['orchestrator'].circuit_breakers.get("analysis_execution")
         if circuit:
-            circuit.state = "OPEN"
+            # Use monkeypatch to safely set circuit breaker state
+            monkeypatch.setattr(circuit, 'state', "OPEN")
             
             result = await system['optimization_service'].execute_analysis_with_graceful_degradation(
                 session_id="circuit_open_session",
@@ -427,9 +428,24 @@ class TestEndToEndAnalysis:
             assert 'circuit_breaker_bypassed' in result
         
         # Scenario 3: High load conditions
-        # Simulate high load by filling bulkhead pools
+        # Simulate high load by submitting tasks to fill bulkhead pools
+        high_load_tasks = []
         for pool_name, pool in system['orchestrator'].bulkhead_pools.items():
-            pool.current_count = pool.max_concurrent - 1  # Near capacity
+            # Submit tasks to fill pool to near capacity
+            for i in range(pool.max_concurrent - 1):
+                async def mock_long_operation():
+                    await asyncio.sleep(60)  # Long-running task
+                    return "long_result"
+                
+                task = system['orchestrator'].execute_with_circuit_breaker(
+                    operation_name=f'load_test_{pool_name}_{i}',
+                    operation_func=mock_long_operation,
+                    pool_name=pool_name
+                )
+                high_load_tasks.append(task)
+        
+        # Wait a moment for tasks to start and fill pools
+        await asyncio.sleep(0.1)
         
         result = await system['optimization_service'].execute_analysis_with_graceful_degradation(
             session_id="high_load_session",
@@ -440,3 +456,9 @@ class TestEndToEndAnalysis:
         
         assert result is not None
         assert 'priority_adjusted' in result
+        
+        # Clean up high load tasks
+        for task in high_load_tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*high_load_tasks, return_exceptions=True)

@@ -56,6 +56,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
 
   // Initialize WebSocket connection
   const connect = useCallback(() => {
+    // Disabled until backend WebSocket endpoint is implemented
+    console.log('WebSocket connection disabled - backend endpoint not available');
+    setConnectionStatus('disconnected');
+    return;
+    
     try {
       setConnectionStatus('connecting');
       
@@ -124,7 +129,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
           
           reconnectTimer.current = setTimeout(() => {
             setReconnectAttempts(prev => prev + 1);
-            connect();
+            // connect(); // Disabled - WebSocket not available
+            console.log('WebSocket auto-reconnect disabled - backend endpoint not available');
           }, delay);
           
           enqueueSnackbar(`Connection lost. Reconnecting in ${Math.round(delay / 1000)} seconds...`, { 
@@ -211,7 +217,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
       messageQueue.current.push(messageStr);
       
       if (connectionStatus === 'disconnected') {
-        connect();
+        // connect(); // Disabled - WebSocket not available
+        console.log('WebSocket connection disabled - message queued');
       }
     }
   }, [connectionStatus, connect]);
@@ -252,7 +259,8 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     }
     
     setReconnectAttempts(0);
-    connect();
+    // connect(); // Disabled - WebSocket not available
+    console.log('WebSocket reconnect disabled - backend endpoint not available');
   }, [connect]);
 
   // Initialize connection on mount (disabled for now)

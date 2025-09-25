@@ -5,7 +5,10 @@ echo "🧪 Starting Comprehensive Strategic Analysis Workflow Testing..."
 echo "=================================================================="
 
 # Navigate to project root
-cd "$(dirname "$0")"
+if ! cd "$(dirname "$0")"; then
+    echo "❌ Failed to change to script directory. Aborting."
+    exit 1
+fi
 
 # Test counter
 TESTS_PASSED=0

@@ -5,7 +5,7 @@ import {
   ListItemText, Divider, CircularProgress
 } from '@mui/material';
 import {
-  CheckCircle, Schedule, Error, Analytics, TrendingUp,
+  CheckCircle, Schedule, Error as ErrorIcon, Analytics, TrendingUp,
   Assessment, Speed, Insights, Refresh, PlayArrow
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
@@ -201,7 +201,7 @@ const AnalysisProgressTracker: React.FC<AnalysisProgressTrackerProps> = ({
     switch (status) {
       case 'completed': return <CheckCircle sx={{ color: '#52c41a' }} />;
       case 'running': return <CircularProgress size={20} sx={{ color: '#1890ff' }} />;
-      case 'failed': return <Error sx={{ color: '#ff4d4f' }} />;
+      case 'failed': return <ErrorIcon sx={{ color: '#ff4d4f' }} />;
       default: return <Schedule sx={{ color: '#8c8ca0' }} />;
     }
   };
@@ -466,7 +466,7 @@ const AnalysisProgressTracker: React.FC<AnalysisProgressTrackerProps> = ({
               <Grid item xs={6} md={3}>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="h4" sx={{ color: '#52c41a', fontWeight: 700 }}>
-                    {Math.round(analysisSteps.reduce((acc, step) => acc + step.actualTime || 0, 0))}m
+                    {Math.round(analysisSteps.reduce((acc, step) => acc + (step.actualTime ?? 0), 0))}m
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
                     Total Time

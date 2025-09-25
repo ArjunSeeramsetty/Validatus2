@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Stepper, Step, StepLabel, Box, TextField, Button,
-  Typography, IconButton, List, ListItem, ListItemText,
-  LinearProgress, Chip, Alert
+  Typography, IconButton, LinearProgress, Chip, Alert
 } from '@mui/material';
-import { Add, Delete, Search, Link, CheckCircle } from '@mui/icons-material';
+import { Add, Delete, Search, CheckCircle } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTopics } from '../../hooks/useAnalysisData';
 
@@ -26,7 +25,7 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-
+  
   const { createTopic } = useTopics();
   const steps = ['Topic Setup', 'Web Search & URLs', 'Content Processing', 'Vector Store Creation'];
 
@@ -43,7 +42,6 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
     setError(null);
     
     try {
-      // Stage 1: Create topic and collect URLs
       const topicData = {
         topic,
         description,
@@ -51,14 +49,12 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
         searchQueries: searchQueries.filter(query => query.trim())
       };
 
-      // Create the topic using the backend API
       await createTopic(
         topic,
         topicData.urls,
         topicData.searchQueries.length > 0 ? topicData.searchQueries : undefined
       );
 
-      // Simulate processing with progress updates
       const processingSteps = [
         { progress: 20, message: 'Creating topic in database...' },
         { progress: 40, message: 'Initiating web search queries...' },
@@ -107,17 +103,7 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="e.g., Electric Vehicle Market Analysis"
-              sx={{ 
-                mb: 3,
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: '#252547',
-                  '& fieldset': { borderColor: '#3d3d56' },
-                  '&:hover fieldset': { borderColor: '#1890ff' },
-                  '&.Mui-focused fieldset': { borderColor: '#1890ff' },
-                },
-                '& .MuiInputLabel-root': { color: '#b8b8cc' },
-                '& .MuiInputBase-input': { color: '#e8e8f0' },
-              }}
+              sx={{ mb: 3 }}
             />
             <TextField
               fullWidth
@@ -127,16 +113,6 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
               multiline
               rows={3}
               placeholder="Brief description of your strategic analysis goals"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: '#252547',
-                  '& fieldset': { borderColor: '#3d3d56' },
-                  '&:hover fieldset': { borderColor: '#1890ff' },
-                  '&.Mui-focused fieldset': { borderColor: '#1890ff' },
-                },
-                '& .MuiInputLabel-root': { color: '#b8b8cc' },
-                '& .MuiInputBase-input': { color: '#e8e8f0' },
-              }}
             />
           </Box>
         );
@@ -144,9 +120,7 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
       case 1:
         return (
           <Box sx={{ py: 2 }}>
-            <Typography variant="h6" sx={{ color: '#e8e8f0', mb: 2 }}>
-              Web Search Queries
-            </Typography>
+            <Typography variant="h6" sx={{ mb: 2 }}>Web Search Queries</Typography>
             {searchQueries.map((query, index) => (
               <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <TextField
@@ -155,17 +129,7 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
                   value={query}
                   onChange={(e) => updateSearchQuery(index, e.target.value)}
                   placeholder="e.g., electric vehicle market trends 2024"
-                  sx={{ 
-                    mr: 1,
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: '#252547',
-                      '& fieldset': { borderColor: '#3d3d56' },
-                      '&:hover fieldset': { borderColor: '#1890ff' },
-                      '&.Mui-focused fieldset': { borderColor: '#1890ff' },
-                    },
-                    '& .MuiInputLabel-root': { color: '#b8b8cc' },
-                    '& .MuiInputBase-input': { color: '#e8e8f0' },
-                  }}
+                  sx={{ mr: 1 }}
                 />
                 <IconButton 
                   onClick={() => removeSearchQuery(index)} 
@@ -176,17 +140,11 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
                 </IconButton>
               </Box>
             ))}
-            <Button 
-              startIcon={<Add />} 
-              onClick={addSearchQuery} 
-              sx={{ mb: 3, color: '#1890ff' }}
-            >
+            <Button startIcon={<Add />} onClick={addSearchQuery} sx={{ mb: 3 }}>
               Add Search Query
             </Button>
 
-            <Typography variant="h6" sx={{ color: '#e8e8f0', mb: 2 }}>
-              Direct URLs (Optional)
-            </Typography>
+            <Typography variant="h6" sx={{ mb: 2 }}>Direct URLs (Optional)</Typography>
             {urls.map((url, index) => (
               <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <TextField
@@ -195,17 +153,7 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
                   value={url}
                   onChange={(e) => updateUrl(index, e.target.value)}
                   placeholder="https://example.com/industry-report"
-                  sx={{ 
-                    mr: 1,
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: '#252547',
-                      '& fieldset': { borderColor: '#3d3d56' },
-                      '&:hover fieldset': { borderColor: '#1890ff' },
-                      '&.Mui-focused fieldset': { borderColor: '#1890ff' },
-                    },
-                    '& .MuiInputLabel-root': { color: '#b8b8cc' },
-                    '& .MuiInputBase-input': { color: '#e8e8f0' },
-                  }}
+                  sx={{ mr: 1 }}
                 />
                 <IconButton 
                   onClick={() => removeUrl(index)} 
@@ -216,11 +164,7 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
                 </IconButton>
               </Box>
             ))}
-            <Button 
-              startIcon={<Add />} 
-              onClick={addUrl}
-              sx={{ color: '#1890ff' }}
-            >
+            <Button startIcon={<Add />} onClick={addUrl}>
               Add URL
             </Button>
           </Box>
@@ -232,33 +176,15 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
             {!processing ? (
               <>
                 <Search sx={{ fontSize: 64, color: '#1890ff', mb: 2 }} />
-                <Typography variant="h6" sx={{ color: '#e8e8f0', mb: 2 }}>
-                  Ready to Process Content
-                </Typography>
+                <Typography variant="h6" sx={{ mb: 2 }}>Ready to Process Content</Typography>
                 <Typography variant="body2" sx={{ color: '#b8b8cc', mb: 3 }}>
                   We'll search the web, collect URLs, scrape content, and create your knowledge base
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <Chip 
-                    label="Web Search" 
-                    sx={{ backgroundColor: '#1890ff20', color: '#1890ff' }} 
-                    size="small" 
-                  />
-                  <Chip 
-                    label="Content Extraction" 
-                    sx={{ backgroundColor: '#1890ff20', color: '#1890ff' }} 
-                    size="small" 
-                  />
-                  <Chip 
-                    label="Quality Analysis" 
-                    sx={{ backgroundColor: '#1890ff20', color: '#1890ff' }} 
-                    size="small" 
-                  />
-                  <Chip 
-                    label="Vector Embeddings" 
-                    sx={{ backgroundColor: '#1890ff20', color: '#1890ff' }} 
-                    size="small" 
-                  />
+                  <Chip label="Web Search" sx={{ backgroundColor: '#1890ff20', color: '#1890ff' }} size="small" />
+                  <Chip label="Content Extraction" sx={{ backgroundColor: '#1890ff20', color: '#1890ff' }} size="small" />
+                  <Chip label="Quality Analysis" sx={{ backgroundColor: '#1890ff20', color: '#1890ff' }} size="small" />
+                  <Chip label="Vector Embeddings" sx={{ backgroundColor: '#1890ff20', color: '#1890ff' }} size="small" />
                 </Box>
               </>
             ) : (
@@ -266,19 +192,9 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
                 <LinearProgress 
                   variant="determinate" 
                   value={progress} 
-                  sx={{ 
-                    mb: 2, 
-                    height: 8, 
-                    borderRadius: 4,
-                    backgroundColor: '#3d3d56',
-                    '& .MuiLinearProgress-bar': {
-                      backgroundColor: '#1890ff'
-                    }
-                  }} 
+                  sx={{ mb: 2, height: 8, borderRadius: 4 }} 
                 />
-                <Typography variant="h6" sx={{ color: '#e8e8f0', mb: 2 }}>
-                  Processing Content... {progress}%
-                </Typography>
+                <Typography variant="h6" sx={{ mb: 2 }}>Processing Content... {progress}%</Typography>
                 <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
                   {progress < 20 && 'Creating topic in database...'}
                   {progress >= 20 && progress < 40 && 'Initiating web search queries...'}
@@ -296,14 +212,12 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
         return (
           <Box sx={{ py: 2, textAlign: 'center' }}>
             <CheckCircle sx={{ fontSize: 64, color: '#52c41a', mb: 2 }} />
-            <Typography variant="h6" sx={{ color: '#e8e8f0', mb: 2 }}>
-              Knowledge Base Created!
-            </Typography>
+            <Typography variant="h6" sx={{ mb: 2 }}>Knowledge Base Created!</Typography>
             <Typography variant="body2" sx={{ color: '#b8b8cc', mb: 3 }}>
               Your topic is ready for strategic analysis. You can now proceed to Stage 2.
             </Typography>
-            <Alert severity="success" sx={{ textAlign: 'left', backgroundColor: '#1f2937', border: '1px solid #10b981' }}>
-              <Typography variant="body2" sx={{ color: '#d1d5db' }}>
+            <Alert severity="success" sx={{ textAlign: 'left' }}>
+              <Typography variant="body2">
                 <strong>Next Steps:</strong><br />
                 • Review collected knowledge<br />
                 • Start strategic analysis<br />
@@ -320,7 +234,7 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
 
   const canProceed = () => {
     if (activeStep === 0) return topic.trim().length > 0;
-    if (activeStep === 1) return true; // URLs and queries are optional
+    if (activeStep === 1) return true;
     return true;
   };
 
@@ -360,7 +274,7 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
         </Stepper>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 3, backgroundColor: '#2d1b1f', border: '1px solid #ef4444' }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
@@ -383,11 +297,7 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
           Cancel
         </Button>
         {activeStep > 0 && (
-          <Button 
-            onClick={() => setActiveStep(prev => prev - 1)} 
-            sx={{ color: '#1890ff' }}
-            disabled={processing}
-          >
+          <Button onClick={() => setActiveStep(prev => prev - 1)} sx={{ color: '#1890ff' }}>
             Back
           </Button>
         )}
@@ -399,15 +309,10 @@ const KnowledgeAcquisitionWizard: React.FC<KnowledgeAcquisitionWizardProps> = ({
             background: 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)',
             '&:hover': {
               background: 'linear-gradient(135deg, #096dd9 0%, #1890ff 100%)',
-            },
-            '&:disabled': {
-              backgroundColor: '#3d3d56',
-              color: '#8c8ca0'
             }
           }}
         >
-          {processing ? 'Processing...' : 
-           activeStep === steps.length - 1 ? 'Create Knowledge Base' : 'Next'}
+          {activeStep === steps.length - 1 ? 'Create Knowledge Base' : 'Next'}
         </Button>
       </DialogActions>
     </Dialog>

@@ -113,7 +113,7 @@ const AnalysisSessionsPage: React.FC = () => {
 
     try {
       setCreating(true);
-      await createSession(
+      const result = await createSession(
         newSession.topic,
         user?.id || '1',
         newSession.parameters,
@@ -124,7 +124,7 @@ const AnalysisSessionsPage: React.FC = () => {
       setOpen(false);
       
       // Show progress tracker for the new running session
-      if (result.session_id) {
+      if (result && result.session_id) {
         setTrackingSessionId(result.session_id);
         setShowProgressTracker(true);
       }

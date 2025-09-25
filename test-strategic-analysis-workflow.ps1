@@ -1,6 +1,10 @@
 # 🧪 VALIDATUS STRATEGIC ANALYSIS WORKFLOW - COMPREHENSIVE TESTING SCRIPT
 # PowerShell Version
 
+# Ensure we're running from the correct directory
+$ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $ScriptPath
+
 Write-Host "🧪 Starting Comprehensive Strategic Analysis Workflow Testing..." -ForegroundColor Cyan
 Write-Host "==================================================================" -ForegroundColor Yellow
 

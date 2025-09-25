@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import {
   Download, PictureAsPdf, TableChart, Slideshow, Share,
-  CheckCircle, Schedule, Error, CloudDownload
+  CheckCircle, Schedule, CloudDownload
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { StrategicAnalysisService } from '../../services/strategicAnalysisService';
@@ -89,8 +89,15 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
         await new Promise(resolve => setTimeout(resolve, 800));
       }
 
-      // Call the actual export service
-      const result = await StrategicAnalysisService.exportResults(sessionId, selectedFormat);
+      // Call the actual export service with user-selected options
+      const exportOptions = {
+        include_charts: includeCharts,
+        include_data: includeData,
+        include_insights: includeInsights,
+        include_recommendations: includeRecommendations,
+        custom_template: false
+      };
+      const result = await StrategicAnalysisService.exportResults(sessionId, selectedFormat, exportOptions);
       
       setDownloadUrl(result.download_url);
       setExporting(false);
@@ -107,12 +114,21 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
     }
   };
 
+  const handleClose = () => {
+    // Reset all transient state when dialog closes
+    setDownloadUrl(null);
+    setProgress(0);
+    setError(null);
+    setExporting(false);
+    onClose();
+  };
+
   const selectedOption = exportOptions.find(option => option.format === selectedFormat);
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       maxWidth="md"
       fullWidth
       PaperProps={{
@@ -378,7 +394,7 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
       </DialogContent>
 
       <DialogActions sx={{ p: 3, borderTop: '1px solid #3d3d56' }}>
-        <Button onClick={onClose} sx={{ color: '#b8b8cc' }}>
+        <Button onClick={handleClose} sx={{ color: '#b8b8cc' }}>
           Cancel
         </Button>
         {downloadUrl ? (

@@ -155,7 +155,7 @@ export class StrategicAnalysisService {
     try {
       const response = await apiClient.post('/api/v3/topics/search-urls', {
         topic,
-        search_queries,
+        search_queries: searchQueries,
         max_urls: 50,
         quality_threshold: 0.7
       });
@@ -458,13 +458,30 @@ export class StrategicAnalysisService {
   /**
    * Export analysis results
    */
-  static async exportResults(sessionId: string, format: 'pdf' | 'excel' | 'powerpoint'): Promise<ExportResponse> {
+  static async exportResults(
+    sessionId: string, 
+    format: 'pdf' | 'excel' | 'powerpoint',
+    options?: {
+      include_charts?: boolean;
+      include_data?: boolean;
+      include_insights?: boolean;
+      include_recommendations?: boolean;
+      custom_template?: boolean;
+    }
+  ): Promise<ExportResponse> {
+    const exportOptions = {
+      include_charts: true,
+      include_data: true,
+      include_insights: true,
+      include_recommendations: true,
+      custom_template: false,
+      ...options
+    };
+
     try {
       const response = await apiClient.post(`/api/v3/analysis/sessions/${sessionId}/export`, {
         format,
-        include_charts: true,
-        include_data: true,
-        custom_template: false
+        ...exportOptions
       });
       
       return response.data;

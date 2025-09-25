@@ -90,7 +90,10 @@ const AnalysisResultsDashboard: React.FC<AnalysisResultsDashboardProps> = ({ res
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedResult(null);
+    // Only clear selectedResult if export dialog is not open
+    if (!exportDialogOpen) {
+      setSelectedResult(null);
+    }
   };
 
   const renderLayerScores = (layerScores: { [layer: string]: number }) => {
@@ -396,7 +399,10 @@ const AnalysisResultsDashboard: React.FC<AnalysisResultsDashboardProps> = ({ res
         {/* Export Dialog */}
         <ExportDialog
           open={exportDialogOpen}
-          onClose={() => setExportDialogOpen(false)}
+          onClose={() => {
+            setExportDialogOpen(false);
+            setSelectedResult(null);
+          }}
           sessionId={selectedSessionId || ''}
           analysisData={selectedResult}
         />

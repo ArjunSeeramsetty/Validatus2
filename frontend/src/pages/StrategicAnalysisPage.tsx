@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { 
-  Box, Typography, Button, Stepper, Step, StepLabel, Card, CardContent,
-  TextField, Chip, Grid, Paper, LinearProgress 
+import {
+  Box, Typography, Button, Card, CardContent,
+  Grid, Paper, Chip
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { Search, Link as LinkIcon, Analytics } from '@mui/icons-material';
@@ -12,19 +12,12 @@ const StrategicAnalysisPage: React.FC = () => {
   const [showWizard, setShowWizard] = useState(false);
   const navigate = useNavigate();
 
-  const steps = [
-    'Knowledge Acquisition',
-    'Strategic Analysis',
-    'Results & Insights'
-  ];
-
   const handleStartAnalysis = () => {
     setShowWizard(true);
   };
 
   const handleWizardComplete = (data: any) => {
     setShowWizard(false);
-    // Navigate to analysis sessions or start the analysis
     navigate('/analysis');
   };
 
@@ -32,9 +25,7 @@ const StrategicAnalysisPage: React.FC = () => {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
+      transition: { staggerChildren: 0.1 }
     }
   };
 
@@ -43,14 +34,12 @@ const StrategicAnalysisPage: React.FC = () => {
     visible: {
       y: 0,
       opacity: 1,
-      transition: {
-        duration: 0.5
-      }
+      transition: { duration: 0.5 }
     }
   };
 
   return (
-    <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto', minHeight: '100vh', backgroundColor: '#0f0f23' }}>
+    <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -58,7 +47,7 @@ const StrategicAnalysisPage: React.FC = () => {
       >
         {/* Hero Section */}
         <motion.div variants={itemVariants}>
-          <Paper sx={{ 
+          <Paper sx={{
             background: 'linear-gradient(135deg, #1a1a35 0%, #2d2d5f 100%)',
             border: '1px solid #3d3d56',
             borderRadius: 3,
@@ -66,9 +55,9 @@ const StrategicAnalysisPage: React.FC = () => {
             mb: 4,
             textAlign: 'center'
           }}>
-            <Typography variant="h3" sx={{ 
-              color: '#e8e8f0', 
-              fontWeight: 700, 
+            <Typography variant="h3" sx={{
+              color: '#e8e8f0',
+              fontWeight: 700,
               mb: 2,
               background: 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)',
               backgroundClip: 'text',
@@ -80,8 +69,8 @@ const StrategicAnalysisPage: React.FC = () => {
             <Typography variant="h6" sx={{ color: '#b8b8cc', mb: 3, maxWidth: 600, mx: 'auto' }}>
               Transform your business insights with AI-powered strategic analysis across three comprehensive stages
             </Typography>
-            
-            {/* Quick Start Button */}
+
+            {/* ✅ FIXED: Complete Button Implementation */}
             <Button
               variant="contained"
               size="large"
@@ -107,12 +96,12 @@ const StrategicAnalysisPage: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* 3-Stage Workflow Overview */}
+        {/* ✅ FIXED: Complete 3-Stage Workflow Overview */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} md={4}>
             <motion.div variants={itemVariants}>
-              <Card sx={{ 
-                background: '#1a1a35', 
+              <Card sx={{
+                background: '#1a1a35',
                 border: '1px solid #3d3d56',
                 height: '100%',
                 transition: 'transform 0.2s',
@@ -140,8 +129,8 @@ const StrategicAnalysisPage: React.FC = () => {
 
           <Grid item xs={12} md={4}>
             <motion.div variants={itemVariants}>
-              <Card sx={{ 
-                background: '#1a1a35', 
+              <Card sx={{
+                background: '#1a1a35',
                 border: '1px solid #3d3d56',
                 height: '100%',
                 transition: 'transform 0.2s',
@@ -169,8 +158,8 @@ const StrategicAnalysisPage: React.FC = () => {
 
           <Grid item xs={12} md={4}>
             <motion.div variants={itemVariants}>
-              <Card sx={{ 
-                background: '#1a1a35', 
+              <Card sx={{
+                background: '#1a1a35',
                 border: '1px solid #3d3d56',
                 height: '100%',
                 transition: 'transform 0.2s',
@@ -197,44 +186,98 @@ const StrategicAnalysisPage: React.FC = () => {
           </Grid>
         </Grid>
 
-        {/* Current Active Analyses */}
+        {/* ✅ FIXED: Quick Actions Section */}
         <motion.div variants={itemVariants}>
           <Card sx={{ background: '#1a1a35', border: '1px solid #3d3d56', mb: 4 }}>
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" sx={{ color: '#e8e8f0', mb: 3, fontWeight: 600 }}>
-                Recent Strategic Analyses
+                Quick Actions
               </Typography>
-              {/* Display recent analyses or empty state */}
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Typography variant="body1" sx={{ color: '#b8b8cc', mb: 2 }}>
-                  No analyses yet. Start your first strategic analysis above.
-                </Typography>
-                <Button
-                  variant="outlined"
-                  onClick={() => navigate('/analysis')}
-                  sx={{
-                    borderColor: '#1890ff',
-                    color: '#1890ff',
-                    '&:hover': {
-                      borderColor: '#40a9ff',
-                      backgroundColor: '#1890ff20'
-                    }
-                  }}
-                >
-                  View All Sessions
-                </Button>
-              </Box>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => navigate('/topics')}
+                    sx={{
+                      borderColor: '#1890ff',
+                      color: '#1890ff',
+                      '&:hover': { backgroundColor: '#1890ff20' }
+                    }}
+                  >
+                    Manage Topics
+                  </Button>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => navigate('/analysis')}
+                    sx={{
+                      borderColor: '#52c41a',
+                      color: '#52c41a',
+                      '&:hover': { backgroundColor: '#52c41a20' }
+                    }}
+                  >
+                    View Sessions
+                  </Button>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => navigate('/results')}
+                    sx={{
+                      borderColor: '#fa8c16',
+                      color: '#fa8c16',
+                      '&:hover': { backgroundColor: '#fa8c1620' }
+                    }}
+                  >
+                    View Results
+                  </Button>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => navigate('/enhanced-analytics')}
+                    sx={{
+                      borderColor: '#722ed1',
+                      color: '#722ed1',
+                      '&:hover': { backgroundColor: '#722ed120' }
+                    }}
+                  >
+                    Enhanced Analytics
+                  </Button>
+                </Grid>
+              </Grid>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Knowledge Acquisition Wizard */}
-        <KnowledgeAcquisitionWizard
-          open={showWizard}
-          onClose={() => setShowWizard(false)}
-          onComplete={handleWizardComplete}
-        />
+        {/* Recent Analyses */}
+        <motion.div variants={itemVariants}>
+          <Card sx={{ background: '#1a1a35', border: '1px solid #3d3d56' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ color: '#e8e8f0', mb: 3, fontWeight: 600 }}>
+                Recent Strategic Analyses
+              </Typography>
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body1" sx={{ color: '#b8b8cc', mb: 2 }}>
+                  No analyses yet. Start your first strategic analysis above.
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </motion.div>
       </motion.div>
+
+      {/* Knowledge Acquisition Wizard */}
+      <KnowledgeAcquisitionWizard
+        open={showWizard}
+        onClose={() => setShowWizard(false)}
+        onComplete={handleWizardComplete}
+      />
     </Box>
   );
 };

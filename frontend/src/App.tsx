@@ -1,6 +1,6 @@
 // frontend/src/App.tsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
@@ -26,6 +26,7 @@ import AnalysisResultsPage from './pages/AnalysisResultsPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import EnhancedAnalyticsPage from './pages/EnhancedAnalyticsPage';
+import TempTestPage from './pages/TempTestPage';
 
 // Protected route component
 import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -161,7 +162,9 @@ const App: React.FC = () => {
                       {/* Protected routes */}
                       <Route path="/" element={
                         <ProtectedRoute>
-                          <MainLayout />
+                          <MainLayout>
+                            <Outlet />
+                          </MainLayout>
                         </ProtectedRoute>
                       }>
                         <Route index element={<Navigate to="/dashboard" replace />} />
@@ -174,6 +177,7 @@ const App: React.FC = () => {
                         <Route path="enhanced-analytics" element={<EnhancedAnalyticsPage />} />
                         <Route path="enhanced-analytics/:sessionId" element={<EnhancedAnalyticsPage />} />
                         <Route path="settings" element={<SettingsPage />} />
+                        <Route path="test" element={<TempTestPage />} />
                       </Route>
                       
                       {/* Catch all route */}

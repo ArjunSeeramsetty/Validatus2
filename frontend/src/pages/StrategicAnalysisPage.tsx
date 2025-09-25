@@ -1,23 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box, Typography, Button, Card, CardContent,
   Grid, Paper, Chip
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { Search, Link as LinkIcon, Analytics } from '@mui/icons-material';
-import KnowledgeAcquisitionWizard from '../components/KnowledgeAcquisition/KnowledgeAcquisitionWizard';
+// import KnowledgeAcquisitionWizard from '../components/KnowledgeAcquisition/KnowledgeAcquisitionWizard';
 import { useNavigate } from 'react-router-dom';
 
 const StrategicAnalysisPage: React.FC = () => {
-  const [showWizard, setShowWizard] = useState(false);
   const navigate = useNavigate();
 
   const handleStartAnalysis = () => {
-    setShowWizard(true);
-  };
-
-  const handleWizardComplete = (data: any) => {
-    setShowWizard(false);
     navigate('/analysis');
   };
 
@@ -40,6 +34,10 @@ const StrategicAnalysisPage: React.FC = () => {
 
   return (
     <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
+      {/* DEBUG: Check if component renders */}
+      <div style={{color: 'red', fontSize: '20px', padding: '10px', backgroundColor: 'yellow'}}>
+        🚨 STRATEGIC PAGE RENDER DEBUG - If you see this, the component is loading!
+      </div>
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -272,12 +270,6 @@ const StrategicAnalysisPage: React.FC = () => {
         </motion.div>
       </motion.div>
 
-      {/* Knowledge Acquisition Wizard */}
-      <KnowledgeAcquisitionWizard
-        open={showWizard}
-        onClose={() => setShowWizard(false)}
-        onComplete={handleWizardComplete}
-      />
     </Box>
   );
 };

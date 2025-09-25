@@ -48,7 +48,8 @@ export const useTopics = () => {
           status: 'active',
           url_count: 25,
           knowledge_count: 150,
-          created_at: '2024-09-20T10:00:00Z'
+          created_at: '2024-09-20T10:00:00Z',
+          updated_at: '2024-09-20T10:00:00Z'
         },
         {
           id: '2', 
@@ -57,7 +58,8 @@ export const useTopics = () => {
           status: 'active',
           url_count: 18,
           knowledge_count: 89,
-          created_at: '2024-09-19T14:30:00Z'
+          created_at: '2024-09-19T14:30:00Z',
+          updated_at: '2024-09-19T14:30:00Z'
         },
         {
           id: '3',
@@ -66,7 +68,8 @@ export const useTopics = () => {
           status: 'processing',
           url_count: 32,
           knowledge_count: 0,
-          created_at: '2024-09-21T09:15:00Z'
+          created_at: '2024-09-21T09:15:00Z',
+          updated_at: '2024-09-21T09:15:00Z'
         }
       ]);
     } finally {
@@ -153,11 +156,11 @@ export const useAnalysisSessions = () => {
       );
       
       // Add to local state
-      const newSession = {
+      const newSession: AnalysisSession = {
         id: result.session_id,
         topic: result.topic,
         user_id: result.user_id,
-        status: 'created',
+        status: 'created' as const,
         progress: 0,
         enhanced_analytics: result.enhanced_analytics,
         created_at: new Date().toISOString(),

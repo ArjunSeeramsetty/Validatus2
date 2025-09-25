@@ -19,6 +19,7 @@ import ErrorBoundary from './components/Common/ErrorBoundary';
 
 // Page components
 import DashboardPage from './pages/DashboardPage';
+import StrategicAnalysisPage from './pages/StrategicAnalysisPage';
 import TopicManagementPage from './pages/TopicManagementPage';
 import AnalysisSessionsPage from './pages/AnalysisSessionsPage';
 import AnalysisResultsPage from './pages/AnalysisResultsPage';
@@ -165,8 +166,10 @@ const App: React.FC = () => {
                       }>
                         <Route index element={<Navigate to="/dashboard" replace />} />
                         <Route path="dashboard" element={<DashboardPage />} />
+                        <Route path="strategic-analysis" element={<StrategicAnalysisPage />} />
                         <Route path="topics" element={<TopicManagementPage />} />
                         <Route path="analysis" element={<AnalysisSessionsPage />} />
+                        <Route path="results" element={<AnalysisResultsPage />} />
                         <Route path="results/:sessionId" element={<AnalysisResultsPage />} />
                         <Route path="enhanced-analytics" element={<EnhancedAnalyticsPage />} />
                         <Route path="enhanced-analytics/:sessionId" element={<EnhancedAnalyticsPage />} />

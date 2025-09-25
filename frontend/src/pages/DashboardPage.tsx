@@ -65,22 +65,28 @@ const DashboardPage: React.FC = () => {
 
   const quickActions = [
     {
-      title: 'Start New Analysis',
-      description: 'Begin a comprehensive strategic analysis',
-      action: () => navigate('/analysis'),
+      title: 'Start Strategic Analysis',
+      description: 'Begin a comprehensive 3-stage strategic analysis workflow',
+      action: () => navigate('/strategic-analysis'),
       color: '#1890ff'
+    },
+    {
+      title: 'Manage Analysis Sessions',
+      description: 'View and manage existing analysis sessions',
+      action: () => navigate('/analysis'),
+      color: '#52c41a'
     },
     {
       title: 'View Results',
       description: 'Review completed analysis results',
       action: () => navigate('/results'),
-      color: '#52c41a'
+      color: '#fa8c16'
     },
     {
       title: 'Manage Topics',
       description: 'Configure analysis topics and parameters',
       action: () => navigate('/topics'),
-      color: '#fa8c16'
+      color: '#722ed1'
     },
     {
       title: 'Enhanced Analytics',

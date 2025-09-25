@@ -64,9 +64,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const menuItems = [
     { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
+    { text: 'Strategic Analysis', icon: <Analytics />, path: '/strategic-analysis' },
     { text: 'Topic Management', icon: <Topic />, path: '/topics' },
-    { text: 'Analysis Sessions', icon: <Analytics />, path: '/analysis' },
-    { text: 'Results', icon: <Assessment />, path: '/results' },
+    { text: 'Analysis Sessions', icon: <Assessment />, path: '/analysis' },
+    { text: 'Results', icon: <TrendingUp />, path: '/results' },
     { text: 'Enhanced Analytics', icon: <TrendingUp />, path: '/enhanced-analytics' },
     { text: 'Settings', icon: <Settings />, path: '/settings' },
   ];

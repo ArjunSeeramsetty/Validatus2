@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AnalysisService, SystemStatus } from '../services/analysisService';
+import { AnalysisService, SystemStatus, Topic, AnalysisSession } from '../services/analysisService';
 
 export const useSystemStatus = () => {
   const [status, setStatus] = useState<SystemStatus | null>(null);
@@ -27,7 +27,7 @@ export const useSystemStatus = () => {
 };
 
 export const useTopics = () => {
-  const [topics, setTopics] = useState<any[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,7 +92,7 @@ export const useTopics = () => {
 };
 
 export const useAnalysisSessions = () => {
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<AnalysisSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -62,12 +62,10 @@ export class AnalysisService {
     urls: string[], 
     searchQueries?: string[]
   ): Promise<{ success: boolean; topic_id: string; message: string }> {
-    const response = await apiClient.post('/api/v3/topics/create', null, {
-      params: {
-        topic,
-        urls: urls.join(','),
-        search_queries: searchQueries?.join(',')
-      }
+    const response = await apiClient.post('/api/v3/topics/create', {
+      topic,
+      urls,
+      search_queries: searchQueries || []
     });
     return response.data;
   }

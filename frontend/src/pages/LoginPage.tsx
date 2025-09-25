@@ -36,23 +36,12 @@ const LoginPage: React.FC = () => {
     setLoading(true);
     
     try {
-      dispatch(loginStart());
-      
-      // Call AuthContext login
+      // Call AuthContext login - it handles Redux updates internally
       await login(email, password);
       
-      // Update Redux store
-      dispatch(loginSuccess({
-        id: '1',
-        email,
-        name: 'Demo User',
-        role: 'analyst'
-      }));
-      
-    } catch (err: any) {
-      const errorMessage = err.message || 'Login failed';
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);
-      dispatch(loginFailure(errorMessage));
     } finally {
       setLoading(false);
     }

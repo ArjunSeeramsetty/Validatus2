@@ -1,4 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react';
+import { mockWebSocketImplementation } from '../utils/mockWebSocket';
 
 // Define the context interface
 interface SocketContextType {
@@ -26,23 +27,7 @@ export const useSocket = () => {
 
 // Hook for WebSocket connection (disabled for now)
 export const useWebSocketConnection = () => {
-  return {
-    connectionStatus: 'disconnected' as const,
-    lastMessage: null,
-    sendMessage: (message: string) => {
-      console.log('WebSocket disabled - message not sent:', message);
-    },
-    subscribe: (eventType: string, callback: (data: any) => void) => {
-      console.log('WebSocket disabled - subscription not created:', eventType);
-      return () => {}; // Return empty unsubscribe function
-    },
-    unsubscribe: (eventType: string) => {
-      console.log('WebSocket disabled - unsubscribe not performed:', eventType);
-    },
-    reconnect: () => {
-      console.log('WebSocket disabled - reconnection not attempted');
-    }
-  };
+  return mockWebSocketImplementation;
 };
 
 // Provider props interface
@@ -53,25 +38,7 @@ interface SocketProviderProps {
 // Socket provider component (WebSocket functionality disabled for now)
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   // Disabled WebSocket implementation - provides mock interface
-  const contextValue: SocketContextType = {
-    socket: null,
-    connected: false,
-    connectionStatus: 'disconnected',
-    lastMessage: null,
-    sendMessage: (message: string) => {
-      console.log('WebSocket disabled - message not sent:', message);
-    },
-    subscribe: (eventType: string, callback: (data: any) => void) => {
-      console.log('WebSocket disabled - subscription not created:', eventType);
-      return () => {}; // Return empty unsubscribe function
-    },
-    unsubscribe: (eventType: string) => {
-      console.log('WebSocket disabled - unsubscribe not performed:', eventType);
-    },
-    reconnect: () => {
-      console.log('WebSocket disabled - reconnection not attempted');
-    }
-  };
+  const contextValue: SocketContextType = mockWebSocketImplementation;
 
   return (
     <SocketContext.Provider value={contextValue}>

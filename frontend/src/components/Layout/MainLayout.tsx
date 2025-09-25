@@ -27,6 +27,7 @@ import {
   Logout,
   TrendingUp
 } from '@mui/icons-material';
+import ListItemButton from '@mui/material/ListItemButton';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -81,30 +82,36 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <List>
         {menuItems.map((item) => (
           <ListItem
-            button
             key={item.text}
-            onClick={() => navigate(item.path)}
             sx={{
               margin: '4px 8px',
               borderRadius: 2,
-              backgroundColor: location.pathname === item.path ? '#1890ff20' : 'transparent',
-              '&:hover': {
-                backgroundColor: location.pathname === item.path ? '#1890ff30' : '#ffffff10',
-              },
+              padding: 0,
             }}
           >
+            <ListItemButton
+              onClick={() => navigate(item.path)}
+              sx={{
+                borderRadius: 2,
+                backgroundColor: location.pathname === item.path ? '#1890ff20' : 'transparent',
+                '&:hover': {
+                  backgroundColor: location.pathname === item.path ? '#1890ff30' : '#ffffff10',
+                },
+              }}
+            >
             <ListItemIcon sx={{ color: location.pathname === item.path ? '#1890ff' : '#b8b8cc' }}>
               {item.icon}
             </ListItemIcon>
-            <ListItemText 
-              primary={item.text} 
-              sx={{ 
-                '& .MuiListItemText-primary': { 
-                  color: location.pathname === item.path ? '#1890ff' : '#e8e8f0',
-                  fontWeight: location.pathname === item.path ? 600 : 400
-                } 
-              }} 
-            />
+              <ListItemText 
+                primary={item.text} 
+                sx={{ 
+                  '& .MuiListItemText-primary': { 
+                    color: location.pathname === item.path ? '#1890ff' : '#e8e8f0',
+                    fontWeight: location.pathname === item.path ? 600 : 400
+                  } 
+                }} 
+              />
+            </ListItemButton>
           </ListItem>
         ))}
       </List>
@@ -214,7 +221,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <Box
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-        aria-label="mailbox folders"
+        aria-label="Main navigation"
       >
         <Drawer
           variant="temporary"

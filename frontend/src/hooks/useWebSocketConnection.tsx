@@ -38,9 +38,9 @@ interface WebSocketProviderProps {
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
-  url = process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:8000/ws',
-  autoReconnect = true,
-  maxReconnectAttempts = 5,
+  url = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws',
+  autoReconnect = false, // Disabled for now since backend doesn't have WebSocket endpoint
+  maxReconnectAttempts = 0,
   reconnectInterval = 3000
 }) => {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
@@ -255,9 +255,9 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     connect();
   }, [connect]);
 
-  // Initialize connection on mount
+  // Initialize connection on mount (disabled for now)
   useEffect(() => {
-    connect();
+    // connect(); // Disabled until backend WebSocket endpoint is implemented
     
     return () => {
       stopHeartbeat();

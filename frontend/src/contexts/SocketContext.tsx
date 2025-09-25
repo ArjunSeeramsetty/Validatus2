@@ -34,9 +34,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   return (
     <SocketContext.Provider value={value}>
       <WebSocketProvider
-        url={process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:8000/ws'}
-        autoReconnect={true}
-        maxReconnectAttempts={5}
+        url={import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws'}
+        autoReconnect={false}
+        maxReconnectAttempts={0}
         reconnectInterval={3000}
       >
         {children}

@@ -30,20 +30,20 @@ import {
 import {
   DashboardOutlined,
   BarChartOutlined,
-  DatabaseOutlined,
+  StorageOutlined,
   SettingsOutlined,
   AccountCircleOutlined,
   NotificationsOutlined,
   MenuOutlined,
   FullscreenOutlined,
-  ExportOutlined,
+  FileDownloadOutlined,
   WifiOutlined,
   WifiOffOutlined
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { useWebSocketConnection } from '../../../hooks/useWebSocketConnection';
 import { useAuthContext } from '../../../contexts/AuthContext';
-import { NotificationSystem } from '../RealTimeUpdates/NotificationSystem';
+import NotificationSystem from '../RealTimeUpdates/NotificationSystem';
 
 // Dark theme styled components
 const DarkAppBar = styled(AppBar)(({ theme }) => ({
@@ -155,7 +155,7 @@ const StrategicDarkLayout: React.FC<StrategicLayoutProps> = ({
     },
     {
       key: 'knowledge',
-      icon: <DatabaseOutlined />,
+      icon: <StorageOutlined />,
       label: 'Knowledge Management',
       children: [
         { key: 'topic-stores', label: 'Topic Vector Stores' },
@@ -331,7 +331,7 @@ const StrategicDarkLayout: React.FC<StrategicLayoutProps> = ({
               </IconButton>
               
               <IconButton color="inherit">
-                <ExportOutlined />
+                <FileDownloadOutlined />
               </IconButton>
 
               {showNotifications && (

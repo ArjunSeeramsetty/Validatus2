@@ -24,8 +24,8 @@ import {
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
-  ReloadOutlined,
-  DownloadOutlined,
+  RefreshOutlined,
+  FileDownloadOutlined,
   InfoOutlined,
   TrendingUpOutlined,
   WarningOutlined,
@@ -580,7 +580,7 @@ const MonteCarloSimulation: React.FC<MonteCarloSimulationProps> = ({
                 
                 <Button
                   variant="outlined"
-                  startIcon={<ReloadOutlined />}
+                  startIcon={<RefreshOutlined />}
                   onClick={resetSimulation}
                   disabled={isRunning}
                   sx={{ borderColor: '#52c41a', color: '#52c41a' }}
@@ -590,7 +590,7 @@ const MonteCarloSimulation: React.FC<MonteCarloSimulationProps> = ({
                 
                 <Button
                   variant="outlined"
-                  startIcon={<DownloadOutlined />}
+                  startIcon={<FileDownloadOutlined />}
                   disabled={simulationResults.length === 0}
                   sx={{ borderColor: '#fa8c16', color: '#fa8c16' }}
                 >

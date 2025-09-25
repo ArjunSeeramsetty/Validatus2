@@ -142,7 +142,12 @@ const App: React.FC = () => {
             >
               <AuthProvider>
                 <SocketProvider>
-                <Router>
+                <Router
+                  future={{
+                    v7_startTransition: true,
+                    v7_relativeSplatPath: true
+                  }}
+                >
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}

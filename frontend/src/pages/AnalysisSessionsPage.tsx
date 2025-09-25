@@ -40,6 +40,7 @@ import { motion } from 'framer-motion';
 import { useAnalysisSessions, useTopics } from '../hooks/useAnalysisData';
 import { useAuth } from '../contexts/AuthContext';
 import SessionCard from '../components/SessionCard';
+import AnalysisProgressTracker from '../components/Analysis/AnalysisProgressTracker';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -80,9 +81,22 @@ const AnalysisSessionsPage: React.FC = () => {
   });
   const [creating, setCreating] = useState(false);
   const [alert, setAlert] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [showProgressTracker, setShowProgressTracker] = useState(false);
+  const [trackingSessionId, setTrackingSessionId] = useState<string | null>(null);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+  };
+
+  const handleViewProgress = (sessionId: string) => {
+    setTrackingSessionId(sessionId);
+    setShowProgressTracker(true);
+  };
+
+  const handleProgressComplete = (results: any) => {
+    setShowProgressTracker(false);
+    setTrackingSessionId(null);
+    setAlert({ type: 'success', message: 'Analysis completed successfully!' });
   };
 
 
@@ -108,6 +122,13 @@ const AnalysisSessionsPage: React.FC = () => {
 
       setAlert({ type: 'success', message: 'Analysis session created successfully!' });
       setOpen(false);
+      
+      // Show progress tracker for the new running session
+      if (result.session_id) {
+        setTrackingSessionId(result.session_id);
+        setShowProgressTracker(true);
+      }
+      
       setNewSession({
         topic: '',
         enhanced_analytics: false,
@@ -409,6 +430,29 @@ const AnalysisSessionsPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Progress Tracker Dialog */}
+      {showProgressTracker && trackingSessionId && (
+        <Dialog
+          open={showProgressTracker}
+          onClose={() => setShowProgressTracker(false)}
+          maxWidth="lg"
+          fullWidth
+          PaperProps={{
+            sx: {
+              background: '#0f0f23',
+              border: '1px solid #3d3d56',
+              borderRadius: 2,
+              maxHeight: '90vh'
+            }
+          }}
+        >
+          <AnalysisProgressTracker
+            sessionId={trackingSessionId}
+            onAnalysisComplete={handleProgressComplete}
+          />
+        </Dialog>
+      )}
     </Box>
   );
 };

@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box, Grid, Card, CardContent, Typography, 
-  LinearProgress, Chip, Button, Paper, Alert
+  LinearProgress, Chip, Button, Paper, Alert,
+  IconButton, Menu, MenuItem, ListItemIcon, ListItemText
 } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { motion } from 'framer-motion';
-import { TrendingUp, Insights, Assessment } from '@mui/icons-material';
+import { TrendingUp, Insights, Assessment, MoreVert, Download, Share, Refresh } from '@mui/icons-material';
+import ExportDialog from '../Export/ExportDialog';
 
 interface AnalysisResult {
   id: string;
@@ -25,6 +27,11 @@ interface AnalysisResultsDashboardProps {
 }
 
 const AnalysisResultsDashboard: React.FC<AnalysisResultsDashboardProps> = ({ results = [] }) => {
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedResult, setSelectedResult] = useState<AnalysisResult | null>(null);
+
   // Mock data for demonstration
   const mockResults: AnalysisResult[] = results.length > 0 ? results : [
     {
@@ -68,6 +75,23 @@ const AnalysisResultsDashboard: React.FC<AnalysisResultsDashboardProps> = ({ res
       createdAt: '2024-09-21T10:00:00Z'
     }
   ];
+
+  const handleExportClick = (result: AnalysisResult) => {
+    setSelectedSessionId(result.id);
+    setSelectedResult(result);
+    setExportDialogOpen(true);
+    setAnchorEl(null);
+  };
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, result: AnalysisResult) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedResult(result);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedResult(null);
+  };
 
   const renderLayerScores = (layerScores: { [layer: string]: number }) => {
     const data = Object.entries(layerScores).map(([layer, score]) => ({
@@ -246,6 +270,13 @@ const AnalysisResultsDashboard: React.FC<AnalysisResultsDashboardProps> = ({ res
                           <Typography variant="caption" sx={{ color: '#8c8ca0' }}>
                             {new Date(result.createdAt).toLocaleDateString()}
                           </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => handleMenuOpen(e, result)}
+                            sx={{ color: '#8c8ca0' }}
+                          >
+                            <MoreVert />
+                          </IconButton>
                         </Box>
                       </Box>
 
@@ -361,6 +392,50 @@ const AnalysisResultsDashboard: React.FC<AnalysisResultsDashboardProps> = ({ res
             ))}
           </Grid>
         )}
+
+        {/* Export Dialog */}
+        <ExportDialog
+          open={exportDialogOpen}
+          onClose={() => setExportDialogOpen(false)}
+          sessionId={selectedSessionId || ''}
+          analysisData={selectedResult}
+        />
+
+        {/* Context Menu */}
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+          PaperProps={{
+            sx: {
+              backgroundColor: '#1a1a35',
+              border: '1px solid #3d3d56',
+              '& .MuiMenuItem-root': {
+                color: '#e8e8f0',
+                '&:hover': { backgroundColor: '#252547' }
+              }
+            }
+          }}
+        >
+          <MenuItem onClick={() => selectedResult && handleExportClick(selectedResult)}>
+            <ListItemIcon>
+              <Download sx={{ color: '#1890ff' }} />
+            </ListItemIcon>
+            <ListItemText>Export Results</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleMenuClose}>
+            <ListItemIcon>
+              <Share sx={{ color: '#52c41a' }} />
+            </ListItemIcon>
+            <ListItemText>Share Analysis</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleMenuClose}>
+            <ListItemIcon>
+              <Refresh sx={{ color: '#fa8c16' }} />
+            </ListItemIcon>
+            <ListItemText>Refresh Data</ListItemText>
+          </MenuItem>
+        </Menu>
       </motion.div>
     </Box>
   );

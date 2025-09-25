@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Box, Grid, Card, CardContent, Typography, 
   LinearProgress, Chip, Button, Paper, Alert,
@@ -31,6 +31,7 @@ const AnalysisResultsDashboard: React.FC<AnalysisResultsDashboardProps> = ({ res
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedResult, setSelectedResult] = useState<AnalysisResult | null>(null);
+  const keepSelectionRef = useRef(false);
 
   // Mock data for demonstration
   const mockResults: AnalysisResult[] = results.length > 0 ? results : [
@@ -77,6 +78,7 @@ const AnalysisResultsDashboard: React.FC<AnalysisResultsDashboardProps> = ({ res
   ];
 
   const handleExportClick = (result: AnalysisResult) => {
+    keepSelectionRef.current = true; // Keep selection during export
     setSelectedSessionId(result.id);
     setSelectedResult(result);
     setExportDialogOpen(true);
@@ -90,8 +92,8 @@ const AnalysisResultsDashboard: React.FC<AnalysisResultsDashboardProps> = ({ res
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    // Only clear selectedResult if export dialog is not open
-    if (!exportDialogOpen) {
+    // Only clear selectedResult if we're not keeping selection for export
+    if (!keepSelectionRef.current) {
       setSelectedResult(null);
     }
   };
@@ -401,6 +403,7 @@ const AnalysisResultsDashboard: React.FC<AnalysisResultsDashboardProps> = ({ res
           open={exportDialogOpen}
           onClose={() => {
             setExportDialogOpen(false);
+            keepSelectionRef.current = false; // Reset selection ref
             setSelectedResult(null);
           }}
           sessionId={selectedSessionId || ''}

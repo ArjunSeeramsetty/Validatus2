@@ -26,7 +26,7 @@ import AnalysisResultsPage from './pages/AnalysisResultsPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import EnhancedAnalyticsPage from './pages/EnhancedAnalyticsPage';
-import TempTestPage from './pages/TempTestPage';
+// import TempTestPage from './pages/TempTestPage'; // Debug page - removed for production
 
 // Protected route component
 import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -177,7 +177,7 @@ const App: React.FC = () => {
                         <Route path="enhanced-analytics" element={<EnhancedAnalyticsPage />} />
                         <Route path="enhanced-analytics/:sessionId" element={<EnhancedAnalyticsPage />} />
                         <Route path="settings" element={<SettingsPage />} />
-                        <Route path="test" element={<TempTestPage />} />
+                        {/* Debug route removed for production */}
                       </Route>
                       
                       {/* Catch all route */}

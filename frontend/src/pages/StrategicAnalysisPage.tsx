@@ -34,10 +34,11 @@ const StrategicAnalysisPage: React.FC = () => {
 
   return (
     <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
-      {/* DEBUG: Check if component renders */}
-      <div style={{color: 'red', fontSize: '20px', padding: '10px', backgroundColor: 'yellow'}}>
-        🚨 STRATEGIC PAGE RENDER DEBUG - If you see this, the component is loading!
-      </div>
+      {process.env.NODE_ENV !== 'production' && (
+        <div style={{color: 'red', fontSize: '20px', padding: '10px', backgroundColor: 'yellow'}}>
+          🚨 STRATEGIC PAGE RENDER DEBUG - If you see this, the component is loading!
+        </div>
+      )}
       <motion.div
         variants={containerVariants}
         initial="hidden"

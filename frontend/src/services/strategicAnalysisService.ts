@@ -470,12 +470,11 @@ export class StrategicAnalysisService {
     }
   ): Promise<ExportResponse> {
     const exportOptions = {
-      include_charts: true,
-      include_data: true,
-      include_insights: true,
-      include_recommendations: true,
-      custom_template: false,
-      ...options
+      include_charts: options?.include_charts ?? true,
+      include_data: options?.include_data ?? true,
+      include_insights: options?.include_insights ?? true,
+      include_recommendations: options?.include_recommendations ?? true,
+      custom_template: options?.custom_template ?? false
     };
 
     try {

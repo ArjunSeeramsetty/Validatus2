@@ -1,15 +1,21 @@
-// frontend/src/contexts/SocketContext.tsx
+import React, { createContext, useContext, ReactNode } from 'react';
 
-import React, { createContext, useContext } from 'react';
-import { WebSocketProvider } from '../hooks/useWebSocketConnection';
-
+// Define the context interface
 interface SocketContextType {
-  isConnected: boolean;
-  socket: any;
+  socket: null;
+  connected: boolean;
+  connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'error';
+  lastMessage: null;
+  sendMessage: (message: string) => void;
+  subscribe: (eventType: string, callback: (data: any) => void) => () => void;
+  unsubscribe: (eventType: string) => void;
+  reconnect: () => void;
 }
 
+// Create the context
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
+// Hook to use the socket context
 export const useSocket = () => {
   const context = useContext(SocketContext);
   if (context === undefined) {
@@ -18,29 +24,60 @@ export const useSocket = () => {
   return context;
 };
 
+// Hook for WebSocket connection (disabled for now)
+export const useWebSocketConnection = () => {
+  return {
+    connectionStatus: 'disconnected' as const,
+    lastMessage: null,
+    sendMessage: (message: string) => {
+      console.log('WebSocket disabled - message not sent:', message);
+    },
+    subscribe: (eventType: string, callback: (data: any) => void) => {
+      console.log('WebSocket disabled - subscription not created:', eventType);
+      return () => {}; // Return empty unsubscribe function
+    },
+    unsubscribe: (eventType: string) => {
+      console.log('WebSocket disabled - unsubscribe not performed:', eventType);
+    },
+    reconnect: () => {
+      console.log('WebSocket disabled - reconnection not attempted');
+    }
+  };
+};
+
+// Provider props interface
 interface SocketProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
+// Socket provider component (WebSocket functionality disabled for now)
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
-  const isConnected = true; // Mock connection for demo
-  const socket = null; // Mock socket for demo
-
-  const value = {
-    isConnected,
-    socket
+  // Disabled WebSocket implementation - provides mock interface
+  const contextValue: SocketContextType = {
+    socket: null,
+    connected: false,
+    connectionStatus: 'disconnected',
+    lastMessage: null,
+    sendMessage: (message: string) => {
+      console.log('WebSocket disabled - message not sent:', message);
+    },
+    subscribe: (eventType: string, callback: (data: any) => void) => {
+      console.log('WebSocket disabled - subscription not created:', eventType);
+      return () => {}; // Return empty unsubscribe function
+    },
+    unsubscribe: (eventType: string) => {
+      console.log('WebSocket disabled - unsubscribe not performed:', eventType);
+    },
+    reconnect: () => {
+      console.log('WebSocket disabled - reconnection not attempted');
+    }
   };
 
   return (
-    <SocketContext.Provider value={value}>
-      <WebSocketProvider
-        url={import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws'}
-        autoReconnect={false}
-        maxReconnectAttempts={0}
-        reconnectInterval={3000}
-      >
-        {children}
-      </WebSocketProvider>
+    <SocketContext.Provider value={contextValue}>
+      {children}
     </SocketContext.Provider>
   );
 };
+
+export default SocketProvider;

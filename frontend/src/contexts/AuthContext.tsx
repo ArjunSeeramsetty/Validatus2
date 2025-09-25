@@ -1,8 +1,10 @@
-// frontend/src/contexts/AuthContext.tsx
 // DEMO ONLY - This file contains demo authentication logic for development/testing purposes
 // In production, replace with secure server-side authentication using HttpOnly cookies and Authorization Code + PKCE
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../store/store';
+import { loginSuccess, logout as reduxLogout } from '../store/slices/authSlice';
 
 interface User {
   id: string;
@@ -33,28 +35,52 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const dispatch = useDispatch();
+  
+  // Get auth state from Redux store
+  const { user: reduxUser, isAuthenticated: reduxIsAuthenticated } = useSelector(
+    (state: RootState) => state.auth
+  );
+  
+  const [user, setUser] = useState<User | null>(reduxUser);
+  const [isAuthenticated, setIsAuthenticated] = useState(reduxIsAuthenticated);
+
+  // Sync local state with Redux store
+  useEffect(() => {
+    setUser(reduxUser);
+    setIsAuthenticated(reduxIsAuthenticated);
+  }, [reduxUser, reduxIsAuthenticated]);
 
   useEffect(() => {
     // DEMO ONLY - Check for stored auth token
     // In production, this should use secure HttpOnly cookies and server-side session validation
     const token = sessionStorage.getItem('demo_auth_token'); // Use sessionStorage with short lifetime for demo
-    if (token) {
+    if (token && !isAuthenticated) {
       // Mock user for demo
-      setUser({
+      const mockUser = {
         id: '1',
         email: 'demo@validatus.com',
         name: 'Demo User',
         role: 'analyst'
-      });
+      };
+      
+      setUser(mockUser);
       setIsAuthenticated(true);
+      
+      // Update Redux store
+      dispatch(loginSuccess(mockUser));
     }
-  }, []);
+  }, [dispatch, isAuthenticated]);
 
   const login = async (email: string, password: string) => {
     // DEMO ONLY - Mock login for demo
     // In production, this should call backend auth endpoint with Authorization Code + PKCE
+    
+    // Simple demo validation
+    if (password !== 'demo123') {
+      throw new Error('Invalid credentials. Use password: demo123');
+    }
+    
     const mockUser = {
       id: '1',
       email,
@@ -65,12 +91,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     sessionStorage.setItem('demo_auth_token', 'mock_token'); // Use sessionStorage for demo
     setUser(mockUser);
     setIsAuthenticated(true);
+    
+    // Update Redux store
+    dispatch(loginSuccess(mockUser));
   };
 
   const logout = () => {
     sessionStorage.removeItem('demo_auth_token'); // Use sessionStorage for demo
     setUser(null);
     setIsAuthenticated(false);
+    
+    // Update Redux store
+    dispatch(reduxLogout());
   };
 
   const value = {

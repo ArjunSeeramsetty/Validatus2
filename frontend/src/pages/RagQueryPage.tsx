@@ -104,7 +104,8 @@ const RagQueryPage: React.FC = () => {
     navigator.clipboard.writeText(text);
   };
 
-  const getSimilarityColor = (score: number) => {
+  const getSimilarityColor = (score: number | undefined) => {
+    if (score === undefined || score === null) return '#b8b8cc';
     if (score >= 0.8) return '#52c41a';
     if (score >= 0.6) return '#fa8c16';
     return '#ff4d4f';
@@ -347,17 +348,19 @@ const RagQueryPage: React.FC = () => {
                     <Box sx={{ width: '100%', mb: 2 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                         <Typography variant="subtitle1" sx={{ color: '#e8e8f0', fontWeight: 500 }}>
-                          {result.metadata.title}
+                          {result.metadata?.title || 'Untitled Document'}
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Chip
-                            size="small"
-                            label={`${(result.metadata.similarity_score * 100).toFixed(0)}%`}
-                            sx={{
-                              backgroundColor: `${getSimilarityColor(result.metadata.similarity_score)}20`,
-                              color: getSimilarityColor(result.metadata.similarity_score)
-                            }}
-                          />
+                          {result.metadata?.similarity_score !== undefined && (
+                            <Chip
+                              size="small"
+                              label={`${(result.metadata.similarity_score * 100).toFixed(0)}%`}
+                              sx={{
+                                backgroundColor: `${getSimilarityColor(result.metadata.similarity_score)}20`,
+                                color: getSimilarityColor(result.metadata.similarity_score)
+                              }}
+                            />
+                          )}
                           <Button
                             size="small"
                             onClick={() => copyToClipboard(result.content)}
@@ -373,26 +376,48 @@ const RagQueryPage: React.FC = () => {
 
                       <Divider sx={{ backgroundColor: '#3d3d56', mb: 2 }} />
 
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Link
-                          href={result.metadata.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          sx={{
-                            color: '#1890ff',
-                            textDecoration: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            '&:hover': { textDecoration: 'underline' }
-                          }}
-                        >
-                          {result.metadata.source_url}
-                          <OpenInNew sx={{ fontSize: 16, ml: 0.5 }} />
-                        </Link>
-                        <Typography variant="caption" sx={{ color: '#b8b8cc' }}>
-                          {new Date(result.metadata.scraped_at).toLocaleDateString()}
-                        </Typography>
-                      </Box>
+                      {result.metadata && (
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          {result.metadata.source_url ? (
+                            <Link
+                              href={result.metadata.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              sx={{
+                                color: '#1890ff',
+                                textDecoration: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                '&:hover': { textDecoration: 'underline' }
+                              }}
+                            >
+                              {result.metadata.source_url}
+                              <OpenInNew sx={{ fontSize: 16, ml: 0.5 }} />
+                            </Link>
+                          ) : (
+                            <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
+                              No source URL available
+                            </Typography>
+                          )}
+                          {result.metadata.scraped_at ? (
+                            <Typography variant="caption" sx={{ color: '#b8b8cc' }}>
+                              {new Date(result.metadata.scraped_at).toLocaleDateString()}
+                            </Typography>
+                          ) : (
+                            <Typography variant="caption" sx={{ color: '#b8b8cc' }}>
+                              No date available
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+
+                      {!result.metadata && (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 2 }}>
+                          <Typography variant="body2" sx={{ color: '#b8b8cc', fontStyle: 'italic' }}>
+                            No metadata available for this result
+                          </Typography>
+                        </Box>
+                      )}
                     </Box>
                   </ListItem>
                 ))}

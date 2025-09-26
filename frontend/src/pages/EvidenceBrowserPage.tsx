@@ -70,7 +70,7 @@ const EvidenceBrowserPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [layerPages, setLayerPages] = useState<Record<string, number>>({});
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -81,6 +81,8 @@ const EvidenceBrowserPage: React.FC = () => {
 
   useEffect(() => {
     filterEvidence();
+    // Reset all layer pages when filters change
+    setLayerPages({});
   }, [searchTerm, selectedLayer, evidenceData]);
 
   const loadEvidenceData = async () => {
@@ -173,14 +175,21 @@ const EvidenceBrowserPage: React.FC = () => {
     return colors[type as keyof typeof colors] || '#b8b8cc';
   };
 
-  const handlePageChange = (event: React.ChangeEvent<unknown>, page: number) => {
-    setCurrentPage(page);
+  const getPageForLayer = (layerName: string): number => {
+    return layerPages[layerName] || 1;
+  };
+
+  const handlePageChange = (layerName: string) => (event: React.ChangeEvent<unknown>, page: number) => {
+    setLayerPages(prev => ({
+      ...prev,
+      [layerName]: page
+    }));
   };
 
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedLayer(null);
-    setCurrentPage(1);
+    setLayerPages({});
   };
 
   if (loading) {
@@ -316,7 +325,7 @@ const EvidenceBrowserPage: React.FC = () => {
               
               <List>
                 {layer.evidence_items
-                  .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                  .slice((getPageForLayer(layer.layer_name) - 1) * itemsPerPage, getPageForLayer(layer.layer_name) * itemsPerPage)
                   .map((item, index) => (
                   <ListItem
                     key={index}
@@ -393,8 +402,8 @@ const EvidenceBrowserPage: React.FC = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
                   <Pagination
                     count={Math.ceil(layer.evidence_items.length / itemsPerPage)}
-                    page={currentPage}
-                    onChange={handlePageChange}
+                    page={getPageForLayer(layer.layer_name)}
+                    onChange={handlePageChange(layer.layer_name)}
                     sx={{
                       '& .MuiPaginationItem-root': {
                         color: '#e8e8f0',

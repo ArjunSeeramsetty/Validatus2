@@ -36,15 +36,22 @@ export class RagQueryService {
     try {
       const response = await apiClient.post(`/api/v3/topics/${queryData.topic_id}/query`, {
         query: queryData.query,
-        max_results: queryData.max_results || 10,
-        similarity_threshold: queryData.similarity_threshold || 0.7,
+        max_results: queryData.max_results ?? 10,
+        similarity_threshold: queryData.similarity_threshold ?? 0.7,
         include_metadata: queryData.include_metadata ?? true
       });
 
       return response.data;
     } catch (error: any) {
-      // Mock response for development
-      return this.generateMockQueryResponse(queryData.query, queryData.max_results || 10);
+      // Only return mock data in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('API call failed, returning mock data for development:', error.message);
+        return this.generateMockQueryResponse(queryData.query, queryData.max_results ?? 10);
+      }
+      
+      // In production, propagate the error
+      console.error('RAG query failed:', error);
+      throw new Error(`Failed to query vector store: ${error.message || 'Unknown error'}`);
     }
   }
 
@@ -56,14 +63,21 @@ export class RagQueryService {
       const response = await apiClient.get(`/api/v3/topics/${topicId}/query-suggestions`);
       return response.data.suggestions;
     } catch (error: any) {
-      // Mock suggestions
-      return [
-        'What are the key market trends?',
-        'How does competition affect market share?',
-        'What are the main risk factors?',
-        'What opportunities exist for growth?',
-        'How is technology impacting the industry?'
-      ];
+      // Only return mock suggestions in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to load query suggestions, using mock data for development:', error.message);
+        return [
+          'What are the key market trends?',
+          'How does competition affect market share?',
+          'What are the main risk factors?',
+          'What opportunities exist for growth?',
+          'How is technology impacting the industry?'
+        ];
+      }
+      
+      // In production, propagate the error
+      console.error('Failed to load query suggestions:', error);
+      throw new Error(`Failed to load query suggestions: ${error.message || 'Unknown error'}`);
     }
   }
 

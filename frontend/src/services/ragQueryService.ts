@@ -36,7 +36,7 @@ export class RagQueryService {
    */
   static async queryVectorStore(queryData: RagQueryRequest): Promise<RagQueryResponse> {
     try {
-      const response = await apiClient.post(`/api/v3/topics/${queryData.topic_id}/query`, {
+      const response = await apiClient.post(`/api/v3/migrated/vector/${queryData.topic_id}/query`, {
         query: queryData.query,
         max_results: queryData.max_results ?? 10,
         similarity_threshold: queryData.similarity_threshold ?? 0.7,

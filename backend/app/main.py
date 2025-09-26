@@ -4,7 +4,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 import os
+import warnings
 from typing import List, Dict, Any, Optional
+
+# Suppress GRPC ALTS warnings and Vertex AI deprecation logs
+os.environ["GRPC_ALTS_SKIP_HANDSHAKE"] = "true"
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+os.environ["GCLOUD_PROJECT"] = "validatus-platform"
+warnings.filterwarnings("ignore", category=UserWarning, module="vertexai_model_garden")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="google.cloud")
+warnings.filterwarnings("ignore", category=FutureWarning, module="google.cloud")
+warnings.filterwarnings("ignore", message=".*ALTS creds ignored.*")
+warnings.filterwarnings("ignore", message=".*deprecated.*")
+
+# Suppress specific GRPC logs
+import logging
+logging.getLogger("grpc").setLevel(logging.ERROR)
+logging.getLogger("google.auth").setLevel(logging.ERROR)
+logging.getLogger("google.cloud").setLevel(logging.ERROR)
 
 # Core imports (existing and working)
 from .core.gcp_config import get_gcp_settings
@@ -17,75 +34,76 @@ from .services.content_quality_analyzer import ContentQualityAnalyzer
 from .services.content_deduplication_service import ContentDeduplicationService
 from .services.analysis_optimization_service import AnalysisOptimizationService
 
-# Conditional imports with feature flags - NO MORE IMPORT ERRORS!
-try:
+# Deferred imports - only load when needed
+def get_analysis_results_manager():
+    """Lazy load AnalysisResultsManager only when needed"""
     if FeatureFlags.ANALYSIS_RESULTS_MANAGER_ENABLED:
-        from .services.analysis_results_manager import AnalysisResultsManager
-    else:
-        AnalysisResultsManager = None
-except ImportError:
-    AnalysisResultsManager = None
-    logging.warning("AnalysisResultsManager not available - using placeholder")
+        try:
+            from .services.analysis_results_manager import AnalysisResultsManager
+            return AnalysisResultsManager()
+        except ImportError:
+            logging.warning("AnalysisResultsManager not available - using placeholder")
+            return None
+    return None
 
-try:
+def get_enhanced_analytics_services():
+    """Lazy load enhanced analytics services only when needed"""
     if FeatureFlags.ENHANCED_ANALYTICS_ENABLED:
-        # Import from consolidated enhanced_analytical_engines package
-        from .services.enhanced_analytical_engines import (
-            PDFFormulaEngine,
-            ActionLayerCalculator,
-            MonteCarloSimulator,
-            EnhancedFormulaAdapter
-        )
-        from .services.enhanced_analysis_session_manager import EnhancedAnalysisSessionManager
-    else:
-        PDFFormulaEngine = None
-        ActionLayerCalculator = None
-        MonteCarloSimulator = None
-        EnhancedFormulaAdapter = None
-        EnhancedAnalysisSessionManager = None
-except ImportError:
-    PDFFormulaEngine = None
-    ActionLayerCalculator = None
-    MonteCarloSimulator = None
-    EnhancedFormulaAdapter = None
-    EnhancedAnalysisSessionManager = None
-    logging.warning("Enhanced analytical engines not available - using basic services")
+        try:
+            from .services.enhanced_analytical_engines import (
+                PDFFormulaEngine,
+                ActionLayerCalculator,
+                MonteCarloSimulator,
+                EnhancedFormulaAdapter
+            )
+            from .services.enhanced_analysis_session_manager import EnhancedAnalysisSessionManager
+            return {
+                'formula_engine': PDFFormulaEngine(),
+                'action_calculator': ActionLayerCalculator(),
+                'monte_carlo_simulator': MonteCarloSimulator(),
+                'formula_adapter': EnhancedFormulaAdapter(),
+                'session_manager': EnhancedAnalysisSessionManager()
+            }
+        except ImportError:
+            logging.warning("Enhanced analytical engines not available - using basic services")
+            return None
+    return None
 
-# Phase C imports - Data Pipeline Enhancement
-try:
+def get_phase_c_services():
+    """Lazy load Phase C services only when needed"""
     if FeatureFlags.is_phase_enabled('phase_c'):
-        from .services.enhanced_content_processor import EnhancedContentProcessor
-        from .services.enhanced_data_pipeline import BayesianDataBlender, EventShockModeler
-        from .services.enhanced_knowledge import HybridVectorStoreManager
-        from .services.phase_integrated_analysis_session_manager import PhaseIntegratedAnalysisSessionManager
-    else:
-        EnhancedContentProcessor = None
-        BayesianDataBlender = None
-        EventShockModeler = None
-        HybridVectorStoreManager = None
-        PhaseIntegratedAnalysisSessionManager = None
-except ImportError:
-    EnhancedContentProcessor = None
-    BayesianDataBlender = None
-    EventShockModeler = None
-    HybridVectorStoreManager = None
-    PhaseIntegratedAnalysisSessionManager = None
-    logging.warning("Phase C enhanced services not available - using basic services")
+        try:
+            from .services.enhanced_content_processor import EnhancedContentProcessor
+            from .services.enhanced_data_pipeline import BayesianDataBlender, EventShockModeler
+            from .services.enhanced_knowledge import HybridVectorStoreManager
+            from .services.phase_integrated_analysis_session_manager import PhaseIntegratedAnalysisSessionManager
+            return {
+                'content_processor': EnhancedContentProcessor(),
+                'data_blender': BayesianDataBlender(),
+                'event_modeler': EventShockModeler(),
+                'vector_store': HybridVectorStoreManager(),
+                'session_manager': PhaseIntegratedAnalysisSessionManager()
+            }
+        except ImportError:
+            logging.warning("Phase C enhanced services not available - using basic services")
+            return None
+    return None
 
-# Phase E imports - Advanced Orchestration & Observability
-try:
+def get_phase_e_services():
+    """Lazy load Phase E services only when needed"""
     if FeatureFlags.is_phase_e_enabled():
-        from .services.enhanced_analysis_optimization_service import EnhancedAnalysisOptimizationService
-        from .services.enhanced_orchestration import AdvancedOrchestrator, MultiLevelCacheManager
-    else:
-        EnhancedAnalysisOptimizationService = None
-        AdvancedOrchestrator = None
-        MultiLevelCacheManager = None
-except ImportError:
-    EnhancedAnalysisOptimizationService = None
-    AdvancedOrchestrator = None
-    MultiLevelCacheManager = None
-    logging.warning("Phase E orchestration services not available - using basic services")
+        try:
+            from .services.enhanced_analysis_optimization_service import EnhancedAnalysisOptimizationService
+            from .services.enhanced_orchestration import AdvancedOrchestrator, MultiLevelCacheManager
+            return {
+                'optimization_service': EnhancedAnalysisOptimizationService(),
+                'orchestrator': AdvancedOrchestrator(),
+                'cache_manager': MultiLevelCacheManager()
+            }
+        except ImportError:
+            logging.warning("Phase E orchestration services not available - using basic services")
+            return None
+    return None
 
 try:
     if FeatureFlags.RESULTS_API_ENABLED:
@@ -133,67 +151,28 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Core services initialized successfully")
         
         # Phase 2: Initialize Enhanced Services (Feature Flag Controlled)
-        if FeatureFlags.ANALYSIS_RESULTS_MANAGER_ENABLED and AnalysisResultsManager:
-            enhanced_services['results_manager'] = AnalysisResultsManager()
+        results_manager = get_analysis_results_manager()
+        if results_manager:
+            enhanced_services['results_manager'] = results_manager
             logger.info("✅ Analysis Results Manager initialized")
         
-        if FeatureFlags.ENHANCED_ANALYTICS_ENABLED:
-            # Initialize Phase B analytical engines
-            if PDFFormulaEngine:
-                enhanced_services['pdf_formula_engine'] = PDFFormulaEngine()
-                logger.info("✅ PDF Formula Engine initialized")
-            
-            if ActionLayerCalculator:
-                enhanced_services['action_layer_calculator'] = ActionLayerCalculator()
-                logger.info("✅ Action Layer Calculator initialized")
-            
-            if MonteCarloSimulator:
-                enhanced_services['monte_carlo_simulator'] = MonteCarloSimulator()
-                logger.info("✅ Monte Carlo Simulator initialized")
-            
-            if EnhancedFormulaAdapter:
-                enhanced_services['formula_adapter'] = EnhancedFormulaAdapter()
-                logger.info("✅ Enhanced Formula Adapter initialized")
-            
-            if EnhancedAnalysisSessionManager:
-                enhanced_services['enhanced_analysis_session_manager'] = EnhancedAnalysisSessionManager()
-                logger.info("✅ Enhanced Analysis Session Manager initialized")
+        # Initialize enhanced analytics services lazily
+        enhanced_analytics = get_enhanced_analytics_services()
+        if enhanced_analytics:
+            enhanced_services.update(enhanced_analytics)
+            logger.info("✅ Enhanced analytics services initialized")
 
-            # Phase 3: Initialize Phase C Services (Feature Flag Controlled)
-            if FeatureFlags.is_phase_enabled('phase_c'):
-                if EnhancedContentProcessor:
-                    phase_c_services['enhanced_content_processor'] = EnhancedContentProcessor()
-                    logger.info("✅ Enhanced Content Processor initialized")
-                
-                if BayesianDataBlender:
-                    phase_c_services['bayesian_data_blender'] = BayesianDataBlender()
-                    logger.info("✅ Bayesian Data Blender initialized")
-                
-                if EventShockModeler:
-                    phase_c_services['event_shock_modeler'] = EventShockModeler()
-                    logger.info("✅ Event Shock Modeler initialized")
-                
-                if HybridVectorStoreManager:
-                    phase_c_services['hybrid_vector_manager'] = HybridVectorStoreManager(
-                        project_id=settings.project_id
-                    )
-                    logger.info("✅ Hybrid Vector Store Manager initialized")
-                
-                if PhaseIntegratedAnalysisSessionManager:
-                    phase_c_services['phase_integrated_session_manager'] = PhaseIntegratedAnalysisSessionManager()
-                    logger.info("✅ Phase-Integrated Analysis Session Manager initialized")
+        # Phase 3: Initialize Phase C Services (Feature Flag Controlled)
+        phase_c_services = get_phase_c_services()
+        if phase_c_services:
+            enhanced_services.update(phase_c_services)
+            logger.info("✅ Phase C services initialized")
         
         # Phase E: Initialize Advanced Orchestration & Observability Services
-        if FeatureFlags.is_phase_e_enabled():
-            logger.info("🔧 Initializing Phase E - Advanced Orchestration & Observability...")
-            
-            # Initialize Enhanced Analysis Optimization Service
-            if EnhancedAnalysisOptimizationService:
-                phase_e_services['enhanced_optimization_service'] = EnhancedAnalysisOptimizationService()
-                await phase_e_services['enhanced_optimization_service'].initialize_enhanced_components()
-                logger.info("✅ Enhanced Analysis Optimization Service initialized")
-            
-            # Initialize standalone Advanced Orchestrator if needed
+        phase_e_services = get_phase_e_services()
+        if phase_e_services:
+            enhanced_services.update(phase_e_services)
+            logger.info("✅ Phase E services initialized")
             if AdvancedOrchestrator and FeatureFlags.ADVANCED_ORCHESTRATION_ENABLED:
                 if not phase_e_services.get('enhanced_optimization_service') or not phase_e_services['enhanced_optimization_service'].orchestrator:
                     phase_e_services['standalone_orchestrator'] = AdvancedOrchestrator(project_id=settings.project_id)
@@ -207,7 +186,7 @@ async def lifespan(app: FastAPI):
                     await phase_e_services['standalone_cache_manager'].initialize()
                     logger.info("✅ Standalone Multi-Level Cache Manager initialized")
         
-        logger.info(f"✅ All services initialized - Core: {len(core_services)}, Enhanced: {len(enhanced_services)}, Phase C: {len(phase_c_services)}, Phase E: {len(phase_e_services)}")
+        logger.info(f"✅ All services initialized - Core: {len(core_services)}, Enhanced: {len(enhanced_services)}")
         
     except Exception as e:
         logger.error(f"❌ Failed to initialize services: {e}")
@@ -252,6 +231,14 @@ try:
 except ImportError as e:
     logging.warning(f"Migrated data API router not available: {e}")
 
+# Include sequential analysis router
+try:
+    from .api.v3 import sequential_analysis
+    app.include_router(sequential_analysis.router, prefix="/api/v3")
+    logging.info("Sequential analysis API router included")
+except ImportError as e:
+    logging.warning(f"Sequential analysis API router not available: {e}")
+
 # Health check with service status
 @app.get("/health")
 async def health_check():
@@ -294,13 +281,9 @@ async def get_system_status():
         "system_status": "operational",
         "core_services_count": len(core_services),
         "enhanced_services_count": len(enhanced_services),
-        "phase_c_services_count": len(phase_c_services),
-        "phase_e_services_count": len(phase_e_services),
         "available_services": {
             "core": list(core_services.keys()),
-            "enhanced": list(enhanced_services.keys()),
-            "phase_c": list(phase_c_services.keys()),
-            "phase_e": list(phase_e_services.keys())
+            "enhanced": list(enhanced_services.keys())
         },
         "feature_flags": FeatureFlags.get_all_flags(),
         "enabled_phases": list(FeatureFlags.get_enabled_phases())

@@ -46,7 +46,24 @@ async def get_migrated_results(session_id: str):
         results = await service.get_analysis_results(session_id)
         if not results:
             raise HTTPException(status_code=404, detail="Results not found")
-        return results
+        
+        # Clean the results to ensure JSON serialization
+        def clean_for_json(obj):
+            if isinstance(obj, dict):
+                return {k: clean_for_json(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [clean_for_json(item) for item in obj]
+            elif isinstance(obj, float):
+                if obj != obj:  # Check for NaN
+                    return None
+                elif obj == float('inf') or obj == float('-inf'):
+                    return None
+                return obj
+            else:
+                return obj
+        
+        cleaned_results = clean_for_json(results)
+        return cleaned_results
     except Exception as e:
         logger.error(f"Error fetching results for {session_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -54,11 +71,18 @@ async def get_migrated_results(session_id: str):
 @router.post("/migrated/vector/{topic}/query", tags=["migrated_data"])
 async def query_migrated_vector_store(
     topic: str,
-    query: str = Query(..., description="Search query"),
-    max_results: int = Query(10, description="Maximum results to return")
+    request: dict
 ):
     """Query migrated vector store"""
     try:
+        query = request.get("query", "")
+        max_results = request.get("max_results", 10)
+        similarity_threshold = request.get("similarity_threshold", 0.7)
+        include_metadata = request.get("include_metadata", True)
+        
+        if not query:
+            raise HTTPException(status_code=400, detail="Query parameter is required")
+        
         service = MigratedDataService()
         results = await service.query_vector_store(topic, query, max_results)
         return results
@@ -88,7 +112,24 @@ async def get_migrated_action_layer(session_id: str):
         action_data = await service.get_action_layer_data(session_id)
         if not action_data:
             raise HTTPException(status_code=404, detail="Action layer data not found")
-        return action_data
+        
+        # Clean the results to ensure JSON serialization
+        def clean_for_json(obj):
+            if isinstance(obj, dict):
+                return {k: clean_for_json(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [clean_for_json(item) for item in obj]
+            elif isinstance(obj, float):
+                if obj != obj:  # Check for NaN
+                    return None
+                elif obj == float('inf') or obj == float('-inf'):
+                    return None
+                return obj
+            else:
+                return obj
+        
+        cleaned_data = clean_for_json(action_data)
+        return cleaned_data
     except Exception as e:
         logger.error(f"Error fetching action layer data for {session_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

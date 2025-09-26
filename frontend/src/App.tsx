@@ -18,17 +18,12 @@ import LoadingScreen from './components/Common/LoadingScreen';
 import ErrorBoundary from './components/Common/ErrorBoundary';
 
 // Page components
-import DashboardPage from './pages/DashboardPage';
-import StrategicAnalysisPage from './pages/StrategicAnalysisPage';
-import TopicManagementPage from './pages/TopicManagementPage';
-import AnalysisSessionsPage from './pages/AnalysisSessionsPage';
-import AnalysisResultsPage from './pages/AnalysisResultsPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
-import EnhancedAnalyticsPage from './pages/EnhancedAnalyticsPage';
 import ActionLayerDemoPage from './pages/ActionLayerDemoPage';
-import EvidenceBrowserPage from './pages/EvidenceBrowserPage';
-import RagQueryPage from './pages/RagQueryPage';
+import PergolaAnalysisPage from './pages/PergolaAnalysisPage';
+import SequentialAnalysisPage from './pages/SequentialAnalysisPage';
+import HomePage from './pages/HomePage';
 // import TempTestPage from './pages/TempTestPage'; // Debug page - removed for production
 
 // Protected route component
@@ -170,24 +165,16 @@ const App: React.FC = () => {
                           </MainLayout>
                         </ProtectedRoute>
                       }>
-                        <Route index element={<Navigate to="/dashboard" replace />} />
-                        <Route path="dashboard" element={<DashboardPage />} />
-                        <Route path="strategic-analysis" element={<StrategicAnalysisPage />} />
-                        <Route path="topics" element={<TopicManagementPage />} />
-                        <Route path="analysis" element={<AnalysisSessionsPage />} />
-                        <Route path="results" element={<AnalysisResultsPage />} />
-                        <Route path="results/:sessionId" element={<AnalysisResultsPage />} />
-                        <Route path="enhanced-analytics" element={<EnhancedAnalyticsPage />} />
-                        <Route path="enhanced-analytics/:sessionId" element={<EnhancedAnalyticsPage />} />
-                        <Route path="action-layer/:sessionId" element={<ActionLayerDemoPage />} />
-                        <Route path="evidence/:topicId" element={<EvidenceBrowserPage />} />
-                        <Route path="rag-query/:topicId" element={<RagQueryPage />} />
+                        <Route index element={<HomePage />} />
+                        <Route path="migrated/v2_analysis_20250905_185553_d5654178" element={<PergolaAnalysisPage />} />
+                        <Route path="action-layer/pergola" element={<ActionLayerDemoPage />} />
+                        <Route path="sequential/pergola_market" element={<SequentialAnalysisPage />} />
                         <Route path="settings" element={<SettingsPage />} />
                         {/* Debug route removed for production */}
                       </Route>
                       
                       {/* Catch all route */}
-                      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                      <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                   </motion.div>
                 </Router>

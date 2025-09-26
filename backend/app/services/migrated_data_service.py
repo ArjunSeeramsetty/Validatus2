@@ -76,18 +76,25 @@ class MigratedDataService:
             if result_file.exists():
                 with open(result_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                
-                return {
-                    'session_id': session_id,
-                    'topic': data.get('topic'),
-                    'status': data.get('status'),
-                    'created_at': data.get('created_at'),
-                    'completed_at': data.get('completed_at'),
-                    'analysis_metadata': data.get('analysis_metadata', {}),
-                    'migration_info': data.get('_migration_metadata', {})
-                }
+            else:
+                # Try to find file with session_id in the name
+                for file_path in self.analysis_results_dir.glob("*.json"):
+                    if session_id in file_path.name:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            data = json.load(f)
+                        break
+                else:
+                    return None
             
-            return None
+            return {
+                'session_id': session_id,
+                'topic': data.get('topic'),
+                'status': data.get('status'),
+                'created_at': data.get('created_at'),
+                'completed_at': data.get('completed_at'),
+                'analysis_metadata': data.get('analysis_metadata', {}),
+                'migration_info': data.get('_migration_metadata', {})
+            }
             
         except Exception as e:
             logger.error(f"Error fetching session {session_id}: {str(e)}")
@@ -96,11 +103,18 @@ class MigratedDataService:
     async def get_analysis_results(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Get analysis results by session ID"""
         try:
+            # Try exact filename first
             result_file = self.analysis_results_dir / f"{session_id}.json"
             
             if result_file.exists():
                 with open(result_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
+            
+            # Try to find file with session_id in the name
+            for file_path in self.analysis_results_dir.glob("*.json"):
+                if session_id in file_path.name:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        return json.load(f)
             
             return None
             
@@ -219,15 +233,23 @@ class MigratedDataService:
     async def get_action_layer_data(self, session_id: str) -> Optional[Dict[str, Any]]:
         """Get action layer data for a session"""
         try:
+            # Try exact filename first
             result_file = self.analysis_results_dir / f"{session_id}.json"
             
             if result_file.exists():
                 with open(result_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                
-                return data.get('action_layer_data')
+            else:
+                # Try to find file with session_id in the name
+                for file_path in self.analysis_results_dir.glob("*.json"):
+                    if session_id in file_path.name:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            data = json.load(f)
+                        break
+                else:
+                    return None
             
-            return None
+            return data.get('action_layer_data')
             
         except Exception as e:
             logger.error(f"Error fetching action layer data for {session_id}: {str(e)}")

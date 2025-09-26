@@ -28,7 +28,10 @@ import {
   TrendingUp,
   AnalyticsOutlined,
   Folder,
-  ManageSearch
+  ManageSearch,
+  History,
+  Search,
+  Timeline
 } from '@mui/icons-material';
 import ListItemButton from '@mui/material/ListItemButton';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -66,15 +69,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   };
 
   const menuItems = [
-    { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' },
-    { text: 'Strategic Analysis', icon: <Analytics />, path: '/strategic-analysis' },
-    { text: 'Topic Management', icon: <Topic />, path: '/topics' },
-    { text: 'Analysis Sessions', icon: <Assessment />, path: '/analysis' },
-    { text: 'Results', icon: <TrendingUp />, path: '/results' },
-    { text: 'Enhanced Analytics', icon: <TrendingUp />, path: '/enhanced-analytics' },
-    { text: 'Action Layer Demo', icon: <AnalyticsOutlined />, path: '/action-layer/demo-session' },
-    { text: 'Evidence Browser', icon: <Folder />, path: '/evidence/demo-topic' },
-    { text: 'RAG Query', icon: <ManageSearch />, path: '/rag-query/demo-topic' },
+    { text: 'Home', icon: <Dashboard />, path: '/' },
+    { text: 'Pergola Analysis', icon: <TrendingUp />, path: '/migrated/v2_analysis_20250905_185553_d5654178' },
+    { text: 'Action Layer: Pergola', icon: <AnalyticsOutlined />, path: '/action-layer/pergola' },
+    { text: 'Sequential Analysis', icon: <Timeline />, path: '/sequential/pergola_market' },
     { text: 'Settings', icon: <Settings />, path: '/settings' },
   ];
 

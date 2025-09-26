@@ -28,12 +28,12 @@ import { motion } from 'framer-motion';
 import { useParams } from 'react-router-dom';
 
 // Custom components
-import BusinessCaseScoreCard from '../components/analysis/BusinessCaseScoreCard';
-import ScenarioGrid from '../components/analysis/ScenarioGrid';
-import DriverSensitivityChart from '../components/analysis/DriverSensitivityChart';
-import SimulationDistribution from '../components/analysis/SimulationDistribution';
-import AssumptionsPanel from '../components/analysis/AssumptionsPanel';
-import EvidenceExplorer from '../components/analysis/EvidenceExplorer';
+import BusinessCaseScoreCard from '../components/Analysis/BusinessCaseScoreCard';
+import ScenarioGrid from '../components/Analysis/ScenarioGrid';
+import DriverSensitivityChart from '../components/Analysis/DriverSensitivityChart';
+import SimulationDistribution from '../components/Analysis/SimulationDistribution';
+import AssumptionsPanel from '../components/Analysis/AssumptionsPanel';
+import EvidenceExplorer from '../components/Analysis/EvidenceExplorer';
 import { apiClient } from '../services/apiClient';
 
 interface AdvancedAnalysisResults {

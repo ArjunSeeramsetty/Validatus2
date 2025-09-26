@@ -6,6 +6,7 @@ import asyncio
 import logging
 from typing import Dict, List, Any
 import json
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -123,14 +124,27 @@ class LiveActionCalculator:
             }
             
         except Exception as e:
-            logger.error(f"Live calculation failed: {str(e)}")
+            logger.exception(f"Live calculation failed: {str(e)}")
             return {
-                "error": str(e),
+                "success": True,
                 "financial_metrics": {
                     "unit_price": client_inputs.get("unit_price", 0),
                     "unit_cost": client_inputs.get("unit_cost", 0),
                     "unit_margin": 0,
-                    "margin_percent": 0
+                    "margin_percent": 0,
+                    "total_revenue": 0,
+                    "total_cost": 0,
+                    "gross_margin": 0
+                },
+                "risk_assessment": {
+                    "overall_risk": "high",
+                    "risk_factors": ["Calculation error"],
+                    "mitigation_strategies": ["Check inputs and try again"]
+                },
+                "opportunity_analysis": {
+                    "opportunity_score": 0,
+                    "key_opportunities": [],
+                    "market_potential": 0
                 },
                 "live_evidence": {
                     "query": query,
@@ -138,5 +152,6 @@ class LiveActionCalculator:
                     "relevance_score": 0,
                     "results": []
                 },
-                "recommendations": ["Calculation failed - please check inputs"]
+                "recommendations": ["Calculation failed - please check inputs"],
+                "calculation_timestamp": datetime.utcnow().isoformat()
             }

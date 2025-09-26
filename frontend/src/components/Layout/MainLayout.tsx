@@ -70,6 +70,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const menuItems = [
     { text: 'Home', icon: <Dashboard />, path: '/' },
+    { text: 'Dashboard', icon: <Analytics />, path: '/dashboard' },
     { text: 'Pergola Analysis', icon: <TrendingUp />, path: '/migrated/v2_analysis_20250905_185553_d5654178' },
     { text: 'Advanced Analysis', icon: <AnalyticsOutlined />, path: '/analysis/v2_analysis_20250905_185553_d5654178/advanced' },
     { text: 'Live Action Calculator', icon: <Assessment />, path: '/action-layer/pergola' },

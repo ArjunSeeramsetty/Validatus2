@@ -18,7 +18,7 @@ class StrategyPatternLibrary:
                 'mc_levers': ['conversion', 'lead_time', 'cac'],
                 'effect_priors': {
                     'lead_time': ('normal', -0.30, 0.08),
-                    'conversion': ('triangular', 0.06, 0.12, 0.03)
+                    'conversion': ('triangular', 0.03, 0.06, 0.12)
                 },
                 'correlation': {'lead_time': {'conversion': -0.6}},
                 'confidence': 0.72,
@@ -60,7 +60,7 @@ class StrategyPatternLibrary:
                     'conversion': ('normal', -0.10, 0.05),
                     'cac': ('normal', 0.20, 0.10)
                 },
-                'correlation': {'margin': {'conversion': 0.5}, 'margin': {'cac': -0.3}},
+                'correlation': {'margin': {'conversion': 0.5, 'cac': -0.3}},
                 'confidence': 0.65,
                 'transferability': 0.80,
                 'description': 'Competitive response to market entry affects pricing and acquisition costs'
@@ -70,7 +70,7 @@ class StrategyPatternLibrary:
                 'preconditions': ['pending_regulations', 'industry_oversight'],
                 'mc_levers': ['adoption_rate', 'margin', 'conversion'],
                 'effect_priors': {
-                    'adoption_rate': ('triangular', -0.20, 0.10, -0.05),
+                    'adoption_rate': ('triangular', -0.20, -0.05, 0.10),
                     'margin': ('normal', -0.10, 0.15),
                     'conversion': ('normal', -0.15, 0.08)
                 },

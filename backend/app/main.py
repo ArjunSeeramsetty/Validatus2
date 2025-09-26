@@ -259,6 +259,14 @@ try:
 except ImportError as e:
     logging.warning(f"Advanced analysis API router not available: {e}")
 
+# Include dashboard router
+try:
+    from .api.v3 import dashboard
+    app.include_router(dashboard.router, prefix="/api/v3")
+    logging.info("Dashboard API router included")
+except ImportError as e:
+    logging.warning(f"Dashboard API router not available: {e}")
+
 # Health check with service status
 @app.get("/health")
 async def health_check():

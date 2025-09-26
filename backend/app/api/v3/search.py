@@ -2,7 +2,7 @@
 Live Web Search API
 """
 from fastapi import APIRouter, HTTPException, Query
-import requests
+import httpx
 import os
 import logging
 
@@ -23,9 +23,11 @@ async def live_search(q: str = Query(..., description="Search query"), num: int 
         
         url = "https://www.googleapis.com/customsearch/v1"
         params = {"key": api_key, "cx": cx, "q": q, "num": num}
-        resp = requests.get(url, params=params, timeout=5)
-        resp.raise_for_status()
-        items = resp.json().get("items", [])
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, params=params, timeout=5)
+            resp.raise_for_status()
+            data = resp.json()
+            items = data.get("items", [])
         results = [{
             "title": it.get("title"),
             "snippet": it.get("snippet"),

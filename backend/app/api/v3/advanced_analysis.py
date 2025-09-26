@@ -13,16 +13,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 class AdvancedAnalysisRequest(BaseModel):
-    session_id: str
     client_inputs: Dict[str, float]
     analysis_options: Optional[Dict[str, Any]] = {}
 
 class ScenarioAnalysisRequest(BaseModel):
-    session_id: str
     scenario_adjustments: Dict[str, float]
 
 class PatternAnalysisRequest(BaseModel):
-    session_id: str
     context: Dict[str, Any]
     selected_patterns: Optional[List[str]] = None
 

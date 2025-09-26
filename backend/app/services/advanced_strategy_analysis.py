@@ -144,7 +144,7 @@ class AdvancedStrategyAnalysisEngine:
                 'mc_levers': ['conversion', 'lead_time', 'cac'],
                 'effect_priors': {
                     'lead_time': ('normal', -0.30, 0.08),
-                    'conversion': ('triangular', 0.06, 0.12, 0.03)
+                    'conversion': ('triangular', 0.03, 0.06, 0.12)
                 },
                 'correlation': {'lead_time': {'conversion': -0.6}},
                 'confidence': 0.72,
@@ -403,8 +403,8 @@ class AdvancedStrategyAnalysisEngine:
                             target_roi: float, target_adoption: float, tolerance: float) -> List[bool]:
         """Create boolean mask for scenario clustering"""
         return [
-            (abs(r - target_roi) / target_roi <= tolerance and 
-             abs(a - target_adoption) / target_adoption <= tolerance)
+            ((abs(r - target_roi) / target_roi <= tolerance if target_roi != 0 else abs(r - target_roi) <= tolerance) and 
+             (abs(a - target_adoption) / target_adoption <= tolerance if target_adoption != 0 else abs(a - target_adoption) <= tolerance))
             for r, a in zip(roi_values, adoption_values)
         ]
     

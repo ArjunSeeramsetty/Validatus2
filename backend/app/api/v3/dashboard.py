@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
 import logging
 import json
+import hashlib
 from pathlib import Path
 
 from ...services.migrated_data_service import MigratedDataService
@@ -186,7 +187,7 @@ async def calculate_business_case(session_id: str, inputs: BusinessCaseInputs) -
     try:
         # Basic calculations
         gross_margin = inputs.unit_price - inputs.unit_cost
-        gross_margin_percent = (gross_margin / inputs.unit_price) * 100
+        gross_margin_percent = (gross_margin / inputs.unit_price) * 100 if inputs.unit_price > 0 else 0
         total_contribution = gross_margin * inputs.expected_volume
         breakeven_volume = inputs.fixed_costs / gross_margin if gross_margin > 0 else 0
         payback_period = inputs.innovation_cost / (total_contribution - inputs.fixed_costs) if (total_contribution - inputs.fixed_costs) > 0 else float('inf')
@@ -272,8 +273,9 @@ async def get_dashboard_metrics(session_id: str) -> Dict[str, Any]:
             if isinstance(data, dict) and 'score' in data:
                 segment_scores[layer.lower()] = data['score']
             else:
-                # Mock scores based on overall score
-                segment_scores[layer.lower()] = overall_score * (0.8 + (hash(layer) % 20) / 100)
+                # Mock scores based on overall score with deterministic hash
+                layer_hash = int(hashlib.sha256(layer.encode()).hexdigest(), 16) % 20
+                segment_scores[layer.lower()] = overall_score * (0.8 + layer_hash / 100)
         
         # Get action layer confidence
         action_layer_confidence = migrated_data.get('action_layer_data', {}).get('business_case_confidence', 0.0)

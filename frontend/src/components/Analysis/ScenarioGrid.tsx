@@ -17,7 +17,6 @@ import {
   ExpandMore,
   ExpandLess,
   TrendingUp,
-  TrendingDown,
   Warning,
   Star
 } from '@mui/icons-material';
@@ -50,7 +49,7 @@ const ScenarioGrid: React.FC<ScenarioGridProps> = ({ scenarios, onScenarioSelect
     return colors[name] || '#d9d9d9';
   };
 
-  const getScenarioIcon = (name: string, riskLevel: string) => {
+  const getScenarioIcon = (name: string) => {
     if (name.includes('Crisis')) return <Warning />;
     if (name.includes('Aggressive')) return <TrendingUp />;
     if (name.includes('Differentiation')) return <Star />;
@@ -101,7 +100,7 @@ const ScenarioGrid: React.FC<ScenarioGridProps> = ({ scenarios, onScenarioSelect
                         mr: 1 
                       }}
                     >
-                      {getScenarioIcon(scenario.name, scenario.risk_level)}
+                      {getScenarioIcon(scenario.name)}
                     </Box>
                     <Typography 
                       variant="h6" 

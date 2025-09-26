@@ -19,9 +19,6 @@ import {
 } from '@mui/material';
 import {
   People,
-  Psychology,
-  Favorite,
-  Visibility,
   TrendingUp
 } from '@mui/icons-material';
 
@@ -37,7 +34,6 @@ const ConsumerTab: React.FC<{ data: any }> = ({ data }) => {
   useEffect(() => {
     if (data) {
       // Extract consumer-specific data from the analysis results
-      const consumerLayer = data.strategic_layers?.CONSUMER || {};
       const consumerFactors = data.strategic_factors || {};
       
       // Calculate consumer metrics from actual data
@@ -61,11 +57,11 @@ const ConsumerTab: React.FC<{ data: any }> = ({ data }) => {
         const normalizedScore = Math.round(avgScore * 100);
         
         setConsumerMetrics({
-          demandScore: normalizedScore,
-          behaviorScore: Math.round(normalizedScore * 1.1),
-          loyaltyScore: Math.round(normalizedScore * 0.9),
-          perceptionScore: Math.round(normalizedScore * 1.15),
-          adoptionScore: Math.round(normalizedScore * 0.95)
+          demandScore: Math.min(100, Math.max(0, normalizedScore)),
+          behaviorScore: Math.min(100, Math.max(0, Math.round(normalizedScore * 1.1))),
+          loyaltyScore: Math.min(100, Math.max(0, Math.round(normalizedScore * 0.9))),
+          perceptionScore: Math.min(100, Math.max(0, Math.round(normalizedScore * 1.15))),
+          adoptionScore: Math.min(100, Math.max(0, Math.round(normalizedScore * 0.95)))
         });
       }
     }
@@ -118,15 +114,15 @@ const ConsumerTab: React.FC<{ data: any }> = ({ data }) => {
     if (data) {
       // Update insights with real data
       const insights = data.key_insights || [];
-      const consumerInsights = insights.filter(insight => 
+      const filteredConsumerInsights = insights.filter((insight: string) => 
         insight.toLowerCase().includes('consumer') || 
         insight.toLowerCase().includes('customer')
       );
       
-      if (consumerInsights.length > 0) {
+      if (filteredConsumerInsights.length > 0) {
         setConsumerInsights(prev => prev.map((insight, index) => ({
           ...insight,
-          description: consumerInsights[index] || insight.description
+          description: filteredConsumerInsights[index % filteredConsumerInsights.length] || insight.description
         })));
       }
     }
@@ -196,9 +192,9 @@ const ConsumerTab: React.FC<{ data: any }> = ({ data }) => {
                 </Typography>
               </Box>
 
-              <Grid container spacing={3}>
+              <Grid container spacing={3} columns={{ md: 15 }}>
                 {Object.entries(consumerMetrics).map(([key, score]) => (
-                  <Grid item xs={12} sm={6} md={2.4} key={key}>
+                  <Grid item xs={12} sm={6} md={3} key={key}>
                     <Box sx={{ textAlign: 'center' }}>
                       <Typography 
                         variant="h4" 

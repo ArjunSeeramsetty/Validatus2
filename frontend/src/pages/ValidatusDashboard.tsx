@@ -23,12 +23,12 @@ import {
   Star 
 } from '@mui/icons-material';
 
-import BusinessCaseTab from '../components/dashboard/BusinessCaseTab';
-import ConsumerTab from '../components/dashboard/ConsumerTab';
-import MarketTab from '../components/dashboard/MarketTab';
-import ProductTab from '../components/dashboard/ProductTab';
-import BrandTab from '../components/dashboard/BrandTab';
-import ExperienceTab from '../components/dashboard/ExperienceTab';
+import BusinessCaseTab from '../components/Dashboard/BusinessCaseTab';
+import ConsumerTab from '../components/Dashboard/ConsumerTab';
+import MarketTab from '../components/Dashboard/MarketTab';
+import ProductTab from '../components/Dashboard/ProductTab';
+import BrandTab from '../components/Dashboard/BrandTab';
+import ExperienceTab from '../components/Dashboard/ExperienceTab';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -62,8 +62,9 @@ const ValidatusDashboard: React.FC = () => {
 
   const loadDashboardData = async () => {
     try {
-      // Load dashboard overview data
-      const response = await fetch('http://localhost:8000/api/v3/dashboard/v2_analysis_20250905_185553_d5654178/overview');
+      // Load dashboard overview data using relative URL
+      const baseUrl = window.location.origin;
+      const response = await fetch(`${baseUrl}/api/v3/dashboard/v2_analysis_20250905_185553_d5654178/overview`);
       const result = await response.json();
       if (result.success) {
         setDashboardData(result.data);
@@ -74,7 +75,8 @@ const ValidatusDashboard: React.FC = () => {
       console.error('Failed to load dashboard data:', error);
       // Fallback to migrated data
       try {
-        const fallbackResponse = await fetch('http://localhost:8000/api/v3/migrated/results/v2_analysis_20250905_185553_d5654178');
+        const baseUrl = window.location.origin;
+        const fallbackResponse = await fetch(`${baseUrl}/api/v3/migrated/results/v2_analysis_20250905_185553_d5654178`);
         const fallbackData = await fallbackResponse.json();
         setDashboardData(fallbackData);
       } catch (fallbackError) {

@@ -5,12 +5,10 @@ import React from 'react';
 import { Box, Typography, Card, CardContent, Grid } from '@mui/material';
 
 interface SimulationDistributionProps {
-  data: any;
   selectedMetric: string;
 }
 
 const SimulationDistribution: React.FC<SimulationDistributionProps> = ({ 
-  data, 
   selectedMetric 
 }) => {
   
@@ -53,6 +51,19 @@ const SimulationDistribution: React.FC<SimulationDistributionProps> = ({
     };
 
     const metricData = mockData[selectedMetric as keyof typeof mockData] || mockData.roi;
+    
+    // Calculate domain from percentiles
+    const domainMin = selectedMetric === 'financial' 
+      ? metricData.percentiles.p10 
+      : metricData.percentiles.p10;
+    const domainMax = selectedMetric === 'financial' 
+      ? metricData.percentiles.p90 
+      : metricData.percentiles.p90;
+    
+    // Generate histogram bins based on domain
+    const numBins = 15;
+    const binWidth = (domainMax - domainMin) / numBins;
+    const histogramBins = Array.from({ length: numBins }, (_, i) => domainMin + i * binWidth);
     
     return (
       <Box>
@@ -120,9 +131,9 @@ const SimulationDistribution: React.FC<SimulationDistributionProps> = ({
             Probability Distribution
           </Typography>
           
-          {/* Mock histogram bars */}
+          {/* Dynamic histogram bars based on domain */}
           <Box sx={{ display: 'flex', alignItems: 'end', height: 200, gap: 1 }}>
-            {[0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8].map((value, index) => {
+            {histogramBins.map((value, index) => {
               const height = Math.random() * 0.8 + 0.2; // Random height for demo
               const isInRange = value >= metricData.percentiles.p25 && value <= metricData.percentiles.p75;
               
@@ -143,10 +154,10 @@ const SimulationDistribution: React.FC<SimulationDistributionProps> = ({
           
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
             <Typography variant="caption" sx={{ color: '#b8b8cc' }}>
-              {selectedMetric === 'financial' ? '$100K' : '10%'}
+              {selectedMetric === 'financial' ? `$${(domainMin / 1000).toFixed(0)}K` : `${(domainMin * 100).toFixed(1)}%`}
             </Typography>
             <Typography variant="caption" sx={{ color: '#b8b8cc' }}>
-              {selectedMetric === 'financial' ? '$200K' : '20%'}
+              {selectedMetric === 'financial' ? `$${(domainMax / 1000).toFixed(0)}K` : `${(domainMax * 100).toFixed(1)}%`}
             </Typography>
           </Box>
         </Box>

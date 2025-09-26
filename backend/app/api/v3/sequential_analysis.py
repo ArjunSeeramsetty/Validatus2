@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional
 import logging
 
 from ...services.enhanced_analysis_session_manager import EnhancedAnalysisSessionManager
+from ...services.live_action_calculator import LiveActionCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +25,13 @@ class Stage3Request(BaseModel):
     # No additional parameters needed for Stage 3
     pass
 
-# Service instance
+class LiveCalculationRequest(BaseModel):
+    client_inputs: Dict[str, Any]
+    query: str
+
+# Service instances
 session_manager = EnhancedAnalysisSessionManager()
+live_calculator = LiveActionCalculator()
 
 @router.post("/topics/{topic_id}/analysis/create")
 async def create_sequential_analysis(
@@ -376,6 +382,23 @@ async def get_query_suggestions(topic_id: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to get query suggestions for topic {topic_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get query suggestions: {str(e)}")
+
+@router.post("/analysis/live-calculate")
+async def live_calculate(request: LiveCalculationRequest) -> Dict[str, Any]:
+    """Perform live action layer calculation with web search"""
+    try:
+        result = await live_calculator.calculate(request.client_inputs, request.query)
+        
+        return {
+            'success': True,
+            'calculation_result': result,
+            'timestamp': result.get('calculation_timestamp'),
+            'message': 'Live calculation completed successfully'
+        }
+        
+    except Exception as e:
+        logger.error(f"Live calculation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Live calculation failed: {str(e)}")
 
 @router.delete("/analysis/{session_id}")
 async def delete_analysis_session(session_id: str) -> Dict[str, Any]:

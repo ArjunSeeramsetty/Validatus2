@@ -21,8 +21,10 @@ import ErrorBoundary from './components/Common/ErrorBoundary';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import ActionLayerDemoPage from './pages/ActionLayerDemoPage';
+import LiveActionCalculatorPage from './pages/LiveActionCalculatorPage';
 import PergolaAnalysisPage from './pages/PergolaAnalysisPage';
 import SequentialAnalysisPage from './pages/SequentialAnalysisPage';
+import AdvancedAnalysisDashboard from './pages/AdvancedAnalysisDashboard';
 import HomePage from './pages/HomePage';
 // import TempTestPage from './pages/TempTestPage'; // Debug page - removed for production
 
@@ -167,7 +169,8 @@ const App: React.FC = () => {
                       }>
                         <Route index element={<HomePage />} />
                         <Route path="migrated/v2_analysis_20250905_185553_d5654178" element={<PergolaAnalysisPage />} />
-                        <Route path="action-layer/pergola" element={<ActionLayerDemoPage />} />
+                        <Route path="analysis/:sessionId/advanced" element={<AdvancedAnalysisDashboard />} />
+                        <Route path="action-layer/pergola" element={<LiveActionCalculatorPage />} />
                         <Route path="sequential/pergola_market" element={<SequentialAnalysisPage />} />
                         <Route path="settings" element={<SettingsPage />} />
                         {/* Debug route removed for production */}

@@ -24,18 +24,25 @@ const HomePage: React.FC = () => {
       color: '#1890ff'
     },
     {
-      title: 'Action Layer Calculator',
-      description: 'Interactive demonstration of action layer calculations and strategic assessments for business decisions.',
+      title: 'Advanced Strategy Analysis',
+      description: 'Comprehensive Monte Carlo simulation with scenario analysis, driver sensitivity, and business case scoring.',
       icon: <Analytics sx={{ fontSize: 40, color: '#52c41a' }} />,
-      path: '/action-layer/pergola',
+      path: '/analysis/v2_analysis_20250905_185553_d5654178/advanced',
       color: '#52c41a'
+    },
+    {
+      title: 'Live Action Calculator',
+      description: 'Interactive demonstration of action layer calculations with real-time web search integration.',
+      icon: <Timeline sx={{ fontSize: 40, color: '#fa8c16' }} />,
+      path: '/action-layer/pergola',
+      color: '#fa8c16'
     },
     {
       title: 'Sequential Analysis',
       description: 'Step-by-step analysis workflow with real-time progress tracking and human control between stages.',
-      icon: <Timeline sx={{ fontSize: 40, color: '#fa8c16' }} />,
+      icon: <Settings sx={{ fontSize: 40, color: '#722ed1' }} />,
       path: '/sequential/pergola_market',
-      color: '#fa8c16'
+      color: '#722ed1'
     }
   ];
 

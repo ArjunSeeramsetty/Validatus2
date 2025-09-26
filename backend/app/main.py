@@ -114,6 +114,13 @@ except ImportError:
     results_router = None
     logging.warning("Results router not available - using placeholder endpoints")
 
+# Live Search API
+try:
+    from .api.v3 import search as search_router
+except ImportError:
+    search_router = None
+    logging.warning("Search API router not available")
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -238,6 +245,19 @@ try:
     logging.info("Sequential analysis API router included")
 except ImportError as e:
     logging.warning(f"Sequential analysis API router not available: {e}")
+
+# Include live search router
+if search_router:
+    app.include_router(search_router.router, prefix="/api/v3")
+    logging.info("Live search API router included")
+
+# Include advanced analysis router
+try:
+    from .api.v3 import advanced_analysis
+    app.include_router(advanced_analysis.router, prefix="/api/v3")
+    logging.info("Advanced analysis API router included")
+except ImportError as e:
+    logging.warning(f"Advanced analysis API router not available: {e}")
 
 # Health check with service status
 @app.get("/health")

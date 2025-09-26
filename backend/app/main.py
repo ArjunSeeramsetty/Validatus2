@@ -244,6 +244,14 @@ app.add_middleware(
 if FeatureFlags.RESULTS_API_ENABLED and results_router:
     app.include_router(results_router.router)
 
+# Include migrated data router
+try:
+    from .api.v3 import migrated
+    app.include_router(migrated.router, prefix="/api/v3")
+    logging.info("Migrated data API router included")
+except ImportError as e:
+    logging.warning(f"Migrated data API router not available: {e}")
+
 # Health check with service status
 @app.get("/health")
 async def health_check():

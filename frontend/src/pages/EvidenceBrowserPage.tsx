@@ -79,11 +79,18 @@ const EvidenceBrowserPage: React.FC = () => {
     }
   }, [topicId]);
 
+  // Effect for dataset/search changes - reset pagination
   useEffect(() => {
     filterEvidence();
-    // Reset all layer pages when filters change
+    // Reset all layer pages when dataset or search changes
     setLayerPages({});
-  }, [searchTerm, selectedLayer, evidenceData]);
+  }, [searchTerm, evidenceData]);
+
+  // Effect for layer selection changes - preserve pagination
+  useEffect(() => {
+    filterEvidence();
+    // Don't reset layerPages when just toggling layers
+  }, [selectedLayer]);
 
   const loadEvidenceData = async () => {
     try {

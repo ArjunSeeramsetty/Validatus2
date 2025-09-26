@@ -8,15 +8,17 @@ export interface RagQueryRequest {
   include_metadata?: boolean;
 }
 
+export interface RagQueryResultMetadata {
+  source_url: string;
+  title: string;
+  similarity_score: number;
+  chunk_index: number;
+  scraped_at: string;
+}
+
 export interface RagQueryResult {
   content: string;
-  metadata: {
-    source_url: string;
-    title: string;
-    similarity_score: number;
-    chunk_index: number;
-    scraped_at: string;
-  };
+  metadata?: RagQueryResultMetadata | null;
   relevance_score: number;
 }
 

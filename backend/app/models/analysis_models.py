@@ -4,6 +4,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 from enum import Enum
+from pydantic import BaseModel
 
 class AnalysisStatus(Enum):
     """Analysis session status enumeration"""
@@ -203,11 +204,64 @@ class ExportResult:
     error_message: Optional[str] = None
     completed_at: Optional[datetime] = None
 
+# Migrated Data Models
+class MigratedSessionInfo(BaseModel):
+    """Information about a migrated v2 session"""
+    session_id: str
+    topic: str
+    status: str
+    created_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    analysis_metadata: Dict[str, Any] = {}
+    migration_info: Dict[str, Any] = {}
+
+class MigratedTopicInfo(BaseModel):
+    """Information about a migrated topic"""
+    name: str
+    display_name: str
+    session_id: Optional[str] = None
+    status: str = "completed"
+    type: str = "migrated"
+    has_results: bool = True
+    has_vector_store: bool = False
+    migration_date: Optional[str] = None
+
+class VectorQueryResult(BaseModel):
+    """Result from vector store query"""
+    content: str
+    metadata: Dict[str, Any] = {}
+    relevance_score: float = 0.8
+
+class VectorQueryResponse(BaseModel):
+    """Response from vector store query"""
+    query: str
+    results: List[VectorQueryResult] = []
+    total_results: int = 0
+    search_time_ms: int = 0
+    collection_info: Optional[Dict[str, Any]] = None
+
+class EvidenceItem(BaseModel):
+    """Evidence item for migrated data"""
+    url: str
+    title: str
+    content_preview: str
+    quality_score: float
+    scraped_at: Optional[str] = None
+    metadata: Dict[str, Any] = {}
+
+class EvidenceLayer(BaseModel):
+    """Evidence layer grouping"""
+    layer_name: str
+    evidence_count: int
+    evidence_items: List[EvidenceItem] = []
+
 # Export all models
 __all__ = [
     'AnalysisStatus', 'DuplicateType', 'ExportFormat',
     'AnalysisSession', 'AnalysisProgress', 'LayerScore', 'FactorCalculation',
     'SegmentScore', 'ContentQualityScores', 'DuplicationResult',
     'TopicClassification', 'OptimizationMetrics', 'EnhancedTopicMetadata',
-    'AnalysisResults', 'ExportRequest', 'ExportResult'
+    'AnalysisResults', 'ExportRequest', 'ExportResult',
+    'MigratedSessionInfo', 'MigratedTopicInfo', 'VectorQueryResult',
+    'VectorQueryResponse', 'EvidenceItem', 'EvidenceLayer'
 ]

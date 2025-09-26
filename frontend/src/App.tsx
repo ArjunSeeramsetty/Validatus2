@@ -26,6 +26,9 @@ import AnalysisResultsPage from './pages/AnalysisResultsPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import EnhancedAnalyticsPage from './pages/EnhancedAnalyticsPage';
+import ActionLayerDemoPage from './pages/ActionLayerDemoPage';
+import EvidenceBrowserPage from './pages/EvidenceBrowserPage';
+import RagQueryPage from './pages/RagQueryPage';
 // import TempTestPage from './pages/TempTestPage'; // Debug page - removed for production
 
 // Protected route component
@@ -176,6 +179,9 @@ const App: React.FC = () => {
                         <Route path="results/:sessionId" element={<AnalysisResultsPage />} />
                         <Route path="enhanced-analytics" element={<EnhancedAnalyticsPage />} />
                         <Route path="enhanced-analytics/:sessionId" element={<EnhancedAnalyticsPage />} />
+                        <Route path="action-layer/:sessionId" element={<ActionLayerDemoPage />} />
+                        <Route path="evidence/:topicId" element={<EvidenceBrowserPage />} />
+                        <Route path="rag-query/:topicId" element={<RagQueryPage />} />
                         <Route path="settings" element={<SettingsPage />} />
                         {/* Debug route removed for production */}
                       </Route>

@@ -25,7 +25,10 @@ import {
   Settings,
   AccountCircle,
   Logout,
-  TrendingUp
+  TrendingUp,
+  AnalyticsOutlined,
+  Folder,
+  ManageSearch
 } from '@mui/icons-material';
 import ListItemButton from '@mui/material/ListItemButton';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -69,6 +72,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     { text: 'Analysis Sessions', icon: <Assessment />, path: '/analysis' },
     { text: 'Results', icon: <TrendingUp />, path: '/results' },
     { text: 'Enhanced Analytics', icon: <TrendingUp />, path: '/enhanced-analytics' },
+    { text: 'Action Layer Demo', icon: <AnalyticsOutlined />, path: '/action-layer/demo-session' },
+    { text: 'Evidence Browser', icon: <Folder />, path: '/evidence/demo-topic' },
+    { text: 'RAG Query', icon: <ManageSearch />, path: '/rag-query/demo-topic' },
     { text: 'Settings', icon: <Settings />, path: '/settings' },
   ];
 

@@ -21,6 +21,7 @@ import {
   People,
   TrendingUp
 } from '@mui/icons-material';
+import PergolaChat from '../chat/PergolaChat';
 
 const ConsumerTab: React.FC<{ data: any }> = ({ data }) => {
   const [consumerMetrics, setConsumerMetrics] = useState({
@@ -114,9 +115,11 @@ const ConsumerTab: React.FC<{ data: any }> = ({ data }) => {
     if (data) {
       // Update insights with real data
       const insights = data.key_insights || [];
-      const filteredConsumerInsights = insights.filter((insight: string) => 
-        insight.toLowerCase().includes('consumer') || 
-        insight.toLowerCase().includes('customer')
+      const filteredConsumerInsights = insights.filter((insight: any) => 
+        typeof insight === 'string' && (
+          insight.toLowerCase().includes('consumer') || 
+          insight.toLowerCase().includes('customer')
+        )
       );
       
       if (filteredConsumerInsights.length > 0) {
@@ -308,7 +311,7 @@ const ConsumerTab: React.FC<{ data: any }> = ({ data }) => {
 
         {/* Consumer Scenarios */}
         <Grid item xs={12} md={4}>
-          <Card sx={{ backgroundColor: '#252547', border: '1px solid #3d3d56' }}>
+          <Card sx={{ backgroundColor: '#252547', border: '1px solid #3d3d56', mb: 3 }}>
             <CardContent>
               <Typography variant="h6" sx={{ color: '#e8e8f0', mb: 3 }}>
                 Consumer Scenarios
@@ -371,6 +374,16 @@ const ConsumerTab: React.FC<{ data: any }> = ({ data }) => {
                   </Paper>
                 ))}
               </Box>
+            </CardContent>
+          </Card>
+
+          {/* Chat Interface */}
+          <Card sx={{ backgroundColor: '#252547', border: '1px solid #3d3d56', height: 600 }}>
+            <CardContent sx={{ p: 0, height: '100%' }}>
+              <PergolaChat 
+                segment="consumer"
+                onSegmentChange={(segment) => console.log('Segment changed:', segment)}
+              />
             </CardContent>
           </Card>
         </Grid>

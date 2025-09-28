@@ -2,7 +2,7 @@
  * Market Segment Analysis Tab
  * Shows market trends, competition, and growth scenarios
  */
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
   Grid,
@@ -20,14 +20,11 @@ import {
   TableRow
 } from '@mui/material';
 import {
-  TrendingUp,
-  Public,
-  Assessment,
-  Speed,
-  Warning
+  Public
 } from '@mui/icons-material';
+import PergolaChat from '../chat/PergolaChat';
 
-const MarketTab: React.FC<{ data: any }> = ({ data }) => {
+const MarketTab: React.FC<{ data: any }> = () => {
   const marketMetrics = {
     trendsScore: 82,
     competitionScore: 68,
@@ -144,9 +141,9 @@ const MarketTab: React.FC<{ data: any }> = ({ data }) => {
                 </Typography>
               </Box>
 
-              <Grid container spacing={3}>
+              <Grid container spacing={3} columns={{ md: 15 }}>
                 {Object.entries(marketMetrics).map(([key, score]) => (
-                  <Grid item xs={12} sm={6} md={2.4} key={key}>
+                  <Grid item xs={12} sm={6} md={3} key={key}>
                     <Box sx={{ textAlign: 'center' }}>
                       <Typography 
                         variant="h4" 
@@ -370,6 +367,16 @@ const MarketTab: React.FC<{ data: any }> = ({ data }) => {
                   </Paper>
                 ))}
               </Box>
+            </CardContent>
+          </Card>
+
+          {/* Chat Interface */}
+          <Card sx={{ backgroundColor: '#252547', border: '1px solid #3d3d56', height: 600, mt: 3 }}>
+            <CardContent sx={{ p: 0, height: '100%' }}>
+              <PergolaChat 
+                segment="market"
+                onSegmentChange={(segment) => console.log('Segment changed:', segment)}
+              />
             </CardContent>
           </Card>
         </Grid>

@@ -11,9 +11,9 @@ import {
   LinearProgress,
   Chip
 } from '@mui/material';
-import { Loyalty, Star, Visibility, Psychology, Favorite } from '@mui/icons-material';
+import { Loyalty } from '@mui/icons-material';
 
-const BrandTab: React.FC<{ data: any }> = ({ data }) => {
+const BrandTab: React.FC = () => {
   const brandFactors = [
     {
       name: 'Brand Recognition & Awareness',

@@ -216,7 +216,10 @@ const EvidenceExplorer: React.FC<EvidenceExplorerProps> = ({ sessionId }) => {
                               minWidth: 'auto',
                               px: 1
                             }}
-                            onClick={() => window.open(source.url, '_blank')}
+                            onClick={() => {
+                              const w = window.open(source.url, '_blank', 'noopener,noreferrer');
+                              if (w) w.opener = null;
+                            }}
                           >
                             View
                           </Button>

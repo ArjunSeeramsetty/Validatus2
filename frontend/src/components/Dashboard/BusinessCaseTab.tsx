@@ -1,8 +1,8 @@
 /**
- * Business Case Tab with Live Calculator
- * Matches Figma Business Case design exactly
+ * Business Case Tab with Live Calculator - Fixed Version
+ * Ensures Discount Rate and Time Duration inputs are properly rendered
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
@@ -28,6 +28,7 @@ import {
   Timeline,
   Analytics
 } from '@mui/icons-material';
+import PergolaChat from '../chat/PergolaChat';
 
 interface BusinessCaseInputs {
   unitPrice: number;
@@ -36,6 +37,7 @@ interface BusinessCaseInputs {
   fixedCosts: number;
   innovationCost: number;
   discountRate: number;
+  timeDuration: number;
 }
 
 interface CalculatedMetrics {
@@ -49,14 +51,15 @@ interface CalculatedMetrics {
   irr: number;
 }
 
-const BusinessCaseTab: React.FC<{ data: any }> = ({ data }) => {
+const BusinessCaseTab = () => {
   const [inputs, setInputs] = useState<BusinessCaseInputs>({
     unitPrice: 1200,
     unitCost: 800,
     expectedVolume: 1000,
     fixedCosts: 200000,
     innovationCost: 100000,
-    discountRate: 0.12
+    discountRate: 0.12,
+    timeDuration: 5
   });
 
   const [metrics, setMetrics] = useState<CalculatedMetrics | null>(null);
@@ -80,7 +83,8 @@ const BusinessCaseTab: React.FC<{ data: any }> = ({ data }) => {
           expected_volume: inputs.expectedVolume,
           fixed_costs: inputs.fixedCosts,
           innovation_cost: inputs.innovationCost,
-          discount_rate: inputs.discountRate
+          discount_rate: inputs.discountRate,
+          time_duration: inputs.timeDuration
         })
       });
       
@@ -113,9 +117,9 @@ const BusinessCaseTab: React.FC<{ data: any }> = ({ data }) => {
     const paybackPeriod = inputs.innovationCost / (totalContribution - inputs.fixedCosts);
     const simpleROI = ((totalContribution - inputs.fixedCosts - inputs.innovationCost) / inputs.innovationCost) * 100;
     
-    // NPV calculation (5-year projection)
+    // NPV calculation (using dynamic time duration)
     let npv = -inputs.innovationCost;
-    for (let year = 1; year <= 5; year++) {
+    for (let year = 1; year <= inputs.timeDuration; year++) {
       const cashFlow = totalContribution - inputs.fixedCosts;
       npv += cashFlow / Math.pow(1 + inputs.discountRate, year);
     }
@@ -179,13 +183,12 @@ const BusinessCaseTab: React.FC<{ data: any }> = ({ data }) => {
   const handleInputChange = (field: keyof BusinessCaseInputs, value: number) => {
     const newInputs = { ...inputs, [field]: value };
     setInputs(newInputs);
-    // Use backend calculation for real-time updates
     calculateWithBackend(newInputs);
   };
 
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
-
+  
   const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
   return (
@@ -193,126 +196,217 @@ const BusinessCaseTab: React.FC<{ data: any }> = ({ data }) => {
       <Grid container spacing={3}>
         {/* Left Panel - Inputs */}
         <Grid item xs={12} md={4}>
-          <Card sx={{ backgroundColor: '#252547', border: '1px solid #3d3d56', height: 'fit-content' }}>
+          <Card sx={{ 
+            backgroundColor: '#252547', 
+            border: '1px solid #3d3d56',
+            height: 'fit-content'
+          }}>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Calculate sx={{ color: '#1890ff', mr: 2 }} />
-                <Typography variant="h6" sx={{ color: '#e8e8f0' }}>
-                  Business Inputs
-                </Typography>
-              </Box>
+              <Typography variant="h6" sx={{ color: '#e8e8f0', mb: 3, display: 'flex', alignItems: 'center' }}>
+                <Calculate sx={{ mr: 1 }} />
+                Business Inputs
+              </Typography>
 
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
-                  Unit Price ($)
-                </Typography>
-                <TextField
-                  type="number"
-                  value={inputs.unitPrice}
-                  onChange={(e) => handleInputChange('unitPrice', Number(e.target.value))}
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: '#1a1a35',
-                      '& fieldset': { borderColor: '#3d3d56' },
-                      '&:hover fieldset': { borderColor: '#1890ff' },
-                      '&.Mui-focused fieldset': { borderColor: '#1890ff' }
-                    },
-                    '& .MuiInputBase-input': { color: '#e8e8f0' }
-                  }}
-                />
-              </Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {/* Unit Price */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
+                    Unit Price ($)
+                  </Typography>
+                  <TextField
+                    type="number"
+                    value={inputs.unitPrice}
+                    onChange={(e) => handleInputChange('unitPrice', Number(e.target.value))}
+                    fullWidth
+                    variant="outlined"
+                    label="Unit Price in USD"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#1a1a35',
+                        '& fieldset': { borderColor: '#3d3d56' },
+                        '&:hover fieldset': { borderColor: '#1890ff' },
+                        '&.Mui-focused fieldset': { borderColor: '#1890ff' }
+                      },
+                      '& .MuiInputBase-input': { color: '#e8e8f0' },
+                      '& .MuiInputLabel-root': { color: '#b8b8cc' }
+                    }}
+                  />
+                </Box>
 
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
-                  Unit Cost ($)
-                </Typography>
-                <TextField
-                  type="number"
-                  value={inputs.unitCost}
-                  onChange={(e) => handleInputChange('unitCost', Number(e.target.value))}
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: '#1a1a35',
-                      '& fieldset': { borderColor: '#3d3d56' },
-                      '&:hover fieldset': { borderColor: '#1890ff' },
-                      '&.Mui-focused fieldset': { borderColor: '#1890ff' }
-                    },
-                    '& .MuiInputBase-input': { color: '#e8e8f0' }
-                  }}
-                />
-              </Box>
+                {/* Unit Cost */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
+                    Unit Cost ($)
+                  </Typography>
+                  <TextField
+                    type="number"
+                    value={inputs.unitCost}
+                    onChange={(e) => handleInputChange('unitCost', Number(e.target.value))}
+                    fullWidth
+                    variant="outlined"
+                    label="Unit Cost in USD"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#1a1a35',
+                        '& fieldset': { borderColor: '#3d3d56' },
+                        '&:hover fieldset': { borderColor: '#1890ff' },
+                        '&.Mui-focused fieldset': { borderColor: '#1890ff' }
+                      },
+                      '& .MuiInputBase-input': { color: '#e8e8f0' },
+                      '& .MuiInputLabel-root': { color: '#b8b8cc' }
+                    }}
+                  />
+                </Box>
 
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 2 }}>
-                  Expected Volume: {inputs.expectedVolume.toLocaleString()} units
-                </Typography>
-                <Slider
-                  value={inputs.expectedVolume}
-                  onChange={(_, value) => handleInputChange('expectedVolume', value as number)}
-                  min={100}
-                  max={5000}
-                  step={100}
-                  sx={{
-                    color: '#1890ff',
-                    '& .MuiSlider-thumb': {
-                      backgroundColor: '#1890ff'
-                    },
-                    '& .MuiSlider-track': {
-                      backgroundColor: '#1890ff'
-                    },
-                    '& .MuiSlider-rail': {
-                      backgroundColor: '#3d3d56'
-                    }
-                  }}
-                />
-              </Box>
+                {/* Expected Volume */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
+                    Expected Volume: {inputs.expectedVolume.toLocaleString()} units
+                  </Typography>
+                  <Slider
+                    value={inputs.expectedVolume}
+                    onChange={(_, value) => handleInputChange('expectedVolume', value as number)}
+                    min={100}
+                    max={5000}
+                    step={100}
+                    aria-label="Expected Volume"
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={(value) => `${value.toLocaleString()} units`}
+                    sx={{
+                      color: '#1890ff',
+                      '& .MuiSlider-thumb': {
+                        backgroundColor: '#1890ff'
+                      },
+                      '& .MuiSlider-track': {
+                        backgroundColor: '#1890ff'
+                      },
+                      '& .MuiSlider-rail': {
+                        backgroundColor: '#3d3d56'
+                      }
+                    }}
+                  />
+                </Box>
 
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
-                  Fixed Costs ($)
-                </Typography>
-                <TextField
-                  type="number"
-                  value={inputs.fixedCosts}
-                  onChange={(e) => handleInputChange('fixedCosts', Number(e.target.value))}
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: '#1a1a35',
-                      '& fieldset': { borderColor: '#3d3d56' },
-                      '&:hover fieldset': { borderColor: '#1890ff' },
-                      '&.Mui-focused fieldset': { borderColor: '#1890ff' }
-                    },
-                    '& .MuiInputBase-input': { color: '#e8e8f0' }
-                  }}
-                />
-              </Box>
+                {/* Fixed Costs */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
+                    Fixed Costs ($)
+                  </Typography>
+                  <TextField
+                    type="number"
+                    value={inputs.fixedCosts}
+                    onChange={(e) => handleInputChange('fixedCosts', Number(e.target.value))}
+                    fullWidth
+                    variant="outlined"
+                    label="Fixed Costs in USD"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#1a1a35',
+                        '& fieldset': { borderColor: '#3d3d56' },
+                        '&:hover fieldset': { borderColor: '#1890ff' },
+                        '&.Mui-focused fieldset': { borderColor: '#1890ff' }
+                      },
+                      '& .MuiInputBase-input': { color: '#e8e8f0' },
+                      '& .MuiInputLabel-root': { color: '#b8b8cc' }
+                    }}
+                  />
+                </Box>
 
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
-                  Innovation Cost ($)
-                </Typography>
-                <TextField
-                  type="number"
-                  value={inputs.innovationCost}
-                  onChange={(e) => handleInputChange('innovationCost', Number(e.target.value))}
-                  fullWidth
-                  variant="outlined"
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: '#1a1a35',
-                      '& fieldset': { borderColor: '#3d3d56' },
-                      '&:hover fieldset': { borderColor: '#1890ff' },
-                      '&.Mui-focused fieldset': { borderColor: '#1890ff' }
-                    },
-                    '& .MuiInputBase-input': { color: '#e8e8f0' }
-                  }}
-                />
+                {/* Innovation Cost */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
+                    Innovation Cost ($)
+                  </Typography>
+                  <TextField
+                    type="number"
+                    value={inputs.innovationCost}
+                    onChange={(e) => handleInputChange('innovationCost', Number(e.target.value))}
+                    fullWidth
+                    variant="outlined"
+                    label="Innovation Cost in USD"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#1a1a35',
+                        '& fieldset': { borderColor: '#3d3d56' },
+                        '&:hover fieldset': { borderColor: '#1890ff' },
+                        '&.Mui-focused fieldset': { borderColor: '#1890ff' }
+                      },
+                      '& .MuiInputBase-input': { color: '#e8e8f0' },
+                      '& .MuiInputLabel-root': { color: '#b8b8cc' }
+                    }}
+                  />
+                </Box>
+
+                {/* Discount Rate */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
+                    Discount Rate (%): {formatPercent(inputs.discountRate * 100)}
+                  </Typography>
+                  <Slider
+                    value={inputs.discountRate * 100}
+                    onChange={(_, value) => handleInputChange('discountRate', (value as number) / 100)}
+                    min={5}
+                    max={25}
+                    step={0.5}
+                    aria-label="Discount Rate Percentage"
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={(value) => `${value}%`}
+                    sx={{
+                      color: '#1890ff',
+                      '& .MuiSlider-thumb': {
+                        backgroundColor: '#1890ff'
+                      },
+                      '& .MuiSlider-track': {
+                        backgroundColor: '#1890ff'
+                      },
+                      '& .MuiSlider-rail': {
+                        backgroundColor: '#3d3d56'
+                      }
+                    }}
+                  />
+                </Box>
+
+                {/* Time Duration */}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
+                    Time Duration (Years): {inputs.timeDuration}
+                  </Typography>
+                  <Slider
+                    value={inputs.timeDuration}
+                    onChange={(_, value) => handleInputChange('timeDuration', value as number)}
+                    min={1}
+                    max={10}
+                    step={1}
+                    aria-label="Time Duration in Years"
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={(value) => `${value} years`}
+                    marks={[
+                      { value: 1, label: '1y' },
+                      { value: 3, label: '3y' },
+                      { value: 5, label: '5y' },
+                      { value: 10, label: '10y' }
+                    ]}
+                    sx={{
+                      color: '#1890ff',
+                      '& .MuiSlider-thumb': {
+                        backgroundColor: '#1890ff'
+                      },
+                      '& .MuiSlider-track': {
+                        backgroundColor: '#1890ff'
+                      },
+                      '& .MuiSlider-rail': {
+                        backgroundColor: '#3d3d56'
+                      },
+                      '& .MuiSlider-mark': {
+                        backgroundColor: '#1890ff'
+                      },
+                      '& .MuiSlider-markLabel': {
+                        color: '#b8b8cc',
+                        fontSize: '0.75rem'
+                      }
+                    }}
+                  />
+                </Box>
               </Box>
             </CardContent>
           </Card>
@@ -323,117 +417,124 @@ const BusinessCaseTab: React.FC<{ data: any }> = ({ data }) => {
           <Grid container spacing={2}>
             {/* Gross Margin */}
             <Grid item xs={12}>
-              <Card sx={{ backgroundColor: '#252547', border: '1px solid #3d3d56' }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <AttachMoney sx={{ color: '#52c41a', mr: 1 }} />
-                    <Typography variant="h6" sx={{ color: '#e8e8f0' }}>
-                      Gross Margin
-                    </Typography>
-                  </Box>
-                  <Typography variant="h3" sx={{ color: '#52c41a', fontWeight: 700 }}>
-                    {formatPercent(metrics?.grossMarginPercent || 0)}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
-                    {formatCurrency(metrics?.grossMargin || 0)} per unit
-                  </Typography>
-                </CardContent>
-              </Card>
+              <Paper sx={{ 
+                p: 2, 
+                backgroundColor: '#252547', 
+                border: '1px solid #3d3d56',
+                textAlign: 'center'
+              }}>
+                <TrendingUp sx={{ color: '#52c41a', fontSize: 32, mb: 1 }} />
+                <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
+                  Gross Margin
+                </Typography>
+                <Typography variant="h4" sx={{ color: '#52c41a', fontWeight: 600 }}>
+                  {formatPercent(metrics?.grossMarginPercent || 0)}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
+                  {formatCurrency(metrics?.grossMargin || 0)} per unit
+                </Typography>
+              </Paper>
             </Grid>
 
             {/* Breakeven Volume */}
             <Grid item xs={12}>
-              <Card sx={{ backgroundColor: '#252547', border: '1px solid #3d3d56' }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <TrendingUp sx={{ color: '#fa8c16', mr: 1 }} />
-                    <Typography variant="h6" sx={{ color: '#e8e8f0' }}>
-                      Breakeven Volume
-                    </Typography>
-                  </Box>
-                  <Typography variant="h3" sx={{ color: '#fa8c16', fontWeight: 700 }}>
-                    {Math.round(metrics?.breakevenVolume || 0).toLocaleString()}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
-                    units to break even
-                  </Typography>
-                </CardContent>
-              </Card>
+              <Paper sx={{ 
+                p: 2, 
+                backgroundColor: '#252547', 
+                border: '1px solid #3d3d56',
+                textAlign: 'center'
+              }}>
+                <Analytics sx={{ color: '#1890ff', fontSize: 32, mb: 1 }} />
+                <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
+                  Breakeven Volume
+                </Typography>
+                <Typography variant="h4" sx={{ color: '#1890ff', fontWeight: 600 }}>
+                  {Math.round(metrics?.breakevenVolume || 0).toLocaleString()}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
+                  units to break even
+                </Typography>
+              </Paper>
             </Grid>
 
             {/* ROI */}
             <Grid item xs={12}>
-              <Card sx={{ backgroundColor: '#252547', border: '1px solid #3d3d56' }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Analytics sx={{ color: '#1890ff', mr: 1 }} />
-                    <Typography variant="h6" sx={{ color: '#e8e8f0' }}>
-                      Simple ROI
-                    </Typography>
-                  </Box>
-                  <Typography variant="h3" sx={{ color: '#1890ff', fontWeight: 700 }}>
-                    {formatPercent(metrics?.simpleROI || 0)}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
-                    return on investment
-                  </Typography>
-                </CardContent>
-              </Card>
+              <Paper sx={{ 
+                p: 2, 
+                backgroundColor: '#252547', 
+                border: '1px solid #3d3d56',
+                textAlign: 'center'
+              }}>
+                <AttachMoney sx={{ color: '#fa8c16', fontSize: 32, mb: 1 }} />
+                <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
+                  Simple ROI
+                </Typography>
+                <Typography variant="h4" sx={{ color: '#fa8c16', fontWeight: 600 }}>
+                  {formatPercent(metrics?.simpleROI || 0)}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
+                  return on investment
+                </Typography>
+              </Paper>
             </Grid>
           </Grid>
         </Grid>
 
         {/* Right Panel - Financial Projections */}
         <Grid item xs={12} md={4}>
-          <Card sx={{ backgroundColor: '#252547', border: '1px solid #3d3d56' }}>
+          <Card sx={{ 
+            backgroundColor: '#252547', 
+            border: '1px solid #3d3d56',
+            height: 'fit-content'
+          }}>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Timeline sx={{ color: '#722ed1', mr: 2 }} />
-                <Typography variant="h6" sx={{ color: '#e8e8f0' }}>
-                  Financial Metrics
-                </Typography>
-              </Box>
+              <Typography variant="h6" sx={{ color: '#e8e8f0', mb: 3, display: 'flex', alignItems: 'center' }}>
+                <Timeline sx={{ mr: 1 }} />
+                Financial Metrics
+              </Typography>
 
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
-                  Total Contribution
-                </Typography>
-                <Typography variant="h5" sx={{ color: '#e8e8f0', fontWeight: 600 }}>
-                  {formatCurrency(metrics?.totalContribution || 0)}
-                </Typography>
-              </Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
+                    Total Contribution
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: '#e8e8f0' }}>
+                    {formatCurrency(metrics?.totalContribution || 0)}
+                  </Typography>
+                </Box>
 
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
-                  Payback Period
-                </Typography>
-                <Typography variant="h5" sx={{ color: '#e8e8f0', fontWeight: 600 }}>
-                  {(metrics?.paybackPeriod || 0).toFixed(1)} years
-                </Typography>
-              </Box>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
+                    Payback Period
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: '#e8e8f0' }}>
+                    {(metrics?.paybackPeriod || 0).toFixed(1)} years
+                  </Typography>
+                </Box>
 
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
-                  Net Present Value (5yr)
-                </Typography>
-                <Typography 
-                  variant="h5" 
-                  sx={{ 
-                    color: (metrics?.npv || 0) > 0 ? '#52c41a' : '#ff4d4f', 
-                    fontWeight: 600 
-                  }}
-                >
-                  {formatCurrency(metrics?.npv || 0)}
-                </Typography>
-              </Box>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
+                    Net Present Value ({inputs.timeDuration}yr)
+                  </Typography>
+                  <Typography 
+                    variant="h5" 
+                    sx={{ 
+                      color: (metrics?.npv || 0) > 0 ? '#52c41a' : '#ff4d4f', 
+                      fontWeight: 600 
+                    }}
+                  >
+                    {formatCurrency(metrics?.npv || 0)}
+                  </Typography>
+                </Box>
 
-              <Box>
-                <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
-                  Internal Rate of Return
-                </Typography>
-                <Typography variant="h5" sx={{ color: '#e8e8f0', fontWeight: 600 }}>
-                  {formatPercent(metrics?.irr || 0)}
-                </Typography>
+                <Box>
+                  <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
+                    Internal Rate of Return
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: '#e8e8f0' }}>
+                    {formatPercent(metrics?.irr || 0)}
+                  </Typography>
+                </Box>
               </Box>
             </CardContent>
           </Card>
@@ -446,24 +547,36 @@ const BusinessCaseTab: React.FC<{ data: any }> = ({ data }) => {
               <Typography variant="h6" sx={{ color: '#e8e8f0', mb: 3 }}>
                 Scenario Analysis
               </Typography>
-
-              <TableContainer component={Paper} sx={{ backgroundColor: '#1a1a35' }}>
+              
+              <TableContainer>
                 <Table>
                   <TableHead>
-                    <TableRow sx={{ backgroundColor: '#252547' }}>
-                      <TableCell sx={{ color: '#e8e8f0', fontWeight: 600 }}>Scenario</TableCell>
-                      <TableCell sx={{ color: '#e8e8f0', fontWeight: 600 }}>Probability</TableCell>
-                      <TableCell sx={{ color: '#e8e8f0', fontWeight: 600 }}>Volume</TableCell>
-                      <TableCell sx={{ color: '#e8e8f0', fontWeight: 600 }}>Price</TableCell>
-                      <TableCell sx={{ color: '#e8e8f0', fontWeight: 600 }}>Contribution</TableCell>
-                      <TableCell sx={{ color: '#e8e8f0', fontWeight: 600 }}>ROI</TableCell>
+                    <TableRow>
+                      <TableCell sx={{ color: '#b8b8cc', borderBottom: '1px solid #3d3d56' }}>
+                        Scenario
+                      </TableCell>
+                      <TableCell sx={{ color: '#b8b8cc', borderBottom: '1px solid #3d3d56' }}>
+                        Probability
+                      </TableCell>
+                      <TableCell sx={{ color: '#b8b8cc', borderBottom: '1px solid #3d3d56' }}>
+                        Volume
+                      </TableCell>
+                      <TableCell sx={{ color: '#b8b8cc', borderBottom: '1px solid #3d3d56' }}>
+                        Price
+                      </TableCell>
+                      <TableCell sx={{ color: '#b8b8cc', borderBottom: '1px solid #3d3d56' }}>
+                        Contribution
+                      </TableCell>
+                      <TableCell sx={{ color: '#b8b8cc', borderBottom: '1px solid #3d3d56' }}>
+                        ROI
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {scenarioResults.map((scenario, index) => (
+                    {scenarioResults.map((scenario: any, index) => (
                       <TableRow key={index}>
-                        <TableCell>
-                          <Chip
+                        <TableCell sx={{ borderBottom: '1px solid #3d3d56' }}>
+                          <Chip 
                             label={scenario.name}
                             sx={{
                               backgroundColor: `${scenario.color}20`,
@@ -472,11 +585,13 @@ const BusinessCaseTab: React.FC<{ data: any }> = ({ data }) => {
                             }}
                           />
                         </TableCell>
-                        <TableCell sx={{ color: '#b8b8cc' }}>
+                        <TableCell sx={{ borderBottom: '1px solid #3d3d56' }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <LinearProgress
                               variant="determinate"
                               value={scenario.probability}
+                              aria-label={`Probability: ${scenario.probability}%`}
+                              title={`Probability: ${scenario.probability}%`}
                               sx={{
                                 width: 60,
                                 backgroundColor: '#3d3d56',
@@ -485,21 +600,24 @@ const BusinessCaseTab: React.FC<{ data: any }> = ({ data }) => {
                                 }
                               }}
                             />
-                            {scenario.probability}%
+                            <Typography sx={{ color: '#e8e8f0' }}>
+                              {scenario.probability}%
+                            </Typography>
                           </Box>
                         </TableCell>
-                        <TableCell sx={{ color: '#e8e8f0' }}>
+                        <TableCell sx={{ color: '#e8e8f0', borderBottom: '1px solid #3d3d56' }}>
                           {Math.round(scenario.volume).toLocaleString()}
                         </TableCell>
-                        <TableCell sx={{ color: '#e8e8f0' }}>
+                        <TableCell sx={{ color: '#e8e8f0', borderBottom: '1px solid #3d3d56' }}>
                           {formatCurrency(scenario.price)}
                         </TableCell>
-                        <TableCell sx={{ color: '#e8e8f0' }}>
+                        <TableCell sx={{ color: '#e8e8f0', borderBottom: '1px solid #3d3d56' }}>
                           {formatCurrency(scenario.contribution)}
                         </TableCell>
                         <TableCell sx={{ 
                           color: scenario.roi > 0 ? '#52c41a' : '#ff4d4f',
-                          fontWeight: 600
+                          fontWeight: 600,
+                          borderBottom: '1px solid #3d3d56'
                         }}>
                           {formatPercent(scenario.roi)}
                         </TableCell>
@@ -508,6 +626,16 @@ const BusinessCaseTab: React.FC<{ data: any }> = ({ data }) => {
                   </TableBody>
                 </Table>
               </TableContainer>
+            </CardContent>
+          </Card>
+
+          {/* Chat Interface */}
+          <Card sx={{ backgroundColor: '#252547', border: '1px solid #3d3d56', height: 600, mt: 3 }}>
+            <CardContent sx={{ p: 0, height: '100%' }}>
+              <PergolaChat 
+                segment="business_case"
+                onSegmentChange={(segment) => console.log('Segment changed:', segment)}
+              />
             </CardContent>
           </Card>
         </Grid>

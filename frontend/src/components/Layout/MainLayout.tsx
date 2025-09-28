@@ -340,6 +340,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
+          overflow: 'hidden', // Prevent horizontal scroll
+          boxSizing: 'border-box', // Ensure proper box model
         }}
       >
         <Toolbar />

@@ -467,6 +467,20 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
                     sx={textFieldSx}
                   />
                 </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 1 }}>
+                    Marketing % of revenue
+                  </Typography>
+                  <TextField
+                    type="number"
+                    value={detailedInputs.marketingPercentage}
+                    onChange={(e) => handleDetailedInputChange('marketingPercentage', Number(e.target.value))}
+                    fullWidth
+                    size="small"
+                    sx={textFieldSx}
+                  />
+                </Grid>
               </Grid>
             </AccordionDetails>
           </Accordion>
@@ -616,7 +630,7 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
 
       {/* Metrics Grid - Responsive */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6} md={4}>
           <Paper sx={{ 
             p: 2, 
             backgroundColor: '#252547', 
@@ -636,18 +650,58 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6} md={4}>
           <Paper sx={{ 
             p: 2, 
             backgroundColor: '#252547', 
             border: '1px solid #3d3d56',
             textAlign: 'center'
           }}>
-            <Analytics sx={{ color: '#1890ff', fontSize: 32, mb: 1 }} />
+            <AttachMoney sx={{ color: '#1890ff', fontSize: 32, mb: 1 }} />
+            <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
+              Contribution/unit
+            </Typography>
+            <Typography variant="h5" sx={{ color: '#1890ff', fontWeight: 600 }}>
+              {formatCurrency(metrics?.grossMargin || 0)}
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
+              per unit contribution
+            </Typography>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4}>
+          <Paper sx={{ 
+            p: 2, 
+            backgroundColor: '#252547', 
+            border: '1px solid #3d3d56',
+            textAlign: 'center'
+          }}>
+            <Analytics sx={{ color: '#722ed1', fontSize: 32, mb: 1 }} />
+            <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
+              Revenue (Y1)
+            </Typography>
+            <Typography variant="h5" sx={{ color: '#722ed1', fontWeight: 600 }}>
+              {formatCurrency(metrics?.totalContribution || 0)}
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
+              first year revenue
+            </Typography>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4}>
+          <Paper sx={{ 
+            p: 2, 
+            backgroundColor: '#252547', 
+            border: '1px solid #3d3d56',
+            textAlign: 'center'
+          }}>
+            <TrendingUp sx={{ color: '#fa8c16', fontSize: 32, mb: 1 }} />
             <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
               Breakeven Volume
             </Typography>
-            <Typography variant="h5" sx={{ color: '#1890ff', fontWeight: 600 }}>
+            <Typography variant="h5" sx={{ color: '#fa8c16', fontWeight: 600 }}>
               {Math.round(metrics?.breakevenVolume || 0).toLocaleString()}
             </Typography>
             <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
@@ -656,7 +710,53 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6} md={4}>
+          <Paper sx={{ 
+            p: 2, 
+            backgroundColor: '#252547', 
+            border: '1px solid #3d3d56',
+            textAlign: 'center'
+          }}>
+            <Analytics sx={{ color: '#13c2c2', fontSize: 32, mb: 1 }} />
+            <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
+              Payback Period
+            </Typography>
+            <Typography variant="h5" sx={{ color: '#13c2c2', fontWeight: 600 }}>
+              {metrics?.paybackPeriod ? (metrics.paybackPeriod * 12).toFixed(1) : '0.0'}m
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
+              months to payback
+            </Typography>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4}>
+          <Paper sx={{ 
+            p: 2, 
+            backgroundColor: '#252547', 
+            border: '1px solid #3d3d56',
+            textAlign: 'center'
+          }}>
+            <TrendingUp sx={{ color: '#eb2f96', fontSize: 32, mb: 1 }} />
+            <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
+              Simple ROI
+            </Typography>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                color: (metrics?.simpleROI || 0) > 0 ? '#52c41a' : '#ff4d4f', 
+                fontWeight: 600 
+              }}
+            >
+              {formatPercent(metrics?.simpleROI || 0)}
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
+              return on investment
+            </Typography>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4}>
           <Paper sx={{ 
             p: 2, 
             backgroundColor: '#252547', 
@@ -678,6 +778,32 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
             </Typography>
             <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
               net present value
+            </Typography>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4}>
+          <Paper sx={{ 
+            p: 2, 
+            backgroundColor: '#252547', 
+            border: '1px solid #3d3d56',
+            textAlign: 'center'
+          }}>
+            <Analytics sx={{ color: '#9c27b0', fontSize: 32, mb: 1 }} />
+            <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
+              IRR
+            </Typography>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                color: (metrics?.irr || 0) > 0 ? '#52c41a' : '#ff4d4f', 
+                fontWeight: 600 
+              }}
+            >
+              {formatPercent(metrics?.irr || 0)}
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
+              internal rate of return
             </Typography>
           </Paper>
         </Grid>

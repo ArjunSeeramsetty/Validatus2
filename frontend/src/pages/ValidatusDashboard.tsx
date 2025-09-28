@@ -6,12 +6,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Paper,
   Typography,
-  Card,
-  CardContent,
-  Divider,
-  Stack
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import { 
   Assessment, 
@@ -168,53 +167,40 @@ const ValidatusDashboard: React.FC = () => {
     <Box sx={{ 
       backgroundColor: '#0f0f1a', 
       minHeight: '100vh',
-      p: 3
+      display: 'flex'
     }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography 
-          variant="h3" 
-          sx={{ 
-            color: '#e8e8f0', 
-            fontWeight: 700,
-            mb: 1
-          }}
-        >
-          Strategic Analysis Dashboard
-        </Typography>
-        <Typography 
-          variant="subtitle1" 
-          sx={{ color: '#b8b8cc' }}
-        >
-          Pergola Market Analysis - Live Interactive Results
-        </Typography>
-      </Box>
-
-      {/* Main Dashboard Container */}
-      <Paper sx={{ 
-        backgroundColor: '#1a1a35',
-        border: '1px solid #3d3d56',
-        borderRadius: 2,
-        overflow: 'hidden'
+      {/* Left Sidebar - Feature Navigation */}
+      <Box sx={{
+        width: 280,
+        backgroundColor: '#252547',
+        borderRight: '1px solid #3d3d56',
+        minHeight: '100vh',
+        position: 'sticky',
+        top: 0
       }}>
-        {/* Feature Navigation Cards - Vertical Stack */}
-        <Box sx={{ 
-          p: 3,
-          backgroundColor: '#252547',
-          borderBottom: '1px solid #3d3d56'
-        }}>
+        {/* Header */}
+        <Box sx={{ p: 3, borderBottom: '1px solid #3d3d56' }}>
           <Typography 
-            variant="h6" 
+            variant="h5" 
             sx={{ 
               color: '#e8e8f0', 
-              mb: 3,
-              fontWeight: 600
+              fontWeight: 700,
+              mb: 1
             }}
+          >
+            Dashboard
+          </Typography>
+          <Typography 
+            variant="body2" 
+            sx={{ color: '#b8b8cc' }}
           >
             Analysis Modules
           </Typography>
-          
-          <Stack spacing={2}>
+        </Box>
+
+        {/* Feature Navigation List */}
+        <Box sx={{ p: 2 }}>
+          <List sx={{ p: 0 }}>
             {features.map((feature, index) => (
               <motion.div
                 key={feature.id}
@@ -222,96 +208,144 @@ const ValidatusDashboard: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
               >
-                <Card 
-                  sx={{ 
-                    cursor: 'pointer',
-                    borderLeft: currentFeature === feature.id ? `5px solid ${feature.color}` : '5px solid transparent',
-                    backgroundColor: currentFeature === feature.id ? `${feature.color}15` : '#1a1a35',
-                    border: `1px solid ${currentFeature === feature.id ? feature.color : '#3d3d56'}`,
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: `${feature.color}10`,
-                      border: `1px solid ${feature.color}`,
-                      transform: 'translateX(4px)',
-                    }
-                  }}
+                <ListItem
+                  button
+                  selected={currentFeature === feature.id}
                   onClick={() => handleFeatureChange(feature.id)}
+                  sx={{
+                    mb: 1,
+                    borderRadius: 2,
+                    borderLeft: currentFeature === feature.id ? `4px solid ${feature.color}` : '4px solid transparent',
+                    backgroundColor: currentFeature === feature.id ? `${feature.color}20` : 'transparent',
+                    '&.Mui-selected': {
+                      backgroundColor: `${feature.color}20`,
+                      '&:hover': {
+                        backgroundColor: `${feature.color}25`,
+                      }
+                    },
+                    '&:hover': {
+                      backgroundColor: currentFeature === feature.id ? `${feature.color}25` : `${feature.color}10`,
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
                 >
-                  <CardContent sx={{ p: 2.5 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Box sx={{
-                        p: 1.5,
-                        backgroundColor: currentFeature === feature.id ? `${feature.color}30` : '#3d3d56',
-                        borderRadius: 2,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'all 0.2s ease'
-                      }}>
-                        <feature.icon sx={{ 
-                          color: currentFeature === feature.id ? feature.color : '#b8b8cc',
-                          fontSize: 28,
-                          transition: 'color 0.2s ease'
-                        }} />
-                      </Box>
-                      
-                      <Box sx={{ flex: 1 }}>
-                        <Typography 
-                          variant="h6" 
-                          sx={{ 
-                            color: currentFeature === feature.id ? feature.color : '#e8e8f0',
-                            fontWeight: currentFeature === feature.id ? 700 : 600,
-                            mb: 0.5,
-                            transition: 'color 0.2s ease'
-                          }}
-                        >
-                          {feature.label}
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: '#b8b8cc',
-                            lineHeight: 1.4
-                          }}
-                        >
-                          {feature.description}
-                        </Typography>
-                      </Box>
-
-                      {/* Selection Indicator */}
-                      {currentFeature === feature.id && (
-                        <Box sx={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          backgroundColor: feature.color,
-                          animation: 'pulse 2s infinite'
-                        }} />
-                      )}
-                    </Box>
-                  </CardContent>
-                </Card>
+                  <ListItemIcon sx={{ minWidth: 48 }}>
+                    <feature.icon sx={{ 
+                      color: currentFeature === feature.id ? feature.color : '#b8b8cc',
+                      fontSize: 24,
+                      transition: 'color 0.2s ease'
+                    }} />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={feature.label}
+                    secondary={feature.description}
+                    sx={{
+                      '& .MuiListItemText-primary': {
+                        color: currentFeature === feature.id ? feature.color : '#e8e8f0',
+                        fontWeight: currentFeature === feature.id ? 600 : 400,
+                        fontSize: '1rem',
+                        transition: 'color 0.2s ease'
+                      },
+                      '& .MuiListItemText-secondary': {
+                        color: '#b8b8cc',
+                        fontSize: '0.8rem',
+                        lineHeight: 1.3,
+                        mt: 0.5
+                      }
+                    }}
+                  />
+                </ListItem>
               </motion.div>
             ))}
-          </Stack>
+          </List>
         </Box>
 
-        <Divider sx={{ borderColor: '#3d3d56' }} />
+        {/* Footer Stats */}
+        <Box sx={{ 
+          position: 'absolute', 
+          bottom: 0, 
+          left: 0, 
+          right: 0, 
+          p: 2,
+          borderTop: '1px solid #3d3d56',
+          backgroundColor: '#1a1a35'
+        }}>
+          <Typography variant="caption" sx={{ color: '#b8b8cc', display: 'block', mb: 1 }}>
+            Analysis Status
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="caption" sx={{ color: '#b8b8cc' }}>
+              Modules: {features.length}
+            </Typography>
+            <Box sx={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: '#52c41a',
+              animation: 'pulse 2s infinite'
+            }} />
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Main Content Area */}
+      <Box sx={{ 
+        flex: 1,
+        backgroundColor: '#1a1a35',
+        minHeight: '100vh'
+      }}>
+        {/* Content Header */}
+        <Box sx={{ 
+          p: 3,
+          borderBottom: '1px solid #3d3d56',
+          backgroundColor: '#252547'
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{
+              p: 1,
+              backgroundColor: `${currentFeatureData?.color}30`,
+              borderRadius: 2
+            }}>
+              {currentFeatureData?.icon && (
+                <currentFeatureData.icon sx={{ 
+                  color: currentFeatureData.color, 
+                  fontSize: 28 
+                }} />
+              )}
+            </Box>
+            <Box>
+              <Typography 
+                variant="h4" 
+                sx={{ 
+                  color: '#e8e8f0', 
+                  fontWeight: 700,
+                  mb: 0.5
+                }}
+              >
+                {currentFeatureData?.label}
+              </Typography>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ color: '#b8b8cc' }}
+              >
+                {currentFeatureData?.description}
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
 
         {/* Feature Content */}
-        <Box sx={{ backgroundColor: '#1a1a35', minHeight: '600px' }}>
+        <Box sx={{ p: 3 }}>
           <motion.div
             key={currentFeature}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <Box sx={{ p: 3 }}>
-              <CurrentComponent data={dashboardData} />
-            </Box>
+            <CurrentComponent data={dashboardData} />
           </motion.div>
         </Box>
-      </Paper>
+      </Box>
     </Box>
   );
 };

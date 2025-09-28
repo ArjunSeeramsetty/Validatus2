@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import {
   Menu as MenuIcon,
+  ChevronLeft,
   Dashboard,
   Topic,
   Analytics,
@@ -46,6 +47,7 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopOpen, setDesktopOpen] = useState(true);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,6 +55,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleDesktopDrawerToggle = () => {
+    setDesktopOpen(!desktopOpen);
   };
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -81,14 +87,28 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   ];
 
   const drawer = (
-    <Box sx={{ height: '100%', backgroundColor: '#1a1a35' }}>
-      <Toolbar>
+    <Box sx={{ height: '100%', backgroundColor: '#1a1a35', display: 'flex', flexDirection: 'column' }}>
+      <Toolbar sx={{ justifyContent: 'space-between', px: 2 }}>
         <Typography variant="h6" noWrap component="div" sx={{ color: '#e8e8f0', fontWeight: 700 }}>
           Validatus
         </Typography>
+        <IconButton
+          color="inherit"
+          aria-label="close drawer"
+          onClick={handleDesktopDrawerToggle}
+          sx={{ 
+            display: { xs: 'none', sm: 'block' },
+            color: '#b8b8cc',
+            '&:hover': {
+              backgroundColor: '#ffffff10'
+            }
+          }}
+        >
+          <ChevronLeft />
+        </IconButton>
       </Toolbar>
       <Divider sx={{ borderColor: '#3d3d56' }} />
-      <List>
+      <List sx={{ flex: 1, overflow: 'auto' }}>
         {menuItems.map((item) => (
           <ListItem
             key={item.text}
@@ -132,11 +152,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          ml: { sm: `${drawerWidth}px` },
+          width: { sm: desktopOpen ? `calc(100% - ${drawerWidth}px)` : '100%' },
+          ml: { sm: desktopOpen ? `${drawerWidth}px` : 0 },
           backgroundColor: '#1a1a35',
           borderBottom: '1px solid #3d3d56',
           boxShadow: 'none',
+          transition: theme => theme.transitions.create(['width', 'margin'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
         }}
       >
         <Toolbar>
@@ -149,6 +173,18 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
+          
+          {!desktopOpen && (
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDesktopDrawerToggle}
+              sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
           
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, color: '#e8e8f0' }}>
             Strategic Analysis Platform
@@ -252,17 +288,21 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           {drawer}
         </Drawer>
         <Drawer
-          variant="permanent"
+          variant="persistent"
+          open={desktopOpen}
           sx={{
             display: { xs: 'none', sm: 'block' },
             '& .MuiDrawer-paper': { 
               boxSizing: 'border-box', 
               width: drawerWidth,
               backgroundColor: '#1a1a35',
-              borderRight: '1px solid #3d3d56'
+              borderRight: '1px solid #3d3d56',
+              transition: theme => theme.transitions.create('width', {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.leavingScreen,
+              }),
             },
           }}
-          open
         >
           {drawer}
         </Drawer>
@@ -272,9 +312,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: { sm: desktopOpen ? `calc(100% - ${drawerWidth}px)` : '100%' },
           backgroundColor: '#0f0f23',
-          minHeight: '100vh'
+          minHeight: '100vh',
+          transition: theme => theme.transitions.create('width', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
         }}
       >
         <Toolbar />

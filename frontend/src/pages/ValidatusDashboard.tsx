@@ -167,16 +167,19 @@ const ValidatusDashboard: React.FC = () => {
     <Box sx={{ 
       backgroundColor: '#0f0f1a', 
       minHeight: '100vh',
-      display: 'flex'
+      display: 'flex',
+      width: '100%',
+      maxWidth: '100%'
     }}>
       {/* Left Sidebar - Feature Navigation */}
       <Box sx={{
-        width: 280,
+        width: { xs: 280, sm: 280, md: 300, lg: 320, xl: 340 },
         backgroundColor: '#252547',
         borderRight: '1px solid #3d3d56',
         minHeight: '100vh',
         position: 'sticky',
-        top: 0
+        top: 0,
+        flexShrink: 0
       }}>
         {/* Header */}
         <Box sx={{ p: 3, borderBottom: '1px solid #3d3d56' }}>
@@ -292,7 +295,10 @@ const ValidatusDashboard: React.FC = () => {
       <Box sx={{ 
         flex: 1,
         backgroundColor: '#1a1a35',
-        minHeight: '100vh'
+        minHeight: '100vh',
+        width: '100%',
+        overflow: 'auto',
+        position: 'relative'
       }}>
         {/* Content Header */}
         <Box sx={{ 
@@ -335,7 +341,10 @@ const ValidatusDashboard: React.FC = () => {
         </Box>
 
         {/* Feature Content */}
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ 
+          width: '100%',
+          maxWidth: '100%'
+        }}>
           <motion.div
             key={currentFeature}
             initial={{ opacity: 0, x: 20 }}

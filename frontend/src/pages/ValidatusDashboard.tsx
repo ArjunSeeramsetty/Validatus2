@@ -1,35 +1,27 @@
 /**
- * Enhanced Validatus Dashboard with:
- * - Collapsible side menu
- * - Vertical tab navigation
- * - Tile-based Consumer Factor Analysis
+ * Main Validatus Dashboard with Enhanced Feature Navigation
+ * - Vertical stack of large feature cards for navigation
+ * - Tile-based Consumer Factor Analysis (3 per row)
  */
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Drawer,
-  IconButton,
+  Paper,
   Typography,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
+  Card,
+  CardContent,
   Divider,
-  Toolbar,
-  AppBar,
-  CssBaseline
+  Stack
 } from '@mui/material';
-import {
-  Assessment,
-  TrendingUp,
-  People,
-  Store,
-  Loyalty,
-  Star,
-  Menu,
-  ChevronLeft
+import { 
+  Assessment, 
+  TrendingUp, 
+  People, 
+  Store, 
+  Loyalty, 
+  Star 
 } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 import BusinessCaseTab from '../components/Dashboard/BusinessCaseTab';
 import EnhancedConsumerTab from '../components/Dashboard/EnhancedConsumerTab';
@@ -38,28 +30,27 @@ import ProductTab from '../components/Dashboard/ProductTab';
 import BrandTab from '../components/Dashboard/BrandTab';
 import ExperienceTab from '../components/Dashboard/ExperienceTab';
 
-const drawerWidth = 280;
-
-interface TabData {
+interface FeatureData {
   id: string;
   label: string;
   icon: React.ElementType;
   color: string;
+  description: string;
   component: React.ComponentType<{ data: any }>;
 }
 
 const ValidatusDashboard: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState('business-case');
-  const [dashboardData, setDashboardData] = useState(null);
+  const [currentFeature, setCurrentFeature] = useState('business-case');
+  const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [sideMenuOpen, setSideMenuOpen] = useState(true);
 
-  const tabs: TabData[] = [
+  const features: FeatureData[] = [
     {
       id: 'business-case',
       label: 'Business Case',
       icon: Assessment,
       color: '#1890ff',
+      description: 'Financial projections, ROI analysis, and business metrics',
       component: BusinessCaseTab
     },
     {
@@ -67,6 +58,7 @@ const ValidatusDashboard: React.FC = () => {
       label: 'Consumer',
       icon: People,
       color: '#52c41a',
+      description: 'Consumer behavior, preferences, and market insights',
       component: EnhancedConsumerTab
     },
     {
@@ -74,6 +66,7 @@ const ValidatusDashboard: React.FC = () => {
       label: 'Market',
       icon: TrendingUp,
       color: '#fa8c16',
+      description: 'Market trends, competition, and growth opportunities',
       component: MarketTab
     },
     {
@@ -81,6 +74,7 @@ const ValidatusDashboard: React.FC = () => {
       label: 'Product',
       icon: Store,
       color: '#722ed1',
+      description: 'Product features, innovation, and development roadmap',
       component: ProductTab
     },
     {
@@ -88,6 +82,7 @@ const ValidatusDashboard: React.FC = () => {
       label: 'Brand',
       icon: Loyalty,
       color: '#eb2f96',
+      description: 'Brand positioning, messaging, and market perception',
       component: BrandTab
     },
     {
@@ -95,6 +90,7 @@ const ValidatusDashboard: React.FC = () => {
       label: 'Experience',
       icon: Star,
       color: '#13c2c2',
+      description: 'User experience, customer journey, and satisfaction',
       component: ExperienceTab
     }
   ];
@@ -146,17 +142,13 @@ const ValidatusDashboard: React.FC = () => {
     }
   };
 
-  const handleTabChange = (tabId: string) => {
-    console.log('🟢 Tab changing to:', tabId);
-    setCurrentTab(tabId);
+  const handleFeatureChange = (featureId: string) => {
+    console.log('🟢 Feature changing to:', featureId);
+    setCurrentFeature(featureId);
   };
 
-  const toggleSideMenu = () => {
-    setSideMenuOpen(!sideMenuOpen);
-  };
-
-  const currentTabData = tabs.find(tab => tab.id === currentTab);
-  const CurrentComponent = currentTabData?.component || BusinessCaseTab;
+  const currentFeatureData = features.find(feature => feature.id === currentFeature);
+  const CurrentComponent = currentFeatureData?.component || BusinessCaseTab;
 
   if (loading) {
     return (
@@ -167,235 +159,159 @@ const ValidatusDashboard: React.FC = () => {
         height: '100vh',
         backgroundColor: '#0f0f1a'
       }}>
-        <Typography variant="h6" sx={{ color: '#e8e8f0' }}>
-          Loading Dashboard...
-        </Typography>
+        <Typography sx={{ color: '#e8e8f0' }}>Loading Dashboard...</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', backgroundColor: '#0f0f1a', minHeight: '100vh' }}>
-      <CssBaseline />
-      
-      {/* App Bar */}
-      <AppBar
-        position="fixed"
-        sx={{
-          width: sideMenuOpen ? `calc(100% - ${drawerWidth}px)` : '100%',
-          ml: sideMenuOpen ? `${drawerWidth}px` : 0,
-          backgroundColor: '#1a1a35',
-          borderBottom: '1px solid #3d3d56',
-          transition: theme => theme.transitions.create(['width', 'margin'], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="toggle menu"
-            onClick={toggleSideMenu}
-            edge="start"
-            sx={{ mr: 2 }}
-          >
-            {sideMenuOpen ? <ChevronLeft /> : <Menu />}
-          </IconButton>
-          
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h5" sx={{ color: '#e8e8f0', fontWeight: 700 }}>
-              Strategic Analysis Dashboard
-            </Typography>
-            <Typography variant="subtitle2" sx={{ color: '#b8b8cc' }}>
-              Pergola Market Analysis - Live Interactive Results
-            </Typography>
-          </Box>
+    <Box sx={{ 
+      backgroundColor: '#0f0f1a', 
+      minHeight: '100vh',
+      p: 3
+    }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography 
+          variant="h3" 
+          sx={{ 
+            color: '#e8e8f0', 
+            fontWeight: 700,
+            mb: 1
+          }}
+        >
+          Strategic Analysis Dashboard
+        </Typography>
+        <Typography 
+          variant="subtitle1" 
+          sx={{ color: '#b8b8cc' }}
+        >
+          Pergola Market Analysis - Live Interactive Results
+        </Typography>
+      </Box>
 
-          {/* Current Tab Indicator */}
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            backgroundColor: `${currentTabData?.color}20`,
-            px: 2,
-            py: 1,
-            borderRadius: 1,
-            border: `1px solid ${currentTabData?.color}40`
-          }}>
-            {currentTabData?.icon && (
-              <currentTabData.icon sx={{ color: currentTabData.color, mr: 1 }} />
-            )}
-            <Typography sx={{ color: currentTabData?.color, fontWeight: 600 }}>
-              {currentTabData?.label}
-            </Typography>
-          </Box>
-        </Toolbar>
-      </AppBar>
-
-      {/* Side Navigation Drawer */}
-      <Drawer
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-            backgroundColor: '#252547',
-            borderRight: '1px solid #3d3d56',
-          },
-        }}
-        variant="persistent"
-        anchor="left"
-        open={sideMenuOpen}
-      >
-        <Toolbar />
-        
-        <Box sx={{ overflow: 'auto', mt: 2 }}>
+      {/* Main Dashboard Container */}
+      <Paper sx={{ 
+        backgroundColor: '#1a1a35',
+        border: '1px solid #3d3d56',
+        borderRadius: 2,
+        overflow: 'hidden'
+      }}>
+        {/* Feature Navigation Cards - Vertical Stack */}
+        <Box sx={{ 
+          p: 3,
+          backgroundColor: '#252547',
+          borderBottom: '1px solid #3d3d56'
+        }}>
           <Typography 
-            variant="subtitle2" 
+            variant="h6" 
             sx={{ 
-              px: 2, 
-              pb: 1, 
-              color: '#b8b8cc',
-              textTransform: 'uppercase',
-              fontSize: '0.75rem',
-              letterSpacing: 1
+              color: '#e8e8f0', 
+              mb: 3,
+              fontWeight: 600
             }}
           >
             Analysis Modules
           </Typography>
           
-          <List>
-            {tabs.map((tab, index) => (
+          <Stack spacing={2}>
+            {features.map((feature, index) => (
               <motion.div
-                key={tab.id}
+                key={feature.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
               >
-                <ListItem
-                  button
-                  selected={currentTab === tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  sx={{
-                    mx: 1,
-                    mb: 1,
-                    borderRadius: 2,
-                    '&.Mui-selected': {
-                      backgroundColor: `${tab.color}20`,
-                      borderLeft: `4px solid ${tab.color}`,
-                      '&:hover': {
-                        backgroundColor: `${tab.color}25`,
-                      }
-                    },
+                <Card 
+                  sx={{ 
+                    cursor: 'pointer',
+                    borderLeft: currentFeature === feature.id ? `5px solid ${feature.color}` : '5px solid transparent',
+                    backgroundColor: currentFeature === feature.id ? `${feature.color}15` : '#1a1a35',
+                    border: `1px solid ${currentFeature === feature.id ? feature.color : '#3d3d56'}`,
+                    transition: 'all 0.2s ease',
                     '&:hover': {
-                      backgroundColor: `${tab.color}10`,
+                      backgroundColor: `${feature.color}10`,
+                      border: `1px solid ${feature.color}`,
+                      transform: 'translateX(4px)',
                     }
                   }}
+                  onClick={() => handleFeatureChange(feature.id)}
                 >
-                  <ListItemIcon sx={{ minWidth: 40 }}>
-                    <tab.icon 
-                      sx={{ 
-                        color: currentTab === tab.id ? tab.color : '#b8b8cc',
-                        transition: 'color 0.2s ease'
-                      }} 
-                    />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={tab.label}
-                    sx={{
-                      '& .MuiListItemText-primary': {
-                        color: currentTab === tab.id ? tab.color : '#e8e8f0',
-                        fontWeight: currentTab === tab.id ? 600 : 400,
-                        transition: 'color 0.2s ease'
-                      }
-                    }}
-                  />
-                </ListItem>
+                  <CardContent sx={{ p: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box sx={{
+                        p: 1.5,
+                        backgroundColor: currentFeature === feature.id ? `${feature.color}30` : '#3d3d56',
+                        borderRadius: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease'
+                      }}>
+                        <feature.icon sx={{ 
+                          color: currentFeature === feature.id ? feature.color : '#b8b8cc',
+                          fontSize: 28,
+                          transition: 'color 0.2s ease'
+                        }} />
+                      </Box>
+                      
+                      <Box sx={{ flex: 1 }}>
+                        <Typography 
+                          variant="h6" 
+                          sx={{ 
+                            color: currentFeature === feature.id ? feature.color : '#e8e8f0',
+                            fontWeight: currentFeature === feature.id ? 700 : 600,
+                            mb: 0.5,
+                            transition: 'color 0.2s ease'
+                          }}
+                        >
+                          {feature.label}
+                        </Typography>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            color: '#b8b8cc',
+                            lineHeight: 1.4
+                          }}
+                        >
+                          {feature.description}
+                        </Typography>
+                      </Box>
+
+                      {/* Selection Indicator */}
+                      {currentFeature === feature.id && (
+                        <Box sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          backgroundColor: feature.color,
+                          animation: 'pulse 2s infinite'
+                        }} />
+                      )}
+                    </Box>
+                  </CardContent>
+                </Card>
               </motion.div>
             ))}
-          </List>
-
-          <Divider sx={{ mt: 2, borderColor: '#3d3d56' }} />
-
-          {/* Navigation Stats */}
-          <Box sx={{ p: 2, mt: 2 }}>
-            <Typography variant="subtitle2" sx={{ color: '#b8b8cc', mb: 2 }}>
-              Quick Stats
-            </Typography>
-            
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between',
-                p: 1,
-                backgroundColor: '#1a1a35',
-                borderRadius: 1
-              }}>
-                <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
-                  Modules
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#1890ff', fontWeight: 600 }}>
-                  {tabs.length}
-                </Typography>
-              </Box>
-              
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between',
-                p: 1,
-                backgroundColor: '#1a1a35',
-                borderRadius: 1
-              }}>
-                <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
-                  Analysis
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#52c41a', fontWeight: 600 }}>
-                  Live
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
+          </Stack>
         </Box>
-      </Drawer>
 
-      {/* Main Content */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: sideMenuOpen ? `calc(100% - ${drawerWidth}px)` : '100%',
-          transition: theme => theme.transitions.create('width', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
-        }}
-      >
-        <Toolbar />
-        
-        {/* Tab Content with Animation */}
-        <AnimatePresence mode="wait">
+        <Divider sx={{ borderColor: '#3d3d56' }} />
+
+        {/* Feature Content */}
+        <Box sx={{ backgroundColor: '#1a1a35', minHeight: '600px' }}>
           <motion.div
-            key={currentTab}
+            key={currentFeature}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            style={{ height: '100%' }}
+            transition={{ duration: 0.4 }}
           >
-            <Box sx={{
-              backgroundColor: '#1a1a35',
-              borderRadius: 2,
-              border: '1px solid #3d3d56',
-              p: 3,
-              minHeight: 'calc(100vh - 150px)'
-            }}>
+            <Box sx={{ p: 3 }}>
               <CurrentComponent data={dashboardData} />
             </Box>
           </motion.div>
-        </AnimatePresence>
-      </Box>
+        </Box>
+      </Paper>
     </Box>
   );
 };

@@ -21,7 +21,6 @@ import {
   People,
   TrendingUp
 } from '@mui/icons-material';
-import PergolaChat from '../chat/PergolaChat';
 
 const ConsumerTab: React.FC<{ data: any }> = ({ data }) => {
   const [consumerMetrics, setConsumerMetrics] = useState({
@@ -377,15 +376,6 @@ const ConsumerTab: React.FC<{ data: any }> = ({ data }) => {
             </CardContent>
           </Card>
 
-          {/* Chat Interface */}
-          <Card sx={{ backgroundColor: '#252547', border: '1px solid #3d3d56', height: 600 }}>
-            <CardContent sx={{ p: 0, height: '100%' }}>
-              <PergolaChat 
-                segment="consumer"
-                onSegmentChange={(segment) => console.log('Segment changed:', segment)}
-              />
-            </CardContent>
-          </Card>
         </Grid>
       </Grid>
     </Box>

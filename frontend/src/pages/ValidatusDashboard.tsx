@@ -10,7 +10,9 @@ import {
   List,
   ListItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import { 
   Assessment, 
@@ -21,6 +23,8 @@ import {
   Star 
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { useSidebar } from '../components/Layout/MainLayout';
+import SidebarDebug from '../components/Layout/SidebarDebug';
 
 import BusinessCaseTab from '../components/Dashboard/BusinessCaseTab';
 import EnhancedConsumerTab from '../components/Dashboard/EnhancedConsumerTab';
@@ -42,6 +46,9 @@ const ValidatusDashboard: React.FC = () => {
   const [currentFeature, setCurrentFeature] = useState('business-case');
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { desktopOpen, actualDrawerWidth } = useSidebar();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const features: FeatureData[] = [
     {
@@ -163,23 +170,34 @@ const ValidatusDashboard: React.FC = () => {
     );
   }
 
+  // Calculate responsive widths based on main sidebar state
+  const featureSidebarWidth = isMobile ? '100%' : (desktopOpen ? 280 : 320);
+  
+  // Calculate available space for dashboard (total viewport minus main sidebar)
+  const availableWidth = `calc(100vw - ${actualDrawerWidth}px)`;
+
   return (
     <Box sx={{ 
       backgroundColor: '#0f0f1a', 
       minHeight: '100vh',
       display: 'flex',
-      width: '100%',
-      maxWidth: '100%'
+      width: availableWidth,
+      maxWidth: availableWidth,
+      overflow: 'hidden'
     }}>
       {/* Left Sidebar - Feature Navigation */}
       <Box sx={{
-        width: { xs: 280, sm: 280, md: 300, lg: 320, xl: 340 },
+        width: featureSidebarWidth,
         backgroundColor: '#252547',
         borderRight: '1px solid #3d3d56',
         minHeight: '100vh',
         position: 'sticky',
         top: 0,
-        flexShrink: 0
+        flexShrink: 0,
+        transition: theme.transitions.create('width', {
+          easing: theme.transitions.easing.sharp,
+          duration: theme.transitions.duration.leavingScreen,
+        }),
       }}>
         {/* Header */}
         <Box sx={{ p: 3, borderBottom: '1px solid #3d3d56' }}>
@@ -291,14 +309,17 @@ const ValidatusDashboard: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Main Content Area */}
+      {/* Main Content Area - Responsive width */}
       <Box sx={{ 
         flex: 1,
         backgroundColor: '#1a1a35',
         minHeight: '100vh',
-        width: '100%',
         overflow: 'auto',
-        position: 'relative'
+        position: 'relative',
+        transition: theme.transitions.create('width', {
+          easing: theme.transitions.easing.sharp,
+          duration: theme.transitions.duration.leavingScreen,
+        }),
       }}>
         {/* Content Header */}
         <Box sx={{ 
@@ -338,10 +359,30 @@ const ValidatusDashboard: React.FC = () => {
               </Typography>
             </Box>
           </Box>
+          
+          {/* Debug indicator for sidebar state */}
+          <Box sx={{ 
+            position: 'absolute', 
+            top: 8, 
+            right: 8,
+            px: 1,
+            py: 0.5,
+            backgroundColor: desktopOpen ? '#52c41a20' : '#fa8c1620',
+            borderRadius: 1,
+            border: `1px solid ${desktopOpen ? '#52c41a' : '#fa8c16'}`
+          }}>
+            <Typography variant="caption" sx={{ 
+              color: desktopOpen ? '#52c41a' : '#fa8c16',
+              fontSize: '0.7rem'
+            }}>
+              Main: {desktopOpen ? 'Open' : 'Closed'} | Available: {availableWidth}
+            </Typography>
+          </Box>
         </Box>
 
-        {/* Feature Content */}
+        {/* Feature Content - Full width utilization */}
         <Box sx={{ 
+          p: 3,
           width: '100%',
           maxWidth: '100%'
         }}>
@@ -351,10 +392,15 @@ const ValidatusDashboard: React.FC = () => {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <CurrentComponent data={dashboardData} />
+            <Box sx={{ width: '100%' }}>
+              <CurrentComponent data={dashboardData} />
+            </Box>
           </motion.div>
         </Box>
       </Box>
+      
+      {/* Debug component - remove after testing */}
+      <SidebarDebug />
     </Box>
   );
 };

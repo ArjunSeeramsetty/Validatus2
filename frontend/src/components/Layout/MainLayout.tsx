@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, createContext, useContext } from 'react';
 import {
   Box,
   Drawer,
@@ -20,7 +20,6 @@ import {
   Menu as MenuIcon,
   ChevronLeft,
   Dashboard,
-  Topic,
   Analytics,
   Assessment,
   Settings,
@@ -29,10 +28,6 @@ import {
   Logout,
   TrendingUp,
   AnalyticsOutlined,
-  Folder,
-  ManageSearch,
-  History,
-  Search,
   Timeline
 } from '@mui/icons-material';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -40,6 +35,24 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const drawerWidth = 280;
+
+// Create Sidebar Context
+interface SidebarContextType {
+  desktopOpen: boolean;
+  toggleSidebar: () => void;
+  drawerWidth: number;
+  actualDrawerWidth: number;
+}
+
+const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
+
+export const useSidebar = () => {
+  const context = useContext(SidebarContext);
+  if (context === undefined) {
+    throw new Error('useSidebar must be used within a SidebarProvider');
+  }
+  return context;
+};
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -147,7 +160,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     </Box>
   );
 
+  const sidebarContextValue: SidebarContextType = {
+    desktopOpen,
+    toggleSidebar: handleDesktopDrawerToggle,
+    drawerWidth,
+    actualDrawerWidth: desktopOpen ? drawerWidth : 0
+  };
+
   return (
+    <SidebarContext.Provider value={sidebarContextValue}>
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <AppBar
         position="fixed"
@@ -325,6 +346,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         {children}
       </Box>
     </Box>
+    </SidebarContext.Provider>
   );
 };
 

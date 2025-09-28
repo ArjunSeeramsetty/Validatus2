@@ -22,7 +22,6 @@ import {
 import {
   Public
 } from '@mui/icons-material';
-import PergolaChat from '../chat/PergolaChat';
 
 const MarketTab: React.FC<{ data: any }> = () => {
   const marketMetrics = {
@@ -370,15 +369,6 @@ const MarketTab: React.FC<{ data: any }> = () => {
             </CardContent>
           </Card>
 
-          {/* Chat Interface */}
-          <Card sx={{ backgroundColor: '#252547', border: '1px solid #3d3d56', height: 600, mt: 3 }}>
-            <CardContent sx={{ p: 0, height: '100%' }}>
-              <PergolaChat 
-                segment="market"
-                onSegmentChange={(segment) => console.log('Segment changed:', segment)}
-              />
-            </CardContent>
-          </Card>
         </Grid>
       </Grid>
     </Box>

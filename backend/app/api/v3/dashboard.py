@@ -23,7 +23,8 @@ class BusinessCaseInputs(BaseModel):
     expected_volume: float
     fixed_costs: float
     innovation_cost: float
-    discount_rate: float = 0.12
+    discount_rate: float = 0.10
+    time_duration: int = 5
 
 class DashboardMetrics(BaseModel):
     session_id: str
@@ -193,14 +194,56 @@ async def calculate_business_case(session_id: str, inputs: BusinessCaseInputs) -
         payback_period = inputs.innovation_cost / (total_contribution - inputs.fixed_costs) if (total_contribution - inputs.fixed_costs) > 0 else float('inf')
         simple_roi = ((total_contribution - inputs.fixed_costs - inputs.innovation_cost) / inputs.innovation_cost) * 100 if inputs.innovation_cost > 0 else 0
         
-        # NPV calculation (5-year projection)
+        # NPV calculation (dynamic time duration projection)
         npv = -inputs.innovation_cost
-        for year in range(1, 6):
+        for year in range(1, inputs.time_duration + 1):
             cash_flow = total_contribution - inputs.fixed_costs
             npv += cash_flow / ((1 + inputs.discount_rate) ** year)
         
-        # IRR approximation
-        irr = ((total_contribution - inputs.fixed_costs) / inputs.innovation_cost) * 100 if inputs.innovation_cost > 0 else 0
+        # IRR calculation using Newton-Raphson method (finding discount rate where NPV = 0)
+        def calculate_npv(rate, cash_flows, initial_investment):
+            """Calculate NPV for given discount rate"""
+            npv = -initial_investment
+            for i, cash_flow in enumerate(cash_flows):
+                npv += cash_flow / ((1 + rate) ** (i + 1))
+            return npv
+        
+        def calculate_irr(cash_flows, initial_investment, max_iterations=100, tolerance=1e-6):
+            """Calculate IRR using Newton-Raphson method"""
+            if initial_investment <= 0:
+                return 0.0
+            
+            # Initial guess
+            rate = 0.1  # Start with 10%
+            
+            for _ in range(max_iterations):
+                npv = calculate_npv(rate, cash_flows, initial_investment)
+                
+                # If NPV is close to zero, we found the IRR
+                if abs(npv) < tolerance:
+                    return rate * 100
+                
+                # Calculate derivative for Newton-Raphson
+                derivative = 0
+                for i, cash_flow in enumerate(cash_flows):
+                    derivative -= cash_flow * (i + 1) / ((1 + rate) ** (i + 2))
+                
+                # Avoid division by zero
+                if abs(derivative) < tolerance:
+                    break
+                
+                # Newton-Raphson update
+                rate = rate - npv / derivative
+                
+                # Keep rate reasonable
+                rate = max(0.0, min(rate, 10.0))  # Between 0% and 1000%
+            
+            return rate * 100
+        
+        # Generate cash flows for IRR calculation
+        annual_cash_flow = total_contribution - inputs.fixed_costs
+        cash_flows = [annual_cash_flow] * inputs.time_duration  # Dynamic time duration
+        irr = calculate_irr(cash_flows, inputs.innovation_cost)
         
         # Scenario analysis
         scenarios = [

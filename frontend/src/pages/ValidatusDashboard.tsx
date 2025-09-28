@@ -62,8 +62,24 @@ const ValidatusDashboard: React.FC = () => {
 
   const loadDashboardData = async () => {
     try {
-      // Load dashboard overview data using relative URL
       const baseUrl = window.location.origin;
+      
+      // Try enhanced pergola API first
+      try {
+        const enhancedResponse = await fetch(`${baseUrl}/api/v3/pergola/dashboard-data`);
+        
+        if (enhancedResponse.ok) {
+          const enhancedData = await enhancedResponse.json();
+          if (enhancedData.status === 'success') {
+            setDashboardData(enhancedData.data);
+            return;
+          }
+        }
+      } catch (enhancedError) {
+        console.log('Enhanced API not available, falling back to standard API');
+      }
+      
+      // Fallback to original dashboard API
       const response = await fetch(`${baseUrl}/api/v3/dashboard/v2_analysis_20250905_185553_d5654178/overview`);
       const result = await response.json();
       if (result.success) {
@@ -88,6 +104,7 @@ const ValidatusDashboard: React.FC = () => {
   };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    console.log('🟢 Tab changing to:', newValue);
     setCurrentTab(newValue);
   };
 
@@ -184,6 +201,9 @@ const ValidatusDashboard: React.FC = () => {
         {/* Tab Content */}
         <Box sx={{ backgroundColor: '#1a1a35' }}>
           <TabPanel value={currentTab} index={0}>
+            <Box sx={{ backgroundColor: 'yellow', color: 'black', p: 2, mb: 2 }}>
+              🟡 TAB 0 (Business Case) - currentTab: {currentTab}
+            </Box>
             <BusinessCaseTab data={dashboardData} />
           </TabPanel>
           

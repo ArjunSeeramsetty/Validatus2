@@ -8,7 +8,7 @@ import {
   Button,
   Chip
 } from '@mui/material';
-import { TrendingUp, Analytics, Timeline, Settings } from '@mui/icons-material';
+import { TrendingUp, Analytics, Timeline, Settings, Insights } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,6 +16,13 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
 
   const features = [
+    {
+      title: 'Pergola Intelligence Dashboard',
+      description: 'Comprehensive market intelligence powered by 58 research sources with semantic search and advanced analytics.',
+      icon: <Insights sx={{ fontSize: 40, color: '#1976d2' }} />,
+      path: '/pergola-intelligence',
+      color: '#1976d2'
+    },
     {
       title: 'Pergola Analysis',
       description: 'Comprehensive strategic analysis of the pergola market with detailed insights and recommendations.',

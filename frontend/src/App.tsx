@@ -26,6 +26,7 @@ import PergolaAnalysisPage from './pages/PergolaAnalysisPage';
 import SequentialAnalysisPage from './pages/SequentialAnalysisPage';
 import AdvancedAnalysisDashboard from './pages/AdvancedAnalysisDashboard';
 import ValidatusDashboard from './pages/ValidatusDashboard';
+import PergolaIntelligenceDashboard from './components/enhanced/PergolaIntelligenceDashboard';
 import HomePage from './pages/HomePage';
 // import TempTestPage from './pages/TempTestPage'; // Debug page - removed for production
 
@@ -170,6 +171,7 @@ const App: React.FC = () => {
                       }>
                         <Route index element={<HomePage />} />
                         <Route path="dashboard" element={<ValidatusDashboard />} />
+                        <Route path="pergola-intelligence" element={<PergolaIntelligenceDashboard />} />
                         <Route path="migrated/v2_analysis_20250905_185553_d5654178" element={<PergolaAnalysisPage />} />
                         <Route path="analysis/:sessionId/advanced" element={<AdvancedAnalysisDashboard />} />
                         <Route path="action-layer/pergola" element={<LiveActionCalculatorPage />} />

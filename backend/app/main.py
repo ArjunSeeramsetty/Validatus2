@@ -267,6 +267,22 @@ try:
 except ImportError as e:
     logging.warning(f"Dashboard API router not available: {e}")
 
+# Include pergola chat router
+try:
+    from .api.v3 import pergola_chat
+    app.include_router(pergola_chat.router, prefix="/api/v3")
+    logging.info("Pergola chat API router included")
+except ImportError as e:
+    logging.warning(f"Pergola chat API router not available: {e}")
+
+# Include enhanced pergola API router
+try:
+    from .api.v3 import pergola_enhanced
+    app.include_router(pergola_enhanced.router)
+    logging.info("Enhanced pergola API router included")
+except ImportError as e:
+    logging.warning(f"Enhanced pergola API router not available: {e}")
+
 # Health check with service status
 @app.get("/health")
 async def health_check():

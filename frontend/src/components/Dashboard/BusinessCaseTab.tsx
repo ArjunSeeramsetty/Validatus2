@@ -138,17 +138,31 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
     const grossMargin = activeInputs.unitPrice - activeInputs.unitCost;
     const grossMarginPercent = (grossMargin / activeInputs.unitPrice) * 100;
     const totalContribution = grossMargin * activeInputs.expectedVolume;
-    const breakevenVolume = activeInputs.fixedCosts / grossMargin;
-    const paybackPeriod = activeInputs.innovationCost / (totalContribution - activeInputs.fixedCosts);
-    const simpleROI = ((totalContribution - activeInputs.fixedCosts - activeInputs.innovationCost) / activeInputs.innovationCost) * 100;
     
+    // Fixed: Breakeven volume should use contribution per unit, not operating profit
+    // When fixed costs = 0, breakeven volume = 0 (mathematically correct)
+    const breakevenVolume = grossMargin > 0 ? activeInputs.fixedCosts / grossMargin : 0;
+    
+    // Fixed: Payback period should use contribution per unit, not operating profit
+    const paybackPeriod = activeInputs.innovationCost > 0 && grossMargin > 0 ? 
+      activeInputs.innovationCost / (grossMargin * activeInputs.expectedVolume) : 
+      Number.POSITIVE_INFINITY;
+    
+    // Fixed: ROI should return N/A when innovation cost is zero or negative
+    const simpleROI = activeInputs.innovationCost > 0 ? 
+      ((totalContribution - activeInputs.fixedCosts - activeInputs.innovationCost) / activeInputs.innovationCost) * 100 : 
+      Number.NaN;
+    
+    // Fixed: NPV calculation - no averaging, proper discounted cash flows
     let npv = -activeInputs.innovationCost;
     for (let year = 1; year <= activeInputs.timeDuration; year++) {
       const cashFlow = totalContribution - activeInputs.fixedCosts;
       npv += cashFlow / Math.pow(1 + activeInputs.discountRate, year);
     }
 
-    const irr = ((totalContribution - activeInputs.fixedCosts) / activeInputs.innovationCost) * 100;
+    // Fixed: IRR calculation - return N/A when no valid solution
+    const annualCashFlow = totalContribution - activeInputs.fixedCosts;
+    const irr = calculateIRR(activeInputs.innovationCost, annualCashFlow, activeInputs.timeDuration);
 
     const calculatedMetrics: CalculatedMetrics = {
       grossMargin,
@@ -169,6 +183,84 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
     setMetrics(calculatedMetrics);
   };
 
+  // Helper function to calculate IRR properly
+  const calculateIRR = (initialInvestment: number, annualCashFlow: number, years: number): number => {
+    // If no initial investment, return NaN
+    if (initialInvestment <= 0) {
+      return Number.NaN;
+    }
+    
+    // Check for cash flow sign changes - IRR only valid if there's a sign change
+    // Initial investment is negative (cash outflow), annual cash flow is positive (cash inflow)
+    const hasSignChange = initialInvestment > 0 && annualCashFlow > 0;
+    
+    // If no sign change, return NaN
+    if (!hasSignChange) {
+      return Number.NaN;
+    }
+    
+    // If all cash flows are negative (no positive cash flows), return NaN
+    if (annualCashFlow <= 0) {
+      return Number.NaN;
+    }
+    
+    // Check if there's a positive IRR by calculating NPV at 0% rate
+    let npvAtZeroRate = -initialInvestment;
+    for (let year = 1; year <= years; year++) {
+      npvAtZeroRate += annualCashFlow;
+    }
+    
+    // If NPV at 0% rate is still negative or zero, there's no positive IRR
+    if (npvAtZeroRate <= 0) {
+      return Number.NaN;
+    }
+    
+    // Simple IRR calculation for constant cash flows
+    // For NPV = 0: -initialInvestment + sum(annualCashFlow / (1 + rate)^year) = 0
+    // For constant cash flows: -initialInvestment + annualCashFlow * sum(1/(1+rate)^year) = 0
+    
+    // Use a simple iterative approach to find the rate where NPV = 0
+    let rate = 0.01; // Start with 1%
+    const tolerance = 0.0001;
+    const maxIterations = 1000;
+    
+    for (let i = 0; i < maxIterations; i++) {
+      let npv = -initialInvestment;
+      
+      // Calculate NPV for this rate
+      for (let year = 1; year <= years; year++) {
+        npv += annualCashFlow / Math.pow(1 + rate, year);
+      }
+      
+      // If we're close enough to zero, we found the IRR
+      if (Math.abs(npv) < tolerance) {
+        const irrPercent = rate * 100;
+        // Validate the IRR is reasonable
+        if (irrPercent >= -100 && irrPercent <= 1000) {
+          return irrPercent;
+        } else {
+          return Number.NaN;
+        }
+      }
+      
+      // Adjust rate based on NPV
+      // If NPV is positive, rate is too low, increase it
+      // If NPV is negative, rate is too high, decrease it
+      if (npv > 0) {
+        rate += 0.001;
+      } else {
+        rate -= 0.001;
+      }
+      
+      // Prevent infinite loops with unreasonable rates
+      if (rate < -0.99 || rate > 10) {
+        return Number.NaN;
+      }
+    }
+    
+    return Number.NaN; // Failed to converge
+  };
+
   const runScenarioAnalysis = () => {
     const activeInputs = costMode === 'essential' ? essentialInputs : calculateFromDetailedInputs(detailedInputs);
     
@@ -183,7 +275,11 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
       const adjustedPrice = activeInputs.unitPrice * (1 + (scenario.multiplier - 1) * 0.1);
       const grossMargin = adjustedPrice - activeInputs.unitCost;
       const contribution = grossMargin * adjustedVolume;
-      const roi = ((contribution - activeInputs.fixedCosts - activeInputs.innovationCost) / activeInputs.innovationCost) * 100;
+      
+      // Fixed: ROI calculation with guard against division by zero
+      const roi = activeInputs.innovationCost > 0 ? 
+        ((contribution - activeInputs.fixedCosts - activeInputs.innovationCost) / activeInputs.innovationCost) * 100 : 
+        Number.NaN;
       
       return {
         ...scenario,
@@ -722,7 +818,8 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
               Payback Period
             </Typography>
             <Typography variant="h5" sx={{ color: '#13c2c2', fontWeight: 600 }}>
-              {metrics?.paybackPeriod && Number.isFinite(metrics.paybackPeriod) ? (metrics.paybackPeriod * 12).toFixed(1) + 'm' : 'N/A'}
+              {metrics?.paybackPeriod && Number.isFinite(metrics.paybackPeriod) && metrics.paybackPeriod !== Number.POSITIVE_INFINITY ? 
+                (metrics.paybackPeriod * 12).toFixed(1) + 'm' : 'N/A'}
             </Typography>
             <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
               months to payback
@@ -744,11 +841,11 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
             <Typography 
               variant="h5" 
               sx={{ 
-                color: (metrics?.simpleROI || 0) > 0 ? '#52c41a' : '#ff4d4f', 
+                color: Number.isNaN(metrics?.simpleROI) ? '#b8b8cc' : (metrics?.simpleROI || 0) > 0 ? '#52c41a' : '#ff4d4f', 
                 fontWeight: 600 
               }}
             >
-              {formatPercent(metrics?.simpleROI || 0)}
+              {Number.isNaN(metrics?.simpleROI) ? 'N/A' : formatPercent(metrics?.simpleROI || 0)}
             </Typography>
             <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
               return on investment
@@ -796,11 +893,11 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
             <Typography 
               variant="h5" 
               sx={{ 
-                color: (metrics?.irr || 0) > 0 ? '#52c41a' : '#ff4d4f', 
+                color: Number.isNaN(metrics?.irr) ? '#b8b8cc' : (metrics?.irr || 0) > 0 ? '#52c41a' : '#ff4d4f', 
                 fontWeight: 600 
               }}
             >
-              {formatPercent(metrics?.irr || 0)}
+              {Number.isNaN(metrics?.irr) ? 'N/A' : formatPercent(metrics?.irr || 0)}
             </Typography>
             <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
               internal rate of return
@@ -870,11 +967,11 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
                         {formatCurrency(scenario.price)}
                       </TableCell>
                       <TableCell sx={{ 
-                        color: scenario.roi > 0 ? '#52c41a' : '#ff4d4f',
+                        color: Number.isNaN(scenario.roi) ? '#b8b8cc' : scenario.roi > 0 ? '#52c41a' : '#ff4d4f',
                         fontWeight: 600,
                         borderBottom: '1px solid #3d3d56'
                       }}>
-                        {formatPercent(scenario.roi)}
+                        {Number.isNaN(scenario.roi) ? 'N/A' : formatPercent(scenario.roi)}
                       </TableCell>
                     </TableRow>
                   ))}

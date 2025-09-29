@@ -8,10 +8,20 @@ logger = logging.getLogger(__name__)
 class FeatureFlags:
     """Centralized feature flag management for gradual integration"""
     
-    # Core service feature flags
-    ENHANCED_ANALYTICS_ENABLED = os.getenv('ENABLE_ENHANCED_ANALYTICS', 'false').lower() == 'true'
+    # Core service feature flags - ENABLED FOR RESTORED FUNCTIONALITY
+    ENHANCED_ANALYTICS_ENABLED = os.getenv('ENABLE_ENHANCED_ANALYTICS', 'true').lower() == 'true'
     ANALYSIS_RESULTS_MANAGER_ENABLED = os.getenv('ENABLE_RESULTS_MANAGER', 'true').lower() == 'true'
     RESULTS_API_ENABLED = os.getenv('ENABLE_RESULTS_API', 'true').lower() == 'true'
+    
+    # Pergola Feature Flags - ENABLED
+    PERGOLA_INTELLIGENCE_ENABLED = os.getenv('ENABLE_PERGOLA_INTELLIGENCE', 'true').lower() == 'true'
+    PERGOLA_ANALYSIS_ENABLED = os.getenv('ENABLE_PERGOLA_ANALYSIS', 'true').lower() == 'true'
+    PERGOLA_CHAT_ENABLED = os.getenv('ENABLE_PERGOLA_CHAT', 'true').lower() == 'true'
+    
+    # Advanced Analysis Feature Flags - ENABLED
+    ADVANCED_ANALYSIS_ENABLED = os.getenv('ENABLE_ADVANCED_ANALYSIS', 'true').lower() == 'true'
+    MONTE_CARLO_SIMULATION_ENABLED = os.getenv('ENABLE_MONTE_CARLO', 'true').lower() == 'true'
+    PATTERN_RECOGNITION_ENABLED = os.getenv('ENABLE_PATTERN_RECOGNITION', 'true').lower() == 'true'
     
     # Phase B feature flags (for future use)
     PDF_FORMULAS_ENABLED = os.getenv('ENABLE_PDF_FORMULAS', 'false').lower() == 'true'
@@ -62,6 +72,15 @@ class FeatureFlags:
             'enhanced_analytics': cls.ENHANCED_ANALYTICS_ENABLED,
             'results_manager': cls.ANALYSIS_RESULTS_MANAGER_ENABLED,
             'results_api': cls.RESULTS_API_ENABLED,
+            
+            # Pergola flags
+            'pergola_intelligence': cls.PERGOLA_INTELLIGENCE_ENABLED,
+            'pergola_analysis': cls.PERGOLA_ANALYSIS_ENABLED,
+            'pergola_chat': cls.PERGOLA_CHAT_ENABLED,
+            
+            # Advanced analysis flags
+            'advanced_analysis': cls.ADVANCED_ANALYSIS_ENABLED,
+            'monte_carlo_simulation': cls.MONTE_CARLO_SIMULATION_ENABLED,
             
             # Phase B flags
             'pdf_formulas': cls.PDF_FORMULAS_ENABLED,

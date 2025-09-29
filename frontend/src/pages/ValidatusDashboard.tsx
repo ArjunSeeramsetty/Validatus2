@@ -102,7 +102,7 @@ const ValidatusDashboard: React.FC = () => {
 
   const loadDashboardData = async () => {
     try {
-      const baseUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+      const baseUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8001';
       
       // Try enhanced pergola API first
       try {
@@ -131,7 +131,7 @@ const ValidatusDashboard: React.FC = () => {
       console.error('Failed to load dashboard data:', error);
       // Fallback to migrated data
       try {
-        const baseUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+        const baseUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8001';
         const fallbackResponse = await fetch(`${baseUrl}/api/v3/migrated/results/v2_analysis_20250905_185553_d5654178`);
         const fallbackData = await fallbackResponse.json();
         setDashboardData(fallbackData);

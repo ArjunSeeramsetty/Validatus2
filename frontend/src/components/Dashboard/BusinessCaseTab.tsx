@@ -183,78 +183,92 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
     setMetrics(calculatedMetrics);
   };
 
-  // Helper function to calculate IRR properly
+  // Helper function to calculate NPV for a given rate
+  const calculateNPV = (rate: number, initialInvestment: number, annualCashFlow: number, years: number): number => {
+    let npv = -initialInvestment; // Initial cash outflow
+    for (let year = 1; year <= years; year++) {
+      npv += annualCashFlow / Math.pow(1 + rate, year); // Discounted cash inflows
+    }
+    return npv;
+  };
+
+  // Helper function to calculate IRR properly using bracketing + bisection
   const calculateIRR = (initialInvestment: number, annualCashFlow: number, years: number): number => {
     // If no initial investment, return NaN
     if (initialInvestment <= 0) {
       return Number.NaN;
     }
     
-    // Check for cash flow sign changes - IRR only valid if there's a sign change
-    // Initial investment is negative (cash outflow), annual cash flow is positive (cash inflow)
-    const hasSignChange = initialInvestment > 0 && annualCashFlow > 0;
-    
-    // If no sign change, return NaN
-    if (!hasSignChange) {
-      return Number.NaN;
-    }
-    
-    // If all cash flows are negative (no positive cash flows), return NaN
+    // If no positive cash flow, return NaN
     if (annualCashFlow <= 0) {
       return Number.NaN;
     }
     
-    // Check if there's a positive IRR by calculating NPV at 0% rate
-    let npvAtZeroRate = -initialInvestment;
-    for (let year = 1; year <= years; year++) {
-      npvAtZeroRate += annualCashFlow;
+    // Check NPV at 0% rate first
+    const npvAtZero = calculateNPV(0, initialInvestment, annualCashFlow, years);
+    
+    // If NPV exactly equals 0 at 0% rate, return 0%
+    if (Math.abs(npvAtZero) < 1e-10) {
+      return 0;
     }
     
-    // If NPV at 0% rate is still negative or zero, there's no positive IRR
-    if (npvAtZeroRate <= 0) {
+    // If NPV at 0% is negative, there's no positive IRR
+    if (npvAtZero < 0) {
       return Number.NaN;
     }
     
-    // Simple IRR calculation for constant cash flows
-    // For NPV = 0: -initialInvestment + sum(annualCashFlow / (1 + rate)^year) = 0
-    // For constant cash flows: -initialInvestment + annualCashFlow * sum(1/(1+rate)^year) = 0
+    // Find bracketing bounds for bisection method
+    let leftRate = -0.999;  // Allow negative rates down to -99.9%
+    let rightRate = 100;    // Allow high rates up to 10,000%
     
-    // Use a simple iterative approach to find the rate where NPV = 0
-    let rate = 0.01; // Start with 1%
-    const tolerance = 0.0001;
-    const maxIterations = 1000;
+    // Calculate NPV at left bound
+    let npvLeft = calculateNPV(leftRate, initialInvestment, annualCashFlow, years);
+    
+    // If left bound gives positive NPV, expand leftward
+    while (npvLeft > 0 && leftRate > -0.9999) {
+      leftRate = Math.max(leftRate * 2, -0.9999);
+      npvLeft = calculateNPV(leftRate, initialInvestment, annualCashFlow, years);
+    }
+    
+    // Calculate NPV at right bound
+    let npvRight = calculateNPV(rightRate, initialInvestment, annualCashFlow, years);
+    
+    // If right bound gives negative NPV, expand rightward
+    while (npvRight < 0 && rightRate < 1000) {
+      rightRate = Math.min(rightRate * 2, 1000);
+      npvRight = calculateNPV(rightRate, initialInvestment, annualCashFlow, years);
+    }
+    
+    // Check if we have a valid bracket (opposite signs)
+    if (npvLeft * npvRight > 0) {
+      return Number.NaN; // No bracket found, no IRR solution
+    }
+    
+    // Run bisection method to find the root
+    const tolerance = 1e-6;
+    const maxIterations = 200;
     
     for (let i = 0; i < maxIterations; i++) {
-      let npv = -initialInvestment;
+      const midRate = (leftRate + rightRate) / 2;
+      const npvMid = calculateNPV(midRate, initialInvestment, annualCashFlow, years);
       
-      // Calculate NPV for this rate
-      for (let year = 1; year <= years; year++) {
-        npv += annualCashFlow / Math.pow(1 + rate, year);
+      // Check convergence
+      if (Math.abs(npvMid) < tolerance) {
+        return midRate * 100; // Return as percentage
       }
       
-      // If we're close enough to zero, we found the IRR
-      if (Math.abs(npv) < tolerance) {
-        const irrPercent = rate * 100;
-        // Validate the IRR is reasonable
-        if (irrPercent >= -100 && irrPercent <= 1000) {
-          return irrPercent;
-        } else {
-          return Number.NaN;
-        }
-      }
-      
-      // Adjust rate based on NPV
-      // If NPV is positive, rate is too low, increase it
-      // If NPV is negative, rate is too high, decrease it
-      if (npv > 0) {
-        rate += 0.001;
+      // Update bracket
+      if (npvLeft * npvMid < 0) {
+        rightRate = midRate;
+        npvRight = npvMid;
       } else {
-        rate -= 0.001;
+        leftRate = midRate;
+        npvLeft = npvMid;
       }
       
-      // Prevent infinite loops with unreasonable rates
-      if (rate < -0.99 || rate > 10) {
-        return Number.NaN;
+      // Check if bracket is too small
+      if (Math.abs(rightRate - leftRate) < tolerance) {
+        return midRate * 100;
       }
     }
     
@@ -818,7 +832,7 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
               Payback Period
             </Typography>
             <Typography variant="h5" sx={{ color: '#13c2c2', fontWeight: 600 }}>
-              {metrics?.paybackPeriod && Number.isFinite(metrics.paybackPeriod) && metrics.paybackPeriod !== Number.POSITIVE_INFINITY ? 
+              {metrics?.paybackPeriod !== undefined && metrics?.paybackPeriod !== null && Number.isFinite(metrics.paybackPeriod) ? 
                 (metrics.paybackPeriod * 12).toFixed(1) + 'm' : 'N/A'}
             </Typography>
             <Typography variant="body2" sx={{ color: '#b8b8cc' }}>

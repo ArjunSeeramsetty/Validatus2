@@ -35,9 +35,26 @@ class PergolaDataManager:
     """Enhanced pergola data management with comprehensive research integration"""
     
     def __init__(self):
-        self.scraped_content_manager = ScrapedContentManager()
+        # Lazy initialization to avoid model loading issues during container startup
+        self.scraped_content_manager = None
         self.migrated_data = MigratedDataIntegration()
         self._load_enhanced_research_data()
+    
+    def _get_scraped_content_manager(self):
+        """Lazy initialization of scraped content manager"""
+        if self.scraped_content_manager is None:
+            try:
+                self.scraped_content_manager = ScrapedContentManager()
+            except Exception as e:
+                logger.warning(f"Failed to initialize ScrapedContentManager: {e}")
+                # Return a mock object to prevent crashes
+                class MockScrapedContentManager:
+                    def semantic_search(self, query, k=5):
+                        return []
+                    def get_scraped_content_summary(self):
+                        return {"total_files": 0, "categories": []}
+                self.scraped_content_manager = MockScrapedContentManager()
+        return self.scraped_content_manager
     
     def _load_enhanced_research_data(self):
         """Load the enhanced research data with real market intelligence"""
@@ -138,7 +155,7 @@ class PergolaDataManager:
             
             # Fallback to scraped content search if needed
             if not market_insights:
-                insights = self.scraped_content_manager.similarity_search(
+                insights = self._get_scraped_content_manager().similarity_search(
                     "market trends outdoor living pergola industry growth", k=10
                 )
                 market_insights = {
@@ -169,7 +186,7 @@ class PergolaDataManager:
             
             # Fallback to scraped content search if needed
             if not competitive_landscape:
-                competitive_insights = self.scraped_content_manager.similarity_search(
+                competitive_insights = self._get_scraped_content_manager().similarity_search(
                     "competitive analysis pergola manufacturers market leaders", k=8
                 )
                 competitive_landscape = {
@@ -211,7 +228,7 @@ class PergolaDataManager:
             
             # Fallback to scraped content search if needed
             if not consumer_psychology:
-                consumer_insights = self.scraped_content_manager.similarity_search(
+                consumer_insights = self._get_scraped_content_manager().similarity_search(
                     "consumer behavior pergola purchase decision psychology", k=12
                 )
                 consumer_psychology = {
@@ -268,7 +285,7 @@ class PergolaDataManager:
                 raise ValueError(f"Invalid category: {category}")
             
             query = category_queries[category]
-            insights = self.scraped_content_manager.similarity_search(query, k=8)
+            insights = self._get_scraped_content_manager().similarity_search(query, k=8)
             
             return {
                 "category": category,

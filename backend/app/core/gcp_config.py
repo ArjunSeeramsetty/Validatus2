@@ -45,7 +45,12 @@ class GCPSettings(BaseSettings):
     # Security configuration
     enable_vpc_native: bool = Field(default=True, env="ENABLE_VPC_NATIVE")
     allowed_origins: List[str] = Field(
-        default=["https://validatus-frontend.app", "http://localhost:3000"],
+        default=[
+            "https://validatus-frontend-ssivkqhvhq-uc.a.run.app",
+            "https://validatus-frontend.app", 
+            "http://localhost:3000",
+            "http://localhost:8000"
+        ],
         env="ALLOWED_ORIGINS"
     )
     

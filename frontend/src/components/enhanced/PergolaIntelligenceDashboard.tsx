@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Grid, Box, Typography, Card, CardContent, Chip, Button,
-  CircularProgress, Alert, Tabs, Tab, TextField, InputAdornment
+  CircularProgress, Alert, Tabs, Tab
 } from '@mui/material';
 import {
-  TrendingUp, Analytics, Search, FilterList, Assessment,
+  TrendingUp, Analytics, Search, Assessment,
   Insights, Psychology, CompareArrows
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
@@ -29,7 +29,6 @@ export default function PergolaIntelligenceDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadMarketIntelligence();
@@ -38,7 +37,7 @@ export default function PergolaIntelligenceDashboard() {
   const loadMarketIntelligence = async () => {
     try {
       setLoading(true);
-      const baseUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8001';
+      const baseUrl = (import.meta as any).env?.VITE_API_URL || 'https://validatus-backend-ssivkqhvhq-uc.a.run.app';
       const response = await fetch(`${baseUrl}/api/v3/pergola/market-intelligence`);
       const result = await response.json();
       

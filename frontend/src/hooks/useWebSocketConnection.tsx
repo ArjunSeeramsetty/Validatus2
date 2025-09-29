@@ -38,7 +38,7 @@ interface WebSocketProviderProps {
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
-  url = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000/ws',
+  url = import.meta.env.VITE_WEBSOCKET_URL || 'wss://validatus-backend-ssivkqhvhq-uc.a.run.app/ws',
   autoReconnect = false, // Disabled for now since backend doesn't have WebSocket endpoint
   maxReconnectAttempts = 0,
   reconnectInterval = 3000

@@ -9,8 +9,8 @@ import re
 from collections import Counter
 
 from google.cloud import aiplatform
-from langchain_google_vertexai import VertexAI
-from langchain_google_vertexai import VertexAIEmbeddings
+# from langchain_google_vertexai import VertexAI
+# from langchain_google_vertexai import VertexAIEmbeddings
 
 from ..models.analysis_models import LayerScore
 from ..middleware.monitoring import performance_monitor
@@ -22,12 +22,12 @@ class ExpertPersonaScorer:
     
     def __init__(self):
         # Initialize Vertex AI models
-        self.llm = VertexAI(
-            model_name="gemini-1.5-pro",
-            temperature=0.1,
-            max_output_tokens=2048
-        )
-        self.embeddings = VertexAIEmbeddings(model_name="text-embedding-004")
+        # self.llm = VertexAI(
+        #     model_name="gemini-1.5-pro",
+        #     temperature=0.1,
+        #     max_output_tokens=2048
+        # )
+        # self.embeddings = VertexAIEmbeddings(model_name="text-embedding-004")
         
         # Define expert personas for each strategic layer
         self.expert_personas = {

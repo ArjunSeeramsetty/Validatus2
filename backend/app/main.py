@@ -6,6 +6,7 @@ import logging
 import os
 import warnings
 from typing import List, Dict, Any, Optional
+from datetime import datetime
 
 # Suppress GRPC ALTS warnings and Vertex AI deprecation logs
 os.environ["GRPC_ALTS_SKIP_HANDSHAKE"] = "true"
@@ -26,12 +27,9 @@ logging.getLogger("google.cloud").setLevel(logging.ERROR)
 # Core imports (existing and working)
 from .core.gcp_config import get_gcp_settings
 from .core.feature_flags import FeatureFlags
-from .services.gcp_topic_vector_store_manager import GCPTopicVectorStoreManager
 from .services.gcp_url_orchestrator import GCPURLOrchestrator
-from .services.enhanced_topic_vector_store_manager import EnhancedTopicVectorStoreManager
 from .services.analysis_session_manager import AnalysisSessionManager
 from .services.content_quality_analyzer import ContentQualityAnalyzer
-from .services.content_deduplication_service import ContentDeduplicationService
 from .services.analysis_optimization_service import AnalysisOptimizationService
 
 # Deferred imports - only load when needed
@@ -50,22 +48,14 @@ def get_enhanced_analytics_services():
     """Lazy load enhanced analytics services only when needed"""
     if FeatureFlags.ENHANCED_ANALYTICS_ENABLED:
         try:
-            from .services.enhanced_analytical_engines import (
-                PDFFormulaEngine,
-                ActionLayerCalculator,
-                MonteCarloSimulator,
-                EnhancedFormulaAdapter
-            )
-            from .services.enhanced_analysis_session_manager import EnhancedAnalysisSessionManager
+            from .services.pergola_data_manager import PergolaDataManager
+            from .services.migrated_data_service import MigratedDataService
             return {
-                'formula_engine': PDFFormulaEngine(),
-                'action_calculator': ActionLayerCalculator(),
-                'monte_carlo_simulator': MonteCarloSimulator(),
-                'formula_adapter': EnhancedFormulaAdapter(),
-                'session_manager': EnhancedAnalysisSessionManager()
+                'pergola_data_manager': PergolaDataManager(),
+                'migrated_data_service': MigratedDataService()
             }
-        except ImportError:
-            logging.warning("Enhanced analytical engines not available - using basic services")
+        except ImportError as e:
+            logging.warning(f"Enhanced analytics services not available: {e}")
             return None
     return None
 
@@ -91,18 +81,7 @@ def get_phase_c_services():
 
 def get_phase_e_services():
     """Lazy load Phase E services only when needed"""
-    if FeatureFlags.is_phase_e_enabled():
-        try:
-            from .services.enhanced_analysis_optimization_service import EnhancedAnalysisOptimizationService
-            from .services.enhanced_orchestration import AdvancedOrchestrator, MultiLevelCacheManager
-            return {
-                'optimization_service': EnhancedAnalysisOptimizationService(),
-                'orchestrator': AdvancedOrchestrator(),
-                'cache_manager': MultiLevelCacheManager()
-            }
-        except ImportError:
-            logging.warning("Phase E orchestration services not available - using basic services")
-            return None
+    # Temporarily disabled during deployment optimization
     return None
 
 try:
@@ -146,12 +125,9 @@ async def lifespan(app: FastAPI):
         
         # Phase 1: Initialize Core Services (Always Available)
         core_services.update({
-            'topic_manager': GCPTopicVectorStoreManager(project_id=settings.project_id),
             'url_orchestrator': GCPURLOrchestrator(project_id=settings.project_id),
-            'enhanced_topic_manager': EnhancedTopicVectorStoreManager(),
             'analysis_session_manager': AnalysisSessionManager(),
             'quality_analyzer': ContentQualityAnalyzer(),
-            'deduplication_service': ContentDeduplicationService(),
             'optimization_service': AnalysisOptimizationService()
         })
         
@@ -180,18 +156,6 @@ async def lifespan(app: FastAPI):
         if phase_e_services:
             enhanced_services.update(phase_e_services)
             logger.info("✅ Phase E services initialized")
-            if AdvancedOrchestrator and FeatureFlags.ADVANCED_ORCHESTRATION_ENABLED:
-                if not phase_e_services.get('enhanced_optimization_service') or not phase_e_services['enhanced_optimization_service'].orchestrator:
-                    phase_e_services['standalone_orchestrator'] = AdvancedOrchestrator(project_id=settings.project_id)
-                    await phase_e_services['standalone_orchestrator'].initialize()
-                    logger.info("✅ Standalone Advanced Orchestrator initialized")
-            
-            # Initialize standalone Multi-Level Cache Manager if needed
-            if MultiLevelCacheManager and FeatureFlags.MULTI_LEVEL_CACHE_ENABLED:
-                if not phase_e_services.get('enhanced_optimization_service') or not phase_e_services['enhanced_optimization_service'].cache_manager:
-                    phase_e_services['standalone_cache_manager'] = MultiLevelCacheManager(project_id=settings.project_id)
-                    await phase_e_services['standalone_cache_manager'].initialize()
-                    logger.info("✅ Standalone Multi-Level Cache Manager initialized")
         
         logger.info(f"✅ All services initialized - Core: {len(core_services)}, Enhanced: {len(enhanced_services)}")
         
@@ -336,38 +300,19 @@ async def get_system_status():
 # Core API endpoints (always available)
 @app.get("/api/v3/topics")
 async def get_topics():
-    """Get all available topics"""
-    try:
-        topic_manager = core_services.get('topic_manager')
-        if not topic_manager:
-            raise HTTPException(status_code=503, detail="Topic manager not available")
-        
-        topics = await topic_manager.get_available_topics()
-        return {"topics": topics}
-        
-    except Exception as e:
-        logger.error(f"Failed to get topics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Get all available topics - placeholder endpoint"""
+    return {
+        "topics": [],
+        "message": "Topic management temporarily disabled during deployment optimization"
+    }
 
 @app.post("/api/v3/topics/create")
 async def create_topic(topic: str, urls: List[str], search_queries: List[str] = None):
-    """Create a new topic vector store"""
-    try:
-        topic_manager = core_services.get('topic_manager')
-        if not topic_manager:
-            raise HTTPException(status_code=503, detail="Topic manager not available")
-        
-        topic_id = await topic_manager.create_topic_store(topic, urls, search_queries)
-        
-        return {
-            "success": True,
-            "topic_id": topic_id,
-            "message": f"Topic '{topic}' created successfully"
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to create topic '{topic}': {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Create a new topic vector store - placeholder endpoint"""
+    return {
+        "success": False,
+        "message": "Topic creation temporarily disabled during deployment optimization"
+    }
 
 # Enhanced analysis endpoint (feature flag controlled)
 @app.post("/api/v3/analysis/sessions/create")
@@ -413,48 +358,42 @@ async def create_analysis_session(
         logger.error(f"Failed to create analysis session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-    # Phase C comprehensive analysis endpoint
-    @app.post("/api/v3/analysis/comprehensive")
-    async def execute_comprehensive_analysis(
-        session_id: str,
-        topic: str,
-        user_id: str,
-        analysis_options: Optional[Dict[str, Any]] = None
-    ):
-        """Execute comprehensive analysis with Phase C enhancements"""
-        try:
-            # Check if Phase C is enabled
-            if not FeatureFlags.is_phase_enabled('phase_c'):
-                raise HTTPException(
-                    status_code=503, 
-                    detail="Phase C comprehensive analysis not enabled"
-                )
-            
-            # Get Phase C session manager
-            phase_c_manager = phase_c_services.get('phase_integrated_session_manager')
-            if not phase_c_manager:
-                raise HTTPException(
-                    status_code=503, 
-                    detail="Phase C session manager not available"
-                )
-            
-            # Execute comprehensive analysis
-            results = await phase_c_manager.execute_comprehensive_analysis(
-                session_id, topic, user_id, analysis_options
-            )
-            
-            return {
-                "success": True,
-                "session_id": session_id,
-                "analysis_type": "comprehensive_phase_c",
-                "results": results,
-                "phases_enabled": results.get('session_metadata', {}).get('phases_enabled', {}),
-                "message": "Comprehensive analysis completed successfully"
-            }
-            
-        except Exception as e:
-            logger.error(f"Comprehensive analysis failed: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+# Phase C comprehensive analysis endpoint
+@app.post("/api/v3/analysis/comprehensive")
+async def execute_comprehensive_analysis(
+    session_id: str,
+    topic: str,
+    user_id: str,
+    analysis_options: Optional[Dict[str, Any]] = None
+):
+    """Execute comprehensive analysis with Phase C enhancements"""
+    try:
+        # Check if enhanced analytics services are available
+        if 'pergola_data_manager' not in enhanced_services:
+            raise HTTPException(status_code=503, detail="Enhanced analytics services not available")
+        
+        # Use the pergola data manager for comprehensive analysis
+        pergola_manager = enhanced_services['pergola_data_manager']
+        
+        # Get market insights and competitive analysis
+        market_insights = await pergola_manager.get_market_insights()
+        competitive_landscape = await pergola_manager.get_competitive_landscape()
+        
+        return {
+            "success": True,
+            "session_id": session_id,
+            "topic": topic,
+            "analysis_results": {
+                "market_insights": market_insights,
+                "competitive_landscape": competitive_landscape,
+                "analysis_timestamp": datetime.now().isoformat()
+            },
+            "message": "Comprehensive analysis completed successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to execute comprehensive analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Phase B Enhanced Analysis Endpoint
 @app.post("/api/v3/analysis/enhanced")
@@ -466,171 +405,60 @@ async def run_enhanced_analysis(
 ):
     """Run enhanced strategic analysis with Phase B engines"""
     try:
-        if not FeatureFlags.ENHANCED_ANALYTICS_ENABLED:
-            raise HTTPException(
-                status_code=503, 
-                detail="Enhanced analytics not enabled. Set ENABLE_ENHANCED_ANALYTICS=true"
-            )
+        # Check if enhanced analytics services are available
+        if 'migrated_data_service' not in enhanced_services:
+            raise HTTPException(status_code=503, detail="Enhanced analytics services not available")
         
-        enhanced_manager = enhanced_services.get('enhanced_analysis_session_manager')
-        if not enhanced_manager:
-            raise HTTPException(status_code=503, detail="Enhanced analysis manager not available")
+        # Use the migrated data service for enhanced analysis
+        migrated_service = enhanced_services['migrated_data_service']
         
-        # Run enhanced analysis
-        results = await enhanced_manager.execute_enhanced_strategic_analysis(
-            session_id, topic, user_id, enhanced_options
-        )
+        # Get analysis results for the session
+        results = await migrated_service.get_analysis_results(session_id)
         
         return {
             "success": True,
             "session_id": session_id,
-            "enhanced_analysis_results": results,
-            "phase_b_components": {
-                "pdf_formulas_enabled": FeatureFlags.PDF_FORMULAS_ENABLED,
-                "action_layers_enabled": FeatureFlags.ACTION_LAYER_CALCULATOR_ENABLED,
-                "pattern_recognition_enabled": FeatureFlags.PATTERN_RECOGNITION_ENABLED
-            }
+            "topic": topic,
+            "enhanced_results": results,
+            "message": "Enhanced analysis completed successfully"
         }
         
     except Exception as e:
-        logger.error(f"Enhanced analysis failed: {e}")
+        logger.error(f"Failed to run enhanced analysis: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Phase E Enhanced Orchestration Endpoints
+# Phase E Enhanced Orchestration Endpoints - temporarily disabled
 @app.get("/api/v3/orchestration/health")
 async def get_orchestration_health():
-    """Get orchestrator health status"""
-    try:
-        if not FeatureFlags.is_phase_e_enabled():
-            raise HTTPException(
-                status_code=503, 
-                detail="Phase E orchestration not enabled"
-            )
-        
-        # Get orchestrator from enhanced optimization service or standalone
-        orchestrator = None
-        if phase_e_services.get('enhanced_optimization_service'):
-            orchestrator = phase_e_services['enhanced_optimization_service'].orchestrator
-        elif phase_e_services.get('standalone_orchestrator'):
-            orchestrator = phase_e_services['standalone_orchestrator']
-        
-        if not orchestrator:
-            raise HTTPException(
-                status_code=503, 
-                detail="Orchestrator not available"
-            )
-        
-        health_status = await orchestrator.get_orchestrator_health()
-        
-        return {
-            "success": True,
-            "orchestrator_health": health_status,
-            "timestamp": health_status.get('timestamp')
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to get orchestration health: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Get orchestrator health status - temporarily disabled"""
+    return {
+        "success": False,
+        "message": "Orchestration health check temporarily disabled during deployment optimization"
+    }
 
 @app.get("/api/v3/cache/performance")
 async def get_cache_performance():
-    """Get cache performance analysis"""
-    try:
-        if not FeatureFlags.MULTI_LEVEL_CACHE_ENABLED:
-            raise HTTPException(
-                status_code=503, 
-                detail="Multi-level cache not enabled"
-            )
-        
-        # Get cache manager from enhanced optimization service or standalone
-        cache_manager = None
-        if phase_e_services.get('enhanced_optimization_service'):
-            cache_manager = phase_e_services['enhanced_optimization_service'].cache_manager
-        elif phase_e_services.get('standalone_cache_manager'):
-            cache_manager = phase_e_services['standalone_cache_manager']
-        
-        if not cache_manager:
-            raise HTTPException(
-                status_code=503, 
-                detail="Cache manager not available"
-            )
-        
-        performance_analysis = await cache_manager.get_cache_stats()
-        
-        return {
-            "success": True,
-            "cache_performance": performance_analysis,
-            "timestamp": performance_analysis.get('timestamp')
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to get cache performance: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Get cache performance analysis - temporarily disabled"""
+    return {
+        "success": False,
+        "message": "Cache performance analysis temporarily disabled during deployment optimization"
+    }
 
 @app.post("/api/v3/cache/invalidate")
 async def invalidate_cache(pattern: str = None):
-    """Invalidate cache entries by pattern"""
-    try:
-        if not FeatureFlags.MULTI_LEVEL_CACHE_ENABLED:
-            raise HTTPException(
-                status_code=503, 
-                detail="Multi-level cache not enabled"
-            )
-        
-        # Get cache manager from enhanced optimization service or standalone
-        cache_manager = None
-        if phase_e_services.get('enhanced_optimization_service'):
-            cache_manager = phase_e_services['enhanced_optimization_service'].cache_manager
-        elif phase_e_services.get('standalone_cache_manager'):
-            cache_manager = phase_e_services['standalone_cache_manager']
-        
-        if not cache_manager:
-            raise HTTPException(
-                status_code=503, 
-                detail="Cache manager not available"
-            )
-        
-        invalidated_count = await cache_manager.invalidate_by_pattern(pattern or "*")
-        
-        return {
-            "success": True,
-            "invalidated_count": invalidated_count,
-            "pattern": pattern or "*",
-            "message": f"Invalidated {invalidated_count} cache entries"
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to invalidate cache: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Invalidate cache entries by pattern - temporarily disabled"""
+    return {
+        "success": False,
+        "message": "Cache invalidation temporarily disabled during deployment optimization"
+    }
 
 @app.get("/api/v3/optimization/enhanced-metrics")
 async def get_enhanced_optimization_metrics():
-    """Get enhanced optimization metrics including Phase E components"""
-    try:
-        if not FeatureFlags.is_phase_e_enabled():
-            raise HTTPException(
-                status_code=503, 
-                detail="Phase E enhanced optimization not enabled"
-            )
-        
-        enhanced_optimization_service = phase_e_services.get('enhanced_optimization_service')
-        if not enhanced_optimization_service:
-            raise HTTPException(
-                status_code=503, 
-                detail="Enhanced optimization service not available"
-            )
-        
-        metrics = await enhanced_optimization_service.get_enhanced_optimization_metrics()
-        
-        return {
-            "success": True,
-            "enhanced_metrics": metrics,
-            "timestamp": metrics.get('timestamp')
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to get enhanced optimization metrics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    """Get enhanced optimization metrics including Phase E components - temporarily disabled"""
+    return {
+        "success": False,
+        "message": "Enhanced optimization metrics temporarily disabled during deployment optimization"
+    }
 
 # Placeholder endpoints for missing services
 @app.get("/api/v3/results/placeholder")

@@ -17,9 +17,9 @@ from google.cloud import firestore
 from google.cloud import secretmanager
 
 # Vector embeddings
-from langchain_google_vertexai import VertexAIEmbeddings
-from langchain_core.documents import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+# from langchain_google_vertexai import VertexAIEmbeddings
+# from langchain_core.documents import Document
+# from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 # Internal imports
 from ..core.gcp_config import GCPSettings
@@ -127,18 +127,18 @@ class GCPTopicVectorStoreManager:
         aiplatform.init(project=self.project_id, location=self.region)
         
         # Vertex AI embeddings
-        self.embeddings = VertexAIEmbeddings(
-            model_name=self.embedding_model,
-            project=self.project_id,
-            location=self.region
-        )
+        # self.embeddings = VertexAIEmbeddings(
+        #     model_name=self.embedding_model,
+        #     project=self.project_id,
+        #     location=self.region
+        # )
         
         # Text splitter
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=self.chunk_size,
-            chunk_overlap=self.chunk_overlap,
-            separators=["\n\n", "\n", ". ", "? ", "! ", " ", ""]
-        )
+        # self.text_splitter = RecursiveCharacterTextSplitter(
+        #     chunk_size=self.chunk_size,
+        #     chunk_overlap=self.chunk_overlap,
+        #     separators=["\n\n", "\n", ". ", "? ", "! ", " ", ""]
+        # )
         
         logger.info("✅ GCP clients initialized successfully")
     
@@ -231,8 +231,8 @@ class GCPTopicVectorStoreManager:
             logger.error(f"Failed to create GCP topic store for '{topic}': {e}")
             raise
     
-    async def _create_vector_documents(self, documents: List[Dict], 
-                                     topic: str, topic_id: str) -> List[Document]:
+    # async def _create_vector_documents(self, documents: List[Dict], 
+    #                                  topic: str, topic_id: str) -> List[Document]:
         """Create vector documents with embeddings"""
         vector_docs = []
         
@@ -254,19 +254,19 @@ class GCPTopicVectorStoreManager:
                     "created_at": datetime.now(timezone.utc).isoformat()
                 }
                 
-                vector_docs.append(Document(
-                    page_content=chunk_content,
-                    metadata=metadata
-                ))
+                vector_docs.append({
+                    'page_content': chunk_content,
+                    'metadata': metadata
+                })
         
         return vector_docs
     
     async def _create_vertex_ai_index(self, topic_id: str, 
-                                    vector_docs: List[Document]) -> Tuple[str, str]:
+                                    vector_docs: List[dict]) -> Tuple[str, str]:
         """Create Vertex AI Vector Search index"""
         try:
             # Generate embeddings
-            texts = [doc.page_content for doc in vector_docs]
+            texts = [doc.get('page_content', '') for doc in vector_docs]
             embeddings = await self.embeddings.aembed_documents(texts)
             
             # Create index
@@ -338,7 +338,7 @@ class GCPTopicVectorStoreManager:
             logger.error(f"Failed to store metadata in Firestore: {e}")
             raise
     
-    async def _store_chunks_cloud_sql(self, topic_id: str, vector_docs: List[Document]):
+    async def _store_chunks_cloud_sql(self, topic_id: str, vector_docs: List[dict]):
         """Store chunk details in Cloud SQL"""
         try:
             # This would connect to Cloud SQL and store chunk metadata
@@ -465,12 +465,12 @@ class GCPTopicVectorStoreManager:
         """Generate consistent topic ID"""
         return hashlib.md5(topic.lower().encode()).hexdigest()[:12]
     
-    def _calculate_avg_quality(self, vector_docs: List[Document]) -> float:
+    def _calculate_avg_quality(self, vector_docs: List[dict]) -> float:
         """Calculate average content quality"""
         if not vector_docs:
             return 0.0
         
-        total_quality = sum(doc.metadata.get("quality_score", 0.0) for doc in vector_docs)
+        total_quality = sum(doc.get("metadata", {}).get("quality_score", 0.0) for doc in vector_docs)
         return total_quality / len(vector_docs)
     
     def _matches_layer(self, chunk_data: Dict, target_layer: str) -> bool:

@@ -682,7 +682,7 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
               Revenue (Y1)
             </Typography>
             <Typography variant="h5" sx={{ color: '#722ed1', fontWeight: 600 }}>
-              {formatCurrency(metrics?.totalContribution || 0)}
+              {formatCurrency((costMode === 'essential' ? essentialInputs.unitPrice : detailedInputs.unitPrice) * (costMode === 'essential' ? essentialInputs.expectedVolume : detailedInputs.expectedVolume))}
             </Typography>
             <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
               first year revenue
@@ -722,7 +722,7 @@ const BusinessCaseTab: React.FC<{ data: any }> = () => {
               Payback Period
             </Typography>
             <Typography variant="h5" sx={{ color: '#13c2c2', fontWeight: 600 }}>
-              {metrics?.paybackPeriod ? (metrics.paybackPeriod * 12).toFixed(1) : '0.0'}m
+              {metrics?.paybackPeriod && Number.isFinite(metrics.paybackPeriod) ? (metrics.paybackPeriod * 12).toFixed(1) + 'm' : 'N/A'}
             </Typography>
             <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
               months to payback

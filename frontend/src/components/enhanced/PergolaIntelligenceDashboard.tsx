@@ -38,7 +38,7 @@ export default function PergolaIntelligenceDashboard() {
   const loadMarketIntelligence = async () => {
     try {
       setLoading(true);
-      const baseUrl = window.location.origin;
+      const baseUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
       const response = await fetch(`${baseUrl}/api/v3/pergola/market-intelligence`);
       const result = await response.json();
       

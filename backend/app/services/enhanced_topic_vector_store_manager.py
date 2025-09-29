@@ -11,7 +11,7 @@ from google.cloud import aiplatform
 from google.cloud import firestore  
 from google.cloud import storage
 from google.cloud.aiplatform import MatchingEngineIndexEndpoint
-from langchain_google_vertexai import VertexAIEmbeddings
+# from langchain_google_vertexai import VertexAIEmbeddings
 
 # Enhanced analysis capabilities
 from .content_quality_analyzer import ContentQualityAnalyzer
@@ -28,10 +28,10 @@ class EnhancedTopicVectorStoreManager:
     
     def __init__(self):
         self.settings = GCPSettings()
-        self.embeddings = VertexAIEmbeddings(
-            model_name="text-embedding-004",
-            project=self.settings.project_id
-        )
+        # self.embeddings = VertexAIEmbeddings(
+        #     model_name="text-embedding-004",
+        #     project=self.settings.project_id
+        # )
         self.quality_analyzer = ContentQualityAnalyzer()
         self.classification_service = TopicClassificationService()
         self.deduplication_service = ContentDeduplicationService()

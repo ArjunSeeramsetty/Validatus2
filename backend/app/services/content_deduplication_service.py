@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 import numpy as np
 
 from google.cloud import aiplatform
-from langchain_google_vertexai import VertexAIEmbeddings
+# from langchain_google_vertexai import VertexAIEmbeddings
 
 from ..models.analysis_models import DuplicationResult, DuplicateType
 from ..middleware.monitoring import performance_monitor
@@ -32,7 +32,7 @@ class ContentDeduplicationService:
     """Advanced content deduplication using multiple similarity metrics"""
     
     def __init__(self):
-        self.embeddings = VertexAIEmbeddings(model_name="text-embedding-004")
+        # self.embeddings = VertexAIEmbeddings(model_name="text-embedding-004")
         self.processed_hashes: Set[str] = set()
         self.semantic_embeddings_cache: Dict[str, np.ndarray] = {}
         self.content_hash_cache: Dict[str, str] = {}

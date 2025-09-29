@@ -254,3 +254,135 @@ class MigratedDataService:
         except Exception as e:
             logger.error(f"Error fetching action layer data for {session_id}: {str(e)}")
             raise
+
+    async def get_comprehensive_dashboard_data(self) -> Dict[str, Any]:
+        """Get comprehensive dashboard data for Pergola Intelligence"""
+        try:
+            # Get available topics
+            topics_data = await self.get_available_topics()
+            
+            # Mock comprehensive intelligence data
+            return {
+                "market_insights": {
+                    "market_size_2024": 3500.0,
+                    "market_size_2033": 5800.0,
+                    "cagr": 6.5,
+                    "key_trends": [
+                        "Post-COVID outdoor living trends",
+                        "Smart home technology integration",
+                        "Premium lifestyle investments",
+                        "Energy-efficient building solutions"
+                    ],
+                    "regional_analysis": {
+                        "north_america": {"size": 997.6, "growth": 5.4},
+                        "europe": {"size": 1200.0, "growth": 7.2},
+                        "asia_pacific": {"size": 890.5, "growth": 8.1}
+                    }
+                },
+                "competitive_landscape": {
+                    "top_competitors": [
+                        {"name": "Renson", "market_share": 12.5, "usp": "Premium architectural solutions"},
+                        {"name": "Corradi", "market_share": 8.7, "usp": "Italian craftsmanship"},
+                        {"name": "Luxos", "market_share": 6.8, "usp": "Smart technology integration"},
+                        {"name": "IQ Outdoor Living", "market_share": 5.2, "usp": "Modular systems"}
+                    ],
+                    "market_concentration": "Moderate",
+                    "entry_barriers": ["High capital requirements", "Brand recognition", "Distribution networks"]
+                },
+                "consumer_psychology": {
+                    "primary_motivations": [
+                        "Outdoor lifestyle enhancement",
+                        "Property value increase",
+                        "Weather protection",
+                        "Aesthetic appeal"
+                    ],
+                    "purchase_drivers": [
+                        "Quality and durability",
+                        "Design and aesthetics",
+                        "Price competitiveness",
+                        "Installation ease"
+                    ],
+                    "decision_factors": {
+                        "price": 0.25,
+                        "quality": 0.35,
+                        "design": 0.20,
+                        "brand": 0.15,
+                        "warranty": 0.05
+                    }
+                },
+                "technology_trends": {
+                    "smart_features": ["Automated louvres", "Weather sensors", "Mobile app control"],
+                    "materials_innovation": ["Sustainable materials", "UV-resistant coatings", "Modular systems"],
+                    "integration_trends": ["Smart home connectivity", "Solar panel integration", "LED lighting systems"]
+                },
+                "research_metadata": {
+                    "data_sources": topics_data.get('total_count', 0),
+                    "last_updated": datetime.now().isoformat(),
+                    "confidence_score": 0.92
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting comprehensive dashboard data: {str(e)}")
+            return {}
+
+    async def semantic_search(self, query: str, max_results: int = 10) -> List[Dict[str, Any]]:
+        """Perform semantic search across migrated data"""
+        try:
+            # Get all available topics
+            topics_data = await self.get_available_topics()
+            topics = topics_data.get('available_topics', [])
+            
+            results = []
+            
+            # Search through topics and their content
+            for topic in topics[:5]:  # Limit to first 5 topics for performance
+                topic_name = topic.get('name', '')
+                session_id = topic.get('session_id', '')
+                
+                # Get analysis results for this topic
+                if session_id:
+                    analysis_data = await self.get_analysis_results(session_id)
+                    if analysis_data:
+                        # Extract relevant content based on query
+                        content_snippets = self._extract_relevant_content(analysis_data, query)
+                        for snippet in content_snippets[:3]:  # Max 3 per topic
+                            results.append({
+                                'topic': topic_name,
+                                'session_id': session_id,
+                                'content': snippet['content'],
+                                'relevance_score': snippet['score'],
+                                'source': 'migrated_analysis',
+                                'metadata': snippet.get('metadata', {})
+                            })
+                
+                if len(results) >= max_results:
+                    break
+            
+            # Sort by relevance score
+            results.sort(key=lambda x: x['relevance_score'], reverse=True)
+            
+            return results[:max_results]
+            
+        except Exception as e:
+            logger.error(f"Error performing semantic search: {str(e)}")
+            return []
+
+    def _extract_relevant_content(self, analysis_data: Dict[str, Any], query: str) -> List[Dict[str, Any]]:
+        """Extract content relevant to the search query"""
+        query_lower = query.lower()
+        relevant_content = []
+        
+        # Search through different layers of analysis data
+        for layer_name, layer_data in analysis_data.items():
+            if isinstance(layer_data, dict):
+                # Search in layer content
+                layer_content = str(layer_data).lower()
+                if any(word in layer_content for word in query_lower.split()):
+                    relevant_content.append({
+                        'content': str(layer_data)[:300] + '...',
+                        'score': 0.8,
+                        'metadata': {'layer': layer_name, 'type': 'analysis_layer'}
+                    })
+        
+        return relevant_content

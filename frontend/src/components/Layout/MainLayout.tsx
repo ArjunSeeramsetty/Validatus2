@@ -21,14 +21,11 @@ import {
   ChevronLeft,
   Dashboard,
   Analytics,
-  Assessment,
-  Settings,
   Insights,
   AccountCircle,
   Logout,
   TrendingUp,
-  AnalyticsOutlined,
-  Timeline
+  AnalyticsOutlined
 } from '@mui/icons-material';
 import ListItemButton from '@mui/material/ListItemButton';
 import { useNavigate, useLocation } from 'react-router-dom';

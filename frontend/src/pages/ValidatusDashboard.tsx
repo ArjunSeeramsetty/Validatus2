@@ -1,6 +1,6 @@
 // frontend/src/pages/ValidatusDashboard.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
   Box,
   Typography,
@@ -10,7 +10,8 @@ import {
   useTheme,
   useMediaQuery,
   Tabs,
-  Tab
+  Tab,
+  CircularProgress
 } from '@mui/material';
 import {
   Assessment,
@@ -22,12 +23,13 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import BusinessCaseTab from '../components/Dashboard/BusinessCaseTab';
-import EnhancedConsumerTab from '../components/Dashboard/EnhancedConsumerTab';
-import MarketTab from '../components/Dashboard/MarketTab';
-import ProductTab from '../components/Dashboard/ProductTab';
-import BrandTab from '../components/Dashboard/BrandTab';
-import ExperienceTab from '../components/Dashboard/ExperienceTab';
+// Lazy load components for better performance
+const BusinessCaseTab = lazy(() => import('../components/Dashboard/BusinessCaseTab'));
+const EnhancedConsumerTab = lazy(() => import('../components/Dashboard/EnhancedConsumerTab'));
+const MarketTab = lazy(() => import('../components/Dashboard/MarketTab'));
+const ProductTab = lazy(() => import('../components/Dashboard/ProductTab'));
+const BrandTab = lazy(() => import('../components/Dashboard/BrandTab'));
+const ExperienceTab = lazy(() => import('../components/Dashboard/ExperienceTab'));
 
 interface FeatureData {
   id: string;
@@ -91,7 +93,7 @@ const features: FeatureData[] = [
 
 const ValidatusDashboard: React.FC = () => {
   const [currentFeature, setCurrentFeature] = useState('business-case');
-  const [dashboardData, setDashboardData] = useState(null);
+  const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -101,43 +103,60 @@ const ValidatusDashboard: React.FC = () => {
   }, []);
 
   const loadDashboardData = async () => {
+    const baseUrl = (import.meta as any).env?.VITE_API_URL || 'https://validatus-backend-ssivkqhvhq-uc.a.run.app';
+    
+    // Parallel API calls for better performance - try all endpoints simultaneously
+    const apiPromises = [
+      fetch(`${baseUrl}/api/v3/pergola/dashboard-data`).catch(() => null),
+      fetch(`${baseUrl}/api/v3/dashboard/v2_analysis_20250905_185553_d5654178/overview`).catch(() => null),
+      fetch(`${baseUrl}/api/v3/migrated/results/v2_analysis_20250905_185553_d5654178`).catch(() => null)
+    ];
+    
     try {
-      const baseUrl = (import.meta as any).env?.VITE_API_URL || 'https://validatus-backend-ssivkqhvhq-uc.a.run.app';
+      const [enhancedResponse, dashboardResponse, migratedResponse] = await Promise.allSettled(apiPromises);
       
-      // Try enhanced pergola API first
-      try {
-        const enhancedResponse = await fetch(`${baseUrl}/api/v3/pergola/dashboard-data`);
-        
-        if (enhancedResponse.ok) {
-          const enhancedData = await enhancedResponse.json();
+      // Process responses in order of preference
+      if (enhancedResponse.status === 'fulfilled' && enhancedResponse.value?.ok) {
+        try {
+          const enhancedData = await enhancedResponse.value.json();
           if (enhancedData.status === 'success') {
             setDashboardData(enhancedData.data);
             return;
           }
+        } catch (e) {
+          console.warn('Enhanced API response parsing failed');
         }
-      } catch (enhancedError) {
-        console.log('Enhanced API not available, falling back to standard API');
       }
       
-      // Fallback to original dashboard API
-      const response = await fetch(`${baseUrl}/api/v3/dashboard/v2_analysis_20250905_185553_d5654178/overview`);
-      const result = await response.json();
-      if (result.success) {
-        setDashboardData(result.data);
-      } else {
-        console.error('Failed to load dashboard data:', result);
+      if (dashboardResponse.status === 'fulfilled' && dashboardResponse.value?.ok) {
+        try {
+          const dashboardData = await dashboardResponse.value.json();
+          if (dashboardData.success) {
+            setDashboardData(dashboardData.data);
+            return;
+          }
+        } catch (e) {
+          console.warn('Dashboard API response parsing failed');
+        }
       }
+      
+      if (migratedResponse.status === 'fulfilled' && migratedResponse.value?.ok) {
+        try {
+          const migratedData = await migratedResponse.value.json();
+          setDashboardData(migratedData);
+          return;
+        } catch (e) {
+          console.warn('Migrated API response parsing failed');
+        }
+      }
+      
+      // If all APIs fail, set empty data
+      setDashboardData({});
+      console.warn('All API endpoints failed, using empty data');
+      
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
-      // Fallback to migrated data
-      try {
-        const baseUrl = (import.meta as any).env?.VITE_API_URL || 'https://validatus-backend-ssivkqhvhq-uc.a.run.app';
-        const fallbackResponse = await fetch(`${baseUrl}/api/v3/migrated/results/v2_analysis_20250905_185553_d5654178`);
-        const fallbackData = await fallbackResponse.json();
-        setDashboardData(fallbackData);
-      } catch (fallbackError) {
-        console.error('Fallback data load also failed:', fallbackError);
-      }
+      setDashboardData({});
     } finally {
       setLoading(false);
     }
@@ -335,7 +354,13 @@ const ValidatusDashboard: React.FC = () => {
               transition={{ duration: 0.4 }}
             >
               <Box sx={{ width: '100%' }}>
-                <CurrentComponent data={dashboardData} />
+                <Suspense fallback={
+                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+                    <CircularProgress sx={{ color: '#1890ff' }} />
+                  </Box>
+                }>
+                  <CurrentComponent data={dashboardData} />
+                </Suspense>
               </Box>
             </motion.div>
           </AnimatePresence>
@@ -448,7 +473,13 @@ const ValidatusDashboard: React.FC = () => {
                 transition={{ duration: 0.4 }}
               >
                 <Box sx={{ width: '100%' }}>
-                  <CurrentComponent data={dashboardData} />
+                  <Suspense fallback={
+                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+                      <CircularProgress sx={{ color: '#1890ff' }} />
+                    </Box>
+                  }>
+                    <CurrentComponent data={dashboardData} />
+                  </Suspense>
                 </Box>
               </motion.div>
             </AnimatePresence>

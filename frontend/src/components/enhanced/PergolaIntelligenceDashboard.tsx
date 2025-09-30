@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy } from 'react';
 import {
   Grid, Box, Typography, Card, CardContent, Chip, Button,
   CircularProgress, Alert, Tabs, Tab
@@ -9,13 +9,13 @@ import {
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 
-// Import enhanced chart components
-import MarketSizeChart from '../charts/MarketSizeChart';
-import RegionalBreakdownTable from '../charts/RegionalBreakdownTable';
-import CompetitorLandscape from '../charts/CompetitorLandscape';
-import ConsumerJourneyFlow from '../charts/ConsumerJourneyFlow';
-import TechnologyTrendsRadar from '../charts/TechnologyTrendsRadar';
-import SemanticSearchInterface from '../search/SemanticSearchInterface';
+// Lazy load chart components for better performance
+const MarketSizeChart = lazy(() => import('../charts/MarketSizeChart'));
+const RegionalBreakdownTable = lazy(() => import('../charts/RegionalBreakdownTable'));
+const CompetitorLandscape = lazy(() => import('../charts/CompetitorLandscape'));
+const ConsumerJourneyFlow = lazy(() => import('../charts/ConsumerJourneyFlow'));
+const TechnologyTrendsRadar = lazy(() => import('../charts/TechnologyTrendsRadar'));
+const SemanticSearchInterface = lazy(() => import('../search/SemanticSearchInterface'));
 
 interface PergolaIntelligenceData {
   market_insights: any;
@@ -37,8 +37,27 @@ export default function PergolaIntelligenceDashboard() {
   const loadMarketIntelligence = async () => {
     try {
       setLoading(true);
+      setError(null);
       const baseUrl = (import.meta as any).env?.VITE_API_URL || 'https://validatus-backend-ssivkqhvhq-uc.a.run.app';
-      const response = await fetch(`${baseUrl}/api/v3/pergola/market-intelligence`);
+      
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch(`${baseUrl}/api/v3/pergola/market-intelligence`, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const result = await response.json();
       
       if (result.status === 'success') {
@@ -47,7 +66,11 @@ export default function PergolaIntelligenceDashboard() {
         throw new Error('Failed to load market intelligence');
       }
     } catch (err: any) {
-      setError(err.message);
+      if (err.name === 'AbortError') {
+        setError('Request timed out. Please try again.');
+      } else {
+        setError(err.message || 'Failed to load market intelligence');
+      }
     } finally {
       setLoading(false);
     }

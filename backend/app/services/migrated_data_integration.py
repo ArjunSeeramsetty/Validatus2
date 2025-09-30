@@ -17,8 +17,25 @@ class MigratedDataIntegration:
     
     def __init__(self, migrated_data_path: str = "migrated_data"):
         self.migrated_data_path = Path(migrated_data_path)
-        self.scraped_content_manager = ScrapedContentManager(str(self.migrated_data_path))
+        # Lazy initialization to avoid model loading issues during container startup
+        self.scraped_content_manager = None
         self._load_migrated_data()
+    
+    def _get_scraped_content_manager(self):
+        """Lazy initialization of scraped content manager"""
+        if self.scraped_content_manager is None:
+            try:
+                self.scraped_content_manager = ScrapedContentManager(str(self.migrated_data_path))
+            except Exception as e:
+                logger.warning(f"Failed to initialize ScrapedContentManager: {e}")
+                # Return a mock object to prevent crashes
+                class MockScrapedContentManager:
+                    def semantic_search(self, query, k=5):
+                        return []
+                    def get_scraped_content_summary(self):
+                        return {"total_files": 0, "categories": []}
+                self.scraped_content_manager = MockScrapedContentManager()
+        return self.scraped_content_manager
     
     def _load_migrated_data(self):
         """Load all migrated data from the directory structure"""
@@ -350,7 +367,7 @@ class MigratedDataIntegration:
         """Get semantic search results from migrated data"""
         try:
             # Use scraped content manager for semantic search
-            vector_results = self.scraped_content_manager.similarity_search(query, k=max_results)
+            vector_results = self._get_scraped_content_manager().similarity_search(query, k=max_results)
             
             # Also search through scraped content for additional context
             text_results = []

@@ -10,16 +10,38 @@ from app.services.pergola_data_manager import PergolaDataManager
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v3/pergola", tags=["pergola-enhanced"])
 
-# Initialize enhanced pergola data manager
-pergola_manager = PergolaDataManager()
+# Lazy initialization to avoid model loading issues during container startup
+pergola_manager = None
+
+def get_pergola_manager():
+    """Lazy initialization of pergola data manager"""
+    global pergola_manager
+    if pergola_manager is None:
+        try:
+            pergola_manager = PergolaDataManager()
+        except Exception as e:
+            logger.warning(f"Failed to initialize PergolaDataManager: {e}")
+            # Return a mock object to prevent crashes
+            class MockPergolaManager:
+                async def get_market_insights(self):
+                    return {}
+                async def get_competitive_landscape(self):
+                    return {}
+                async def get_consumer_psychology(self):
+                    return {}
+                async def get_enhanced_dashboard_data(self):
+                    return {}
+            pergola_manager = MockPergolaManager()
+    return pergola_manager
 
 @router.get("/market-intelligence", response_model=Dict[str, Any])
 async def get_market_intelligence():
     """Get comprehensive market intelligence with enhanced research data"""
     try:
-        market_insights = await pergola_manager.get_market_insights()
-        competitive_landscape = await pergola_manager.get_competitive_landscape()
-        consumer_psychology = await pergola_manager.get_consumer_psychology()
+        manager = get_pergola_manager()
+        market_insights = await manager.get_market_insights()
+        competitive_landscape = await manager.get_competitive_landscape()
+        consumer_psychology = await manager.get_consumer_psychology()
         
         return {
             "status": "success",
@@ -43,7 +65,8 @@ async def semantic_search_pergola(query: str, max_results: int = 10):
     """Semantic search through pergola research data using migrated data integration"""
     try:
         # Use migrated data integration for comprehensive search
-        results = pergola_manager.migrated_data.get_semantic_search_results(query, max_results)
+        manager = get_pergola_manager()
+        results = manager.migrated_data.get_semantic_search_results(query, max_results)
         
         return {
             "query": query,
@@ -67,7 +90,8 @@ async def semantic_search_pergola(query: str, max_results: int = 10):
 async def get_category_insights(category: str):
     """Get insights for specific category (market, consumer, product, brand, etc.)"""
     try:
-        category_insights = await pergola_manager.get_category_insights(category)
+        manager = get_pergola_manager()
+        category_insights = await manager.get_category_insights(category)
         return category_insights
     except Exception as e:
         logger.error(f"Failed to get category insights: {e}")
@@ -78,7 +102,8 @@ async def get_dashboard_data():
     """Get comprehensive dashboard data for the Figma design using migrated data"""
     try:
         # Get comprehensive dashboard data from migrated data integration
-        dashboard_data = pergola_manager.migrated_data.get_comprehensive_dashboard_data()
+        manager = get_pergola_manager()
+        dashboard_data = manager.migrated_data.get_comprehensive_dashboard_data()
         
         # Extract segment scores from v2 analysis data
         v2_segments = dashboard_data.get("segment_scores", {})

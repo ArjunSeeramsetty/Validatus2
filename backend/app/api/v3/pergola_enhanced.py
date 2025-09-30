@@ -4,34 +4,46 @@ Enhanced Pergola API Endpoints with Comprehensive Research Integration
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any, List
 import logging
+import threading
 
 from app.services.pergola_data_manager import PergolaDataManager
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v3/pergola", tags=["pergola-enhanced"])
 
-# Lazy initialization to avoid model loading issues during container startup
+# Thread-safe lazy initialization to avoid model loading issues during container startup
 pergola_manager = None
+_pergola_manager_lock = threading.Lock()
 
 def get_pergola_manager():
-    """Lazy initialization of pergola data manager"""
+    """Thread-safe lazy initialization of pergola data manager using double-checked locking"""
     global pergola_manager
     if pergola_manager is None:
-        try:
-            pergola_manager = PergolaDataManager()
-        except Exception as e:
-            logger.warning(f"Failed to initialize PergolaDataManager: {e}")
-            # Return a mock object to prevent crashes
-            class MockPergolaManager:
-                async def get_market_insights(self):
-                    return {}
-                async def get_competitive_landscape(self):
-                    return {}
-                async def get_consumer_psychology(self):
-                    return {}
-                async def get_enhanced_dashboard_data(self):
-                    return {}
-            pergola_manager = MockPergolaManager()
+        with _pergola_manager_lock:
+            # Double-checked locking: check again inside the lock
+            if pergola_manager is None:
+                try:
+                    pergola_manager = PergolaDataManager()
+                except Exception as e:
+                    logger.warning(f"Failed to initialize PergolaDataManager: {e}")
+                    # Return a mock object to prevent crashes
+                    class MockPergolaManager:
+                        def __init__(self):
+                            # Add migrated_data attribute that the code expects
+                            self.migrated_data = type('MockMigratedData', (), {
+                                'get_semantic_search_results': lambda self, query, max_results=10: [],
+                                'get_comprehensive_dashboard_data': lambda self: {}
+                            })()
+                        
+                        async def get_market_insights(self):
+                            return {}
+                        async def get_competitive_landscape(self):
+                            return {}
+                        async def get_consumer_psychology(self):
+                            return {}
+                        async def get_enhanced_dashboard_data(self):
+                            return {}
+                    pergola_manager = MockPergolaManager()
     return pergola_manager
 
 @router.get("/market-intelligence", response_model=Dict[str, Any])

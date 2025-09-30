@@ -4,6 +4,7 @@ Integrates the comprehensive pergola research data from migrated_data directory
 """
 import json
 import logging
+import threading
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 from datetime import datetime
@@ -17,24 +18,31 @@ class MigratedDataIntegration:
     
     def __init__(self, migrated_data_path: str = "migrated_data"):
         self.migrated_data_path = Path(migrated_data_path)
-        # Lazy initialization to avoid model loading issues during container startup
+        # Thread-safe lazy initialization to avoid model loading issues during container startup
         self.scraped_content_manager = None
+        self._scraped_content_manager_lock = threading.Lock()
         self._load_migrated_data()
     
     def _get_scraped_content_manager(self):
-        """Lazy initialization of scraped content manager"""
+        """Thread-safe lazy initialization of scraped content manager using double-checked locking"""
         if self.scraped_content_manager is None:
-            try:
-                self.scraped_content_manager = ScrapedContentManager(str(self.migrated_data_path))
-            except Exception as e:
-                logger.warning(f"Failed to initialize ScrapedContentManager: {e}")
-                # Return a mock object to prevent crashes
-                class MockScrapedContentManager:
-                    def semantic_search(self, query, k=5):
-                        return []
-                    def get_scraped_content_summary(self):
-                        return {"total_files": 0, "categories": []}
-                self.scraped_content_manager = MockScrapedContentManager()
+            with self._scraped_content_manager_lock:
+                # Double-checked locking: check again inside the lock
+                if self.scraped_content_manager is None:
+                    try:
+                        self.scraped_content_manager = ScrapedContentManager(str(self.migrated_data_path))
+                    except Exception as e:
+                        logger.warning(f"Failed to initialize ScrapedContentManager: {e}")
+                        # Return a mock object to prevent crashes
+                        class MockScrapedContentManager:
+                            def similarity_search(self, query, k=5):
+                                return []
+                            def semantic_search(self, query, k=5):
+                                # Alias for similarity_search for backward compatibility
+                                return self.similarity_search(query, k)
+                            def get_scraped_content_summary(self):
+                                return {"total_files": 0, "categories": []}
+                        self.scraped_content_manager = MockScrapedContentManager()
         return self.scraped_content_manager
     
     def _load_migrated_data(self):

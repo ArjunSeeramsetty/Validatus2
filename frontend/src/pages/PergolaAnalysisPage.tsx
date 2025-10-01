@@ -20,7 +20,7 @@ import {
   TableContainer,
   Paper
 } from '@mui/material';
-import { ExpandMore, TrendingUp, Assessment, Analytics } from '@mui/icons-material';
+import { ExpandMore, TrendingUp, Assessment } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { apiClient } from '../services/apiClient';
 
@@ -207,7 +207,7 @@ const PergolaAnalysisPage: React.FC = () => {
           >
             <AccordionSummary expandIcon={<ExpandMore sx={{ color: '#e8e8f0' }} />}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Analytics sx={{ color: '#1890ff', mr: 2 }} />
+                <Assessment sx={{ color: '#1890ff', mr: 2 }} />
                 <Typography variant="h6" sx={{ color: '#e8e8f0' }}>
                   Action Layer Calculations
                 </Typography>

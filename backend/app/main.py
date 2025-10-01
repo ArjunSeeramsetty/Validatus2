@@ -285,6 +285,14 @@ try:
 except ImportError as e:
     logging.error(f"⚠️ CRITICAL: Pergola intelligence API router not available: {e}")
 
+# Include topics router - NEW
+try:
+    from .api.v3 import topics
+    app.include_router(topics.router)
+    logging.info("Topics API router included")
+except ImportError as e:
+    logging.error(f"⚠️ CRITICAL: Topics API router not available: {e}")
+
 # Health check with full service status
 @app.get("/health")
 async def health_check():

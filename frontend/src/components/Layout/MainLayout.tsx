@@ -20,7 +20,6 @@ import {
   Menu as MenuIcon,
   ChevronLeft,
   Dashboard,
-  Analytics,
   Insights,
   AccountCircle,
   Logout,
@@ -63,6 +62,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
 
+  // Determine if sidebar should be shown (only for dashboard routes or when on homepage with dashboard tab)
+  const shouldShowSidebar = location.pathname.startsWith('/dashboard') || 
+                           location.pathname.startsWith('/analysis') || 
+                           location.pathname.startsWith('/migrated') ||
+                           location.pathname.startsWith('/pergola-intelligence');
+
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
@@ -87,13 +92,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   const menuItems = [
     { text: 'Home', icon: <Dashboard />, path: '/' },
-    { text: 'Dashboard', icon: <Analytics />, path: '/dashboard' },
     { text: 'Pergola Intelligence', icon: <Insights />, path: '/pergola-intelligence' },
     { text: 'Pergola Analysis', icon: <TrendingUp />, path: '/migrated/v2_analysis_20250905_185553_d5654178' },
     { text: 'Advanced Analysis', icon: <AnalyticsOutlined />, path: '/analysis/v2_analysis_20250905_185553_d5654178/advanced' },
   ];
 
-  const drawer = (
+  const drawer = shouldShowSidebar ? (
     <Box sx={{ height: '100%', backgroundColor: '#1a1a35', display: 'flex', flexDirection: 'column' }}>
       <Toolbar sx={{ justifyContent: 'space-between', px: 2 }}>
         <Typography variant="h6" noWrap component="div" sx={{ color: '#e8e8f0', fontWeight: 700 }}>
@@ -152,13 +156,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         ))}
       </List>
     </Box>
-  );
+  ) : null;
 
   const sidebarContextValue: SidebarContextType = {
-    desktopOpen,
+    desktopOpen: shouldShowSidebar ? desktopOpen : false,
     toggleSidebar: handleDesktopDrawerToggle,
     drawerWidth,
-    actualDrawerWidth: desktopOpen ? drawerWidth : 0
+    actualDrawerWidth: (shouldShowSidebar && desktopOpen) ? drawerWidth : 0
   };
 
   return (
@@ -167,8 +171,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <AppBar
         position="fixed"
         sx={{
-          width: { sm: desktopOpen ? `calc(100% - ${drawerWidth}px)` : '100%' },
-          ml: { sm: desktopOpen ? `${drawerWidth}px` : 0 },
+          width: { sm: (shouldShowSidebar && desktopOpen) ? `calc(100% - ${drawerWidth}px)` : '100%' },
+          ml: { sm: (shouldShowSidebar && desktopOpen) ? `${drawerWidth}px` : 0 },
           backgroundColor: '#1a1a35',
           borderBottom: '1px solid #3d3d56',
           boxShadow: 'none',
@@ -179,17 +183,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         }}
       >
         <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
+          {shouldShowSidebar && (
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ mr: 2, display: { sm: 'none' } }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
           
-          {!desktopOpen && (
+          {shouldShowSidebar && !desktopOpen && (
             <IconButton
               color="inherit"
               aria-label="open drawer"
@@ -278,56 +284,58 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </MenuItem>
       </Menu>
 
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-        aria-label="Main navigation"
-      >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
-              width: drawerWidth,
-              backgroundColor: '#1a1a35',
-              borderRight: '1px solid #3d3d56'
-            },
-          }}
+      {shouldShowSidebar && (
+        <Box
+          component="nav"
+          sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+          aria-label="Main navigation"
         >
-          {drawer}
-        </Drawer>
-        <Drawer
-          variant="persistent"
-          open={desktopOpen}
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
-              width: drawerWidth,
-              backgroundColor: '#1a1a35',
-              borderRight: '1px solid #3d3d56',
-              transition: theme => theme.transitions.create('width', {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.leavingScreen,
-              }),
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-      </Box>
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={handleDrawerToggle}
+            ModalProps={{
+              keepMounted: true,
+            }}
+            sx={{
+              display: { xs: 'block', sm: 'none' },
+              '& .MuiDrawer-paper': { 
+                boxSizing: 'border-box', 
+                width: drawerWidth,
+                backgroundColor: '#1a1a35',
+                borderRight: '1px solid #3d3d56'
+              },
+            }}
+          >
+            {drawer}
+          </Drawer>
+          <Drawer
+            variant="persistent"
+            open={desktopOpen}
+            sx={{
+              display: { xs: 'none', sm: 'block' },
+              '& .MuiDrawer-paper': { 
+                boxSizing: 'border-box', 
+                width: drawerWidth,
+                backgroundColor: '#1a1a35',
+                borderRight: '1px solid #3d3d56',
+                transition: theme => theme.transitions.create('width', {
+                  easing: theme.transitions.easing.sharp,
+                  duration: theme.transitions.duration.leavingScreen,
+                }),
+              },
+            }}
+          >
+            {drawer}
+          </Drawer>
+        </Box>
+      )}
 
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          width: { sm: desktopOpen ? `calc(100% - ${drawerWidth}px)` : '100%' },
+          width: { sm: (shouldShowSidebar && desktopOpen) ? `calc(100% - ${drawerWidth}px)` : '100%' },
           backgroundColor: '#0f0f23',
           minHeight: '100vh',
           transition: theme => theme.transitions.create('width', {

@@ -38,7 +38,7 @@ export default function PergolaIntelligenceDashboard() {
     try {
       setLoading(true);
       setError(null);
-      const baseUrl = (import.meta as any).env?.VITE_API_URL || 'https://validatus-backend-ssivkqhvhq-uc.a.run.app';
+      const baseUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
       
       // Add timeout to prevent hanging requests
       const controller = new AbortController();

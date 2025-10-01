@@ -20,7 +20,6 @@ import {
 import {
   TrendingUp,
   Assessment,
-  Analytics,
   Download,
   Insights
 } from '@mui/icons-material';
@@ -59,8 +58,15 @@ interface AdvancedAnalysisResults {
   assumptions?: Record<string, any>;
 }
 
-const AdvancedAnalysisDashboard: React.FC = () => {
-  const { sessionId } = useParams<{ sessionId: string }>();
+interface AdvancedAnalysisDashboardProps {
+  sessionId?: string;
+}
+
+const AdvancedAnalysisDashboard: React.FC<AdvancedAnalysisDashboardProps> = ({ sessionId: propSessionId }) => {
+  const { sessionId: paramSessionId } = useParams<{ sessionId: string }>();
+  // Use prop sessionId if provided (for HomePage), otherwise use URL param
+  const sessionId = propSessionId || paramSessionId || 'v2_analysis_20250905_185553_d5654178';
+  
   const [results, setResults] = useState<AdvancedAnalysisResults | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -103,7 +103,7 @@ const ValidatusDashboard: React.FC = () => {
   }, []);
 
   const loadDashboardData = async () => {
-    const baseUrl = (import.meta as any).env?.VITE_API_URL || 'https://validatus-backend-ssivkqhvhq-uc.a.run.app';
+    const baseUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
     
     // Parallel API calls for better performance - try all endpoints simultaneously
     const apiPromises = [

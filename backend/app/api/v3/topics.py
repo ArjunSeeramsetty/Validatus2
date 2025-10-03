@@ -375,18 +375,18 @@ async def collect_urls_for_topic(
             max_urls=50
         )
         
-        # Update topic with collected URLs
-        updated_urls = list(set(topic.initial_urls + urls_result.get("urls", [])))
+        # Update topic with collected URLs (urls_result is a List[str])
+        updated_urls = list(set(topic.initial_urls + urls_result))
         
         # Create update request
-        from ..models.topic_models import TopicUpdateRequest
+        from app.models.topic_models import TopicUpdateRequest
         update_request = TopicUpdateRequest(
             initial_urls=updated_urls,
             metadata={
                 **topic.metadata,
                 "url_collection": {
                     "completed_at": datetime.utcnow().isoformat(),
-                    "urls_collected": len(urls_result.get("urls", [])),
+                    "urls_collected": len(urls_result),
                     "total_urls": len(updated_urls)
                 }
             }
@@ -402,7 +402,7 @@ async def collect_urls_for_topic(
             user_id,
             {
                 "stage": "url_collection_completed",
-                "urls_collected": len(urls_result.get("urls", [])),
+                "urls_collected": len(urls_result),
                 "total_urls": len(updated_urls)
             }
         )
@@ -410,11 +410,11 @@ async def collect_urls_for_topic(
         return {
             "session_id": session_id,
             "status": "urls_collected",
-            "urls_collected": len(urls_result.get("urls", [])),
+            "urls_collected": len(urls_result),
             "total_urls": len(updated_urls),
-            "new_urls": urls_result.get("urls", []),
+            "new_urls": urls_result,
             "updated_topic": updated_topic,
-            "message": f"Successfully collected {len(urls_result.get('urls', []))} new URLs"
+            "message": f"Successfully collected {len(urls_result)} new URLs"
         }
         
     except HTTPException:

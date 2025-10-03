@@ -30,7 +30,7 @@ def test_websearch_functionality():
             "https://research.com/ai-market-analysis"
         ],
         "analysis_type": "comprehensive",
-        "user_id": "test_user_websearch",
+        "user_id": "demo_user_123",
         "metadata": {
             "test_case": "websearch_functionality",
             "priority": "high"
@@ -145,7 +145,7 @@ def test_websearch_functionality():
         ],
         "initial_urls": [],
         "analysis_type": "standard",
-        "user_id": "test_user_websearch"
+        "user_id": "demo_user_123"
     }
     
     response = requests.post(f"{BASE_URL}/api/v3/topics/", json=topic2_data)
@@ -182,10 +182,10 @@ def test_websearch_functionality():
     print("\nWeb Search Functionality Test Completed!")
     print("="*60)
     print("REQUIREMENTS TESTED:")
-    print("✅ 1. User can select existing topics for web search")
-    print("✅ 2. User can initiate fresh web search for topics without URLs")
-    print("✅ 3. User can conduct URL collection for topics with existing URLs")
-    print("✅ 4. Updated status is visible after URL collection")
+    print("[SUCCESS] 1. User can select existing topics for web search")
+    print("[SUCCESS] 2. User can initiate fresh web search for topics without URLs")
+    print("[SUCCESS] 3. User can conduct URL collection for topics with existing URLs")
+    print("[SUCCESS] 4. Updated status is visible after URL collection")
 
 def test_error_scenarios():
     """Test error scenarios"""

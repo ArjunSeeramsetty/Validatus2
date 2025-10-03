@@ -149,7 +149,7 @@ async def lifespan(app: FastAPI):
         
         # Phase 1: Initialize Core Services (Always Available)
         core_services.update({
-            'topic_manager': GCPTopicVectorStoreManager(project_id=settings.project_id),
+            # 'topic_manager': GCPTopicVectorStoreManager(project_id=settings.project_id),  # DISABLED: Using new TopicService
             'url_orchestrator': GCPURLOrchestrator(project_id=settings.project_id),
             'enhanced_topic_manager': EnhancedTopicVectorStoreManager(),
             'analysis_session_manager': AnalysisSessionManager(),
@@ -336,40 +336,9 @@ async def get_system_status():
     }
 
 # Core API endpoints - RESTORED
-@app.get("/api/v3/topics")
-async def get_topics():
-    """Get all available topics"""
-    try:
-        topic_manager = core_services.get('topic_manager')
-        if not topic_manager:
-            raise HTTPException(status_code=503, detail="Topic manager not available")
-        
-        topics = await topic_manager.get_available_topics()
-        return {"topics": topics}
-        
-    except Exception as e:
-        logger.error(f"Failed to get topics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/v3/topics/create")
-async def create_topic(topic: str, urls: List[str], search_queries: List[str] = None):
-    """Create a new topic vector store"""
-    try:
-        topic_manager = core_services.get('topic_manager')
-        if not topic_manager:
-            raise HTTPException(status_code=503, detail="Topic manager not available")
-        
-        topic_id = await topic_manager.create_topic_store(topic, urls, search_queries)
-        
-        return {
-            "success": True,
-            "topic_id": topic_id,
-            "message": f"Topic '{topic}' created successfully"
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to create topic '{topic}': {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# REMOVED: Duplicate topic endpoints that conflicted with the router system
+# Topic management is now handled exclusively by the dedicated topics router in api/v3/topics.py
+# This eliminates the conflict between old GCPTopicVectorStoreManager and new TopicService
 
 # Enhanced analysis endpoint - RESTORED
 @app.post("/api/v3/analysis/sessions/create")

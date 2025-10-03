@@ -5,6 +5,7 @@ REST API for topic CRUD operations with Google Cloud Firestore persistence
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import List, Optional, Dict, Any
 import logging
+from datetime import datetime
 
 from app.models.topic_models import (
     TopicConfig,
@@ -257,4 +258,199 @@ async def migrate_from_localstorage(
         
     except Exception as e:
         logger.error(f"Failed to migrate topics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/{session_id}/status", response_model=TopicResponse)
+async def update_topic_status(
+    session_id: str,
+    status: TopicStatus,
+    progress_data: Optional[Dict[str, Any]] = None,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Update topic status (CREATED -> IN_PROGRESS -> COMPLETED)"""
+    try:
+        logger.info(f"Updating topic status: {session_id} -> {status.value} for user: {user_id}")
+        
+        topic_service = get_topic_service_instance()
+        success = await topic_service.update_topic_status(session_id, status, user_id, progress_data)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Topic not found")
+        
+        # Return updated topic
+        updated_topic = await topic_service.get_topic(session_id, user_id)
+        return updated_topic
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update topic status {session_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/status/{status}", response_model=List[TopicResponse])
+async def get_topics_by_status(
+    status: TopicStatus,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Get topics filtered by specific status"""
+    try:
+        logger.info(f"Getting topics by status: {status.value} for user: {user_id}")
+        
+        topic_service = get_topic_service_instance()
+        topics = await topic_service.get_topics_by_status(user_id, status)
+        
+        return topics
+        
+    except Exception as e:
+        logger.error(f"Failed to get topics by status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{session_id}/start-workflow")
+async def start_topic_workflow(
+    session_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Start the complete topic workflow (URLs -> SCRAPING -> SCORING)"""
+    try:
+        logger.info(f"Starting workflow for topic: {session_id}")
+        
+        # Import workflow manager
+        from app.services.workflow_manager import get_workflow_manager_instance
+        
+        workflow_manager = get_workflow_manager_instance()
+        
+        # Execute the complete workflow
+        workflow_results = await workflow_manager.execute_workflow(session_id, user_id)
+        
+        return {
+            "session_id": session_id,
+            "status": "workflow_completed",
+            "results": workflow_results,
+            "message": "Topic workflow completed successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to start workflow for topic {session_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{session_id}/collect-urls")
+async def collect_urls_for_topic(
+    session_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Collect URLs for a topic using web search"""
+    try:
+        logger.info(f"Collecting URLs for topic: {session_id}")
+        
+        topic_service = get_topic_service_instance()
+        
+        # Get topic details
+        topic = await topic_service.get_topic(session_id, user_id)
+        if not topic:
+            raise HTTPException(status_code=404, detail="Topic not found")
+        
+        # Update status to IN_PROGRESS
+        await topic_service.update_topic_status(
+            session_id, 
+            TopicStatus.IN_PROGRESS, 
+            user_id,
+            {"stage": "url_collection", "started_at": datetime.utcnow().isoformat()}
+        )
+        
+        # Import URL orchestrator
+        from app.services.gcp_url_orchestrator import GCPURLOrchestrator
+        from app.core.gcp_config import get_gcp_settings
+        
+        settings = get_gcp_settings()
+        url_orchestrator = GCPURLOrchestrator(project_id=settings.project_id)
+        
+        # Collect URLs
+        urls_result = await url_orchestrator.collect_urls_for_topic(
+            topic.topic,
+            topic.search_queries,
+            max_urls=50
+        )
+        
+        # Update topic with collected URLs
+        updated_urls = list(set(topic.initial_urls + urls_result.get("urls", [])))
+        
+        # Create update request
+        from ..models.topic_models import TopicUpdateRequest
+        update_request = TopicUpdateRequest(
+            initial_urls=updated_urls,
+            metadata={
+                **topic.metadata,
+                "url_collection": {
+                    "completed_at": datetime.utcnow().isoformat(),
+                    "urls_collected": len(urls_result.get("urls", [])),
+                    "total_urls": len(updated_urls)
+                }
+            }
+        )
+        
+        # Update topic
+        updated_topic = await topic_service.update_topic(session_id, update_request, user_id)
+        
+        # Update status to COMPLETED
+        await topic_service.update_topic_status(
+            session_id, 
+            TopicStatus.COMPLETED, 
+            user_id,
+            {
+                "stage": "url_collection_completed",
+                "urls_collected": len(urls_result.get("urls", [])),
+                "total_urls": len(updated_urls)
+            }
+        )
+        
+        return {
+            "session_id": session_id,
+            "status": "urls_collected",
+            "urls_collected": len(urls_result.get("urls", [])),
+            "total_urls": len(updated_urls),
+            "new_urls": urls_result.get("urls", []),
+            "updated_topic": updated_topic,
+            "message": f"Successfully collected {len(urls_result.get('urls', []))} new URLs"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to collect URLs for topic {session_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{session_id}/urls")
+async def get_topic_urls(
+    session_id: str,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Get URLs for a specific topic"""
+    try:
+        logger.info(f"Getting URLs for topic: {session_id}")
+        
+        topic_service = get_topic_service_instance()
+        
+        # Get topic details
+        topic = await topic_service.get_topic(session_id, user_id)
+        if not topic:
+            raise HTTPException(status_code=404, detail="Topic not found")
+        
+        return {
+            "session_id": session_id,
+            "topic": topic.topic,
+            "urls": topic.initial_urls,
+            "url_count": len(topic.initial_urls),
+            "last_updated": topic.updated_at,
+            "metadata": topic.metadata
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get URLs for topic {session_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

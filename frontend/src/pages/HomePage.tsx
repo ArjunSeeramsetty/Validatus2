@@ -41,6 +41,7 @@ import ValidatusDashboard from './ValidatusDashboard';
 import PergolaIntelligenceDashboard from '../components/enhanced/PergolaIntelligenceDashboard';
 import PergolaAnalysisPage from './PergolaAnalysisPage';
 import AdvancedAnalysisDashboard from './AdvancedAnalysisDashboard';
+import URLsTab from '../components/URLsTab';
 import { topicService, TopicConfig } from '../services/topicService';
 
 
@@ -190,6 +191,12 @@ const HomePage: React.FC = () => {
               <Tab 
                 label="Topics" 
                 icon={<TopicIcon />} 
+                iconPosition="start"
+                sx={{ minHeight: 60 }}
+              />
+              <Tab 
+                label="URLs" 
+                icon={<LinkIcon />} 
                 iconPosition="start"
                 sx={{ minHeight: 60 }}
               />
@@ -359,6 +366,17 @@ const HomePage: React.FC = () => {
         )}
 
         {activeTab === 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* URLs Tab */}
+            <URLsTab />
+          </motion.div>
+        )}
+
+        {activeTab === 2 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

@@ -19,6 +19,7 @@ from app.models.topic_models import (
     AnalysisType
 )
 from app.core.gcp_config import get_gcp_settings
+from app.services.database_manager import db_manager
 
 logger = logging.getLogger(__name__)
 
@@ -29,23 +30,21 @@ class TopicService:
     def __init__(self):
         self.settings = None
         self.db = None
-        self._use_local_fallback = False
+        self._use_database = True  # Use SQLite database for persistence
         self._local_storage = {}  # In-memory storage for local development
         self._initialize_firestore()
     
     def _initialize_firestore(self):
         """Initialize Firestore client"""
         try:
-            # Always use local fallback for development
-            # Check if we're in local development mode or if Firestore is not available
             import os
             
-            # Force local development mode for now to ensure persistence works
+            # Use SQLite database for persistent storage
             logger.info(f"TopicService initializing - instance ID: {id(self)}")
-            logger.info("Using local in-memory storage for development")
+            logger.info("Using SQLite database for persistent storage")
             self.db = None
-            self._use_local_fallback = True
-            logger.info(f"TopicService initialized - local storage ID: {id(self._local_storage)}")
+            self._use_local_fallback = False  # Use database instead of in-memory
+            logger.info(f"TopicService initialized with database persistence")
             return
             
             # Original logic (commented out for now):
@@ -149,11 +148,14 @@ class TopicService:
                 self._local_storage[session_id] = self._topic_config_to_dict(topic)
                 logger.info(f"Topic created in local storage: {session_id}")
             else:
-                # Store in Firestore
-                topic_ref = self.db.collection('topics').document(session_id)
+                # Store in SQLite database
                 topic_dict = self._topic_config_to_dict(topic)
-                topic_ref.set(topic_dict)
-                logger.info(f"Topic created in Firestore: {session_id}")
+                success = db_manager.create_topic(topic_dict)
+                if success:
+                    logger.info(f"Topic created in database: {session_id}")
+                else:
+                    logger.error(f"Failed to create topic in database: {session_id}")
+                    raise Exception("Failed to persist topic to database")
             
             # Return response
             return TopicResponse(
@@ -206,23 +208,17 @@ class TopicService:
                     metadata=topic.metadata
                 )
             else:
-                if not self.db:
-                    raise Exception("Firestore not initialized")
-                
-                # Get topic from Firestore
-                topic_ref = self.db.collection('topics').document(session_id)
-                topic_doc = topic_ref.get()
-                
-                if not topic_doc.exists:
+                # Get from SQLite database
+                topic_data = db_manager.get_topic(session_id)
+                if not topic_data:
                     return None
                 
-                topic_data = topic_doc.to_dict()
-                
                 # Check user ownership
-                if topic_data.get("user_id") != user_id:
+                if topic_data.get('user_id') != user_id:
                     logger.warning(f"User {user_id} attempted to access topic {session_id} owned by {topic_data.get('user_id')}")
                     return None
                 
+                # Convert to TopicConfig for consistency
                 topic = self._dict_to_topic_config(topic_data)
                 
                 return TopicResponse(
@@ -298,17 +294,12 @@ class TopicService:
                     metadata=topic.metadata
                 )
             else:
-                if not self.db:
-                    raise Exception("Firestore not initialized")
-            
-            # Get existing topic
-            topic_ref = self.db.collection('topics').document(session_id)
-            topic_doc = topic_ref.get()
-            
-            if not topic_doc.exists:
-                return None
-            
-            topic_data = topic_doc.to_dict()
+                # Update in SQLite database
+                # First get existing topic
+                topic_data = db_manager.get_topic(session_id)
+                if not topic_data:
+                    logger.warning(f"Topic not found in database: {session_id}")
+                    return None
             
             # Check user ownership
             if topic_data.get("user_id") != user_id:
@@ -333,8 +324,10 @@ class TopicService:
             if request.metadata is not None:
                 update_data["metadata"] = request.metadata
             
-            # Update in Firestore
-            topic_ref.update(update_data)
+            # Update in SQLite database
+            success = db_manager.update_topic(session_id, update_data)
+            if not success:
+                raise Exception("Failed to update topic in database")
             
             # Get updated topic
             updated_topic = await self.get_topic(session_id, user_id)
@@ -446,46 +439,15 @@ class TopicService:
                     has_previous=page > 1
                 )
             else:
-                if not self.db:
-                    raise Exception("Firestore not initialized")
-                
                 # Calculate offset
                 offset = (page - 1) * page_size
                 
-                # Build query
-                query = self.db.collection('topics').where('user_id', '==', user_id)
-                
-                # Add sorting
-                if sort_by == "created_at":
-                    if sort_order == "desc":
-                        query = query.order_by('created_at', direction=Query.DESCENDING)
-                    else:
-                        query = query.order_by('created_at', direction=Query.ASCENDING)
-                elif sort_by == "updated_at":
-                    if sort_order == "desc":
-                        query = query.order_by('updated_at', direction=Query.DESCENDING)
-                    else:
-                        query = query.order_by('updated_at', direction=Query.ASCENDING)
-                elif sort_by == "topic":
-                    if sort_order == "desc":
-                        query = query.order_by('topic', direction=Query.DESCENDING)
-                    else:
-                        query = query.order_by('topic', direction=Query.ASCENDING)
-                
-                # Get total count
-                total_query = self.db.collection('topics').where('user_id', '==', user_id)
-                total_count = len(list(total_query.stream()))
-                
-                # Apply pagination
-                query = query.offset(offset).limit(page_size)
-                
-                # Execute query
-                docs = query.stream()
+                # Get from SQLite database
+                topics_data = db_manager.list_topics(user_id=user_id, limit=page_size, offset=offset)
                 
                 # Convert to TopicResponse objects
                 topics = []
-                for doc in docs:
-                    topic_data = doc.to_dict()
+                for topic_data in topics_data:
                     topic = self._dict_to_topic_config(topic_data)
                     topics.append(TopicResponse(
                         session_id=topic.session_id,
@@ -500,6 +462,9 @@ class TopicService:
                         status=topic.status,
                         metadata=topic.metadata
                     ))
+                
+                # Get total count (simplified for now)
+                total_count = len(topics_data)
                 
                 return TopicListResponse(
                     topics=topics,

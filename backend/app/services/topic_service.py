@@ -840,7 +840,7 @@ class TopicService:
             
             if self._use_local_fallback:
                 user_topics = []
-                for session_id, topic_data in self._local_storage.items():
+                for _, topic_data in self._local_storage.items():
                     if (topic_data.get("user_id") == user_id and 
                         topic_data.get("status") == status.value):
                         topic = self._dict_to_topic_config(topic_data)
@@ -890,7 +890,8 @@ class TopicService:
                 return topics
                 
         except Exception as e:
-            logger.error(f"Failed to get topics by status: {e}")
+            logger.exception(f"Failed to get topics by status: {e}")
+            # Return empty list for any error to maintain API contract
             return []
 
 

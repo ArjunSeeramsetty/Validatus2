@@ -68,7 +68,7 @@ const AdvancedAnalysisDashboard: React.FC<AdvancedAnalysisDashboardProps> = ({ s
   const sessionId = propSessionId || paramSessionId;
   
   const [results, setResults] = useState<AdvancedAnalysisResults | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!sessionId); // Only show loading if we have a sessionId
   const [error, setError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState(0);
   const [sensitivityValues, setSensitivityValues] = useState<Record<string, number>>({});
@@ -76,6 +76,9 @@ const AdvancedAnalysisDashboard: React.FC<AdvancedAnalysisDashboardProps> = ({ s
   useEffect(() => {
     if (sessionId) {
       loadAdvancedResults();
+    } else {
+      // If no sessionId, ensure loading is false so the alert can render
+      setLoading(false);
     }
   }, [sessionId]);
 

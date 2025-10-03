@@ -520,7 +520,7 @@ class TopicService:
             if self._use_local_fallback:
                 # Search in local storage
                 user_topics = []
-                for session_id, topic_data in self._local_storage.items():
+                for _, topic_data in self._local_storage.items():
                     # Apply filters
                     if request.user_id and topic_data.get("user_id") != request.user_id:
                         continue
@@ -706,7 +706,7 @@ class TopicService:
             if self._use_local_fallback:
                 # Get stats from local storage
                 user_topics = []
-                for session_id, topic_data in self._local_storage.items():
+                for _, topic_data in self._local_storage.items():
                     if topic_data.get("user_id") == user_id:
                         user_topics.append(topic_data)
                 
@@ -755,6 +755,143 @@ class TopicService:
         except Exception as e:
             logger.error(f"Failed to get topic stats: {e}")
             raise Exception(f"Failed to get topic stats: {str(e)}")
+    
+    async def update_topic_status(self, session_id: str, status: TopicStatus, user_id: str, 
+                                progress_data: Optional[Dict[str, Any]] = None) -> bool:
+        """Update topic status with progress tracking"""
+        try:
+            logger.info(f"Updating topic status: {session_id} -> {status.value} for user: {user_id}")
+            
+            if self._use_local_fallback:
+                if session_id not in self._local_storage:
+                    logger.warning(f"Topic {session_id} not found in local storage")
+                    return False
+                    
+                topic_data = self._local_storage[session_id]
+                
+                # Check user ownership
+                if topic_data.get("user_id") != user_id:
+                    logger.warning(f"User {user_id} attempted to update status for topic {session_id}")
+                    return False
+                
+                # Update status and metadata
+                topic_data["status"] = status.value
+                topic_data["updated_at"] = datetime.utcnow()
+                
+                # Add progress data to metadata
+                if progress_data:
+                    if "progress" not in topic_data["metadata"]:
+                        topic_data["metadata"]["progress"] = {}
+                    topic_data["metadata"]["progress"].update(progress_data)
+                
+                # Add status history
+                if "status_history" not in topic_data["metadata"]:
+                    topic_data["metadata"]["status_history"] = []
+                
+                topic_data["metadata"]["status_history"].append({
+                    "status": status.value,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "progress_data": progress_data
+                })
+                
+                self._local_storage[session_id] = topic_data
+                
+                logger.info(f"Updated topic status: {session_id} -> {status.value}")
+                return True
+            else:
+                # Firestore implementation
+                if not self.db:
+                    raise Exception("Firestore not initialized")
+                
+                topic_ref = self.db.collection('topics').document(session_id)
+                topic_doc = topic_ref.get()
+                
+                if not topic_doc.exists:
+                    return False
+                
+                topic_data = topic_doc.to_dict()
+                
+                # Check user ownership
+                if topic_data.get("user_id") != user_id:
+                    return False
+                
+                # Update data
+                update_data = {
+                    "status": status.value,
+                    "updated_at": datetime.utcnow()
+                }
+                
+                if progress_data:
+                    update_data["metadata.progress"] = progress_data
+                
+                topic_ref.update(update_data)
+                
+                logger.info(f"Updated topic status in Firestore: {session_id} -> {status.value}")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Failed to update topic status {session_id}: {e}")
+            return False
+
+    async def get_topics_by_status(self, user_id: str, status: TopicStatus) -> List[TopicResponse]:
+        """Get topics filtered by status"""
+        try:
+            logger.info(f"Getting topics by status: {status.value} for user: {user_id}")
+            
+            if self._use_local_fallback:
+                user_topics = []
+                for session_id, topic_data in self._local_storage.items():
+                    if (topic_data.get("user_id") == user_id and 
+                        topic_data.get("status") == status.value):
+                        topic = self._dict_to_topic_config(topic_data)
+                        user_topics.append(TopicResponse(
+                            session_id=topic.session_id,
+                            topic=topic.topic,
+                            description=topic.description,
+                            search_queries=topic.search_queries,
+                            initial_urls=topic.initial_urls,
+                            analysis_type=topic.analysis_type,
+                            user_id=topic.user_id,
+                            created_at=topic.created_at,
+                            updated_at=topic.updated_at,
+                            status=topic.status,
+                            metadata=topic.metadata
+                        ))
+                return user_topics
+            else:
+                # Firestore implementation
+                if not self.db:
+                    raise Exception("Firestore not initialized")
+                
+                query = (self.db.collection('topics')
+                        .where('user_id', '==', user_id)
+                        .where('status', '==', status.value))
+                
+                docs = query.stream()
+                topics = []
+                
+                for doc in docs:
+                    topic_data = doc.to_dict()
+                    topic = self._dict_to_topic_config(topic_data)
+                    topics.append(TopicResponse(
+                        session_id=topic.session_id,
+                        topic=topic.topic,
+                        description=topic.description,
+                        search_queries=topic.search_queries,
+                        initial_urls=topic.initial_urls,
+                        analysis_type=topic.analysis_type,
+                        user_id=topic.user_id,
+                        created_at=topic.created_at,
+                        updated_at=topic.updated_at,
+                        status=topic.status,
+                        metadata=topic.metadata
+                    ))
+                
+                return topics
+                
+        except Exception as e:
+            logger.error(f"Failed to get topics by status: {e}")
+            return []
 
 
 # Module-level singleton instance (CRITICAL for persistence!)

@@ -73,17 +73,6 @@ const AdvancedAnalysisDashboard: React.FC<AdvancedAnalysisDashboardProps> = ({ s
   const [selectedTab, setSelectedTab] = useState(0);
   const [sensitivityValues, setSensitivityValues] = useState<Record<string, number>>({});
 
-  // Early return if no sessionId
-  if (!sessionId) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="info">
-          No analysis results found. Please select a valid analysis session.
-        </Alert>
-      </Box>
-    );
-  }
-
   useEffect(() => {
     if (sessionId) {
       loadAdvancedResults();
@@ -191,6 +180,17 @@ const AdvancedAnalysisDashboard: React.FC<AdvancedAnalysisDashboardProps> = ({ s
       <Box sx={{ p: 4 }}>
         <Alert severity="warning">
           No analysis results found for session {sessionId}
+        </Alert>
+      </Box>
+    );
+  }
+
+  // Early return if no sessionId - placed after all hooks to comply with Rules of Hooks
+  if (!sessionId) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info">
+          No analysis results found. Please select a valid analysis session.
         </Alert>
       </Box>
     );

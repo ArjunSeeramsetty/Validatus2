@@ -379,7 +379,6 @@ async def collect_urls_for_topic(
         updated_urls = list(set(topic.initial_urls + urls_result))
         
         # Create update request
-        from app.models.topic_models import TopicUpdateRequest
         update_request = TopicUpdateRequest(
             initial_urls=updated_urls,
             metadata={

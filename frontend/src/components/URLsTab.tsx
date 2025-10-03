@@ -63,7 +63,11 @@ interface TopicURLs {
   metadata?: any;
 }
 
-const URLsTab: React.FC = () => {
+interface URLsTabProps {
+  refreshTrigger?: number;
+}
+
+const URLsTab: React.FC<URLsTabProps> = ({ refreshTrigger }) => {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [topicURLs, setTopicURLs] = useState<TopicURLs | null>(null);
@@ -74,10 +78,17 @@ const URLsTab: React.FC = () => {
   const [showUrlDialog, setShowUrlDialog] = useState(false);
   const [newUrl, setNewUrl] = useState('');
 
-  // Load topics on component mount
+  // Load topics on component mount and when component becomes visible
   useEffect(() => {
     loadTopics();
   }, []);
+
+  // Refresh topics when refreshTrigger changes (when tab becomes active)
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      loadTopics();
+    }
+  }, [refreshTrigger]);
 
   const loadTopics = async () => {
     try {
@@ -148,6 +159,18 @@ const URLsTab: React.FC = () => {
     }
   };
 
+  const clearDuplicates = () => {
+    // Remove duplicate topics based on topic name and description
+    const uniqueTopics = topics.filter((topic, index, self) => 
+      index === self.findIndex(t => 
+        t.topic === topic.topic && 
+        t.description === topic.description &&
+        t.session_id === topic.session_id
+      )
+    );
+    setTopics(uniqueTopics);
+  };
+
   const handleTopicSelect = (topic: Topic) => {
     setSelectedTopic(topic);
     loadTopicURLs(topic);
@@ -203,17 +226,44 @@ const URLsTab: React.FC = () => {
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6" sx={{ color: '#e8e8f0' }}>
-                  Select Topic
+                  Select Topic ({topics.length} topics)
                 </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<RefreshIcon />}
-                  onClick={loadTopics}
-                  disabled={loading}
-                >
-                  Refresh
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  {topics.length > 0 && (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={clearDuplicates}
+                      sx={{ 
+                        borderColor: '#ff4d4f',
+                        color: '#ff4d4f',
+                        '&:hover': {
+                          borderColor: '#ff7875',
+                          backgroundColor: 'rgba(255, 77, 79, 0.04)'
+                        }
+                      }}
+                    >
+                      Clear Duplicates
+                    </Button>
+                  )}
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<RefreshIcon />}
+                    onClick={loadTopics}
+                    disabled={loading}
+                    sx={{ 
+                      borderColor: '#1890ff',
+                      color: '#1890ff',
+                      '&:hover': {
+                        borderColor: '#40a9ff',
+                        backgroundColor: 'rgba(24, 144, 255, 0.04)'
+                      }
+                    }}
+                  >
+                    {loading ? 'Refreshing...' : 'Refresh'}
+                  </Button>
+                </Box>
               </Box>
 
               {loading ? (

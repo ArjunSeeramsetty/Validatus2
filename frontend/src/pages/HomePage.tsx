@@ -372,7 +372,7 @@ const HomePage: React.FC = () => {
             transition={{ duration: 0.5 }}
           >
             {/* URLs Tab */}
-            <URLsTab />
+            <URLsTab refreshTrigger={activeTab} />
           </motion.div>
         )}
 

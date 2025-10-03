@@ -29,6 +29,9 @@ logging.getLogger("google.cloud").setLevel(logging.ERROR)
 from .core.gcp_config import get_gcp_settings
 from .core.feature_flags import FeatureFlags
 
+# GCP Persistence imports
+from .services.gcp_persistence_manager import get_gcp_persistence_manager
+
 # Essential service imports
 from .services.gcp_topic_vector_store_manager import GCPTopicVectorStoreManager
 from .services.gcp_url_orchestrator import GCPURLOrchestrator
@@ -140,12 +143,20 @@ async def lifespan(app: FastAPI):
     global core_services, enhanced_services, phase_c_services, phase_e_services
     
     # Startup
-    logger.info("🚀 Starting Validatus Backend with Full Service Stack...")
+    logger.info("🚀 Starting Validatus Backend with GCP Persistence Integration...")
     
     try:
         # Initialize GCP settings
         settings = get_gcp_settings()
         logger.info(f"✅ GCP Settings loaded for project: {settings.project_id}")
+        
+        # Initialize GCP Persistence Manager
+        persistence_manager = get_gcp_persistence_manager()
+        await persistence_manager.initialize()
+        logger.info("✅ GCP Persistence Manager initialized")
+        
+        # Store in core services for health checks
+        core_services['persistence_manager'] = persistence_manager
         
         # Phase 1: Initialize Core Services (Always Available)
         core_services.update({
@@ -198,12 +209,17 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("🛑 Shutting down Validatus Backend...")
+    
+    # Close GCP connections
+    if 'persistence_manager' in core_services:
+        await core_services['persistence_manager'].close()
+        logger.info("✅ GCP Persistence Manager closed")
 
 # Create FastAPI app
 app = FastAPI(
     title="Validatus API",
-    description="AI-Powered Strategic Analysis Platform - Full Service Stack",
-    version="3.1.0-restored",
+    description="AI-Powered Strategic Analysis Platform - GCP Persistence Integration",
+    version="3.1.0-gcp-integrated",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
@@ -296,28 +312,47 @@ except ImportError as e:
 # Health check with full service status
 @app.get("/health")
 async def health_check():
-    """Enhanced health check with full service status"""
-    service_status = {
-        "core_services": list(core_services.keys()),
-        "enhanced_services": list(enhanced_services.keys()),
-        "phase_c_services": list(phase_c_services.keys()),
-        "phase_e_services": list(phase_e_services.keys()),
-        "feature_flags": {
-            "enhanced_analytics": FeatureFlags.ENHANCED_ANALYTICS_ENABLED,
-            "results_manager": FeatureFlags.ANALYSIS_RESULTS_MANAGER_ENABLED,
-            "results_api": FeatureFlags.RESULTS_API_ENABLED,
-            "phase_c_enabled": FeatureFlags.is_phase_enabled('phase_c'),
-            "phase_e_enabled": FeatureFlags.is_phase_e_enabled(),
+    """Enhanced health check with GCP services status"""
+    try:
+        service_status = {
+            "core_services": list(core_services.keys()),
+            "enhanced_services": list(enhanced_services.keys()),
+            "phase_c_services": list(phase_c_services.keys()),
+            "phase_e_services": list(phase_e_services.keys()),
+            "feature_flags": {
+                "enhanced_analytics": FeatureFlags.ENHANCED_ANALYTICS_ENABLED,
+                "results_manager": FeatureFlags.ANALYSIS_RESULTS_MANAGER_ENABLED,
+                "results_api": FeatureFlags.RESULTS_API_ENABLED,
+                "phase_c_enabled": FeatureFlags.is_phase_enabled('phase_c'),
+                "phase_e_enabled": FeatureFlags.is_phase_e_enabled(),
+            }
         }
-    }
-    
-    return {
-        "status": "healthy",
-        "service": "validatus-backend",
-        "version": "3.1.0-restored",
-        "services": service_status,
-        "message": "Full service stack operational"
-    }
+        
+        health_status = {
+            "status": "healthy",
+            "service": "validatus-backend",
+            "version": "3.1.0-gcp-integrated",
+            "services": service_status,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        # Check GCP services health
+        if 'persistence_manager' in core_services:
+            gcp_health = await core_services['persistence_manager'].health_check()
+            health_status['gcp_services'] = gcp_health
+            
+            if gcp_health['overall_status'] != 'healthy':
+                health_status['status'] = 'degraded'
+        
+        return health_status
+        
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat()
+        }
 
 # Service status endpoint
 @app.get("/api/v3/system/status")

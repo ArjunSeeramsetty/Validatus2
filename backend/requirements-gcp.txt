@@ -15,6 +15,12 @@ google-cloud-functions==1.20.4
 google-cloud-monitoring==2.16.0
 google-cloud-error-reporting==1.12.0
 
+# GCP Persistence Dependencies
+google-cloud-spanner==3.14.1
+google-cloud-sql-connector==1.4.3
+asyncpg==0.29.0
+redis==5.0.1
+
 # AI & ML Libraries (Essential)
 sentence-transformers==3.0.1
 chromadb==0.4.18
@@ -33,7 +39,6 @@ alembic==1.13.1
 
 # Task Queue & Caching
 celery==5.3.4
-redis==5.0.1
 msgpack==1.0.7
 python-memcached==1.62
 

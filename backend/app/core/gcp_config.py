@@ -8,11 +8,6 @@ from pydantic_settings import BaseSettings
 class GCPSettings(BaseSettings):
     """Google Cloud Platform configuration settings"""
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-        extra = "ignore"  # Ignore extra fields for local development
-    
     # Project configuration
     project_id: str = Field(default="validatus-platform", env="GCP_PROJECT_ID")
     region: str = Field(default="us-central1", env="GCP_REGION")
@@ -80,6 +75,7 @@ class GCPSettings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"  # Ignore extra fields for local development
 
 def get_gcp_settings() -> GCPSettings:
     """Get GCP configuration settings"""

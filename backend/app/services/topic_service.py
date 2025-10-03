@@ -36,30 +36,41 @@ class TopicService:
     def _initialize_firestore(self):
         """Initialize Firestore client"""
         try:
-            # Check if we're in local development mode
+            # Always use local fallback for development
+            # Check if we're in local development mode or if Firestore is not available
             import os
-            if os.getenv('LOCAL_DEVELOPMENT_MODE', '').lower() == 'true':
-                logger.info("Local development mode detected - using in-memory storage")
-                self.db = None
-                self._use_local_fallback = True
-                return
             
-            # Try to get settings for Firestore initialization
-            try:
-                self.settings = get_gcp_settings()
-            except Exception as e:
-                logger.warning(f"Failed to load GCP settings: {e}")
-                logger.info("Using local in-memory storage for development")
-                self.db = None
-                self._use_local_fallback = True
-                return
+            # Force local development mode for now to ensure persistence works
+            logger.info(f"TopicService initializing - instance ID: {id(self)}")
+            logger.info("Using local in-memory storage for development")
+            self.db = None
+            self._use_local_fallback = True
+            logger.info(f"TopicService initialized - local storage ID: {id(self._local_storage)}")
+            return
             
-            # Initialize Firestore client
-            # In GCP, this will use the default service account
-            # For local development, it will use application default credentials
-            self.db = firestore.Client(project=self.settings.project_id)
-            logger.info("Firestore client initialized successfully")
-            self._use_local_fallback = False
+            # Original logic (commented out for now):
+            # if os.getenv('LOCAL_DEVELOPMENT_MODE', '').lower() == 'true':
+            #     logger.info("Local development mode detected - using in-memory storage")
+            #     self.db = None
+            #     self._use_local_fallback = True
+            #     return
+            
+            # # Try to get settings for Firestore initialization
+            # try:
+            #     self.settings = get_gcp_settings()
+            # except Exception as e:
+            #     logger.warning(f"Failed to load GCP settings: {e}")
+            #     logger.info("Using local in-memory storage for development")
+            #     self.db = None
+            #     self._use_local_fallback = True
+            #     return
+            
+            # # Initialize Firestore client
+            # # In GCP, this will use the default service account
+            # # For local development, it will use application default credentials
+            # self.db = firestore.Client(project=self.settings.project_id)
+            # logger.info("Firestore client initialized successfully")
+            # self._use_local_fallback = False
         except Exception as e:
             logger.error(f"Failed to initialize Firestore: {e}")
             logger.info("Using local in-memory storage for development")
@@ -111,6 +122,10 @@ class TopicService:
     async def create_topic(self, request: TopicCreateRequest) -> TopicResponse:
         """Create a new topic"""
         try:
+            logger.info(f"Creating topic: {request.topic} - TopicService instance ID: {id(self)}")
+            logger.info(f"Using local fallback: {self._use_local_fallback}")
+            logger.info(f"Local storage ID: {id(self._local_storage)}")
+            
             # Generate unique session ID
             session_id = self._generate_session_id()
             
@@ -231,8 +246,60 @@ class TopicService:
     async def update_topic(self, session_id: str, request: TopicUpdateRequest, user_id: str) -> Optional[TopicResponse]:
         """Update an existing topic"""
         try:
-            if not self.db:
-                raise Exception("Firestore not initialized")
+            if self._use_local_fallback:
+                # Update in local storage
+                if session_id not in self._local_storage:
+                    logger.warning(f"Topic not found in local storage: {session_id}")
+                    return None
+                
+                topic_data = self._local_storage[session_id]
+                
+                # Check user ownership
+                if topic_data.get("user_id") != user_id:
+                    logger.warning(f"User {user_id} attempted to update topic {session_id} owned by {topic_data.get('user_id')}")
+                    return None
+                
+                # Update fields
+                if request.topic is not None:
+                    topic_data["topic"] = request.topic
+                if request.description is not None:
+                    topic_data["description"] = request.description
+                if request.search_queries is not None:
+                    topic_data["search_queries"] = request.search_queries
+                if request.initial_urls is not None:
+                    topic_data["initial_urls"] = request.initial_urls
+                if request.analysis_type is not None:
+                    topic_data["analysis_type"] = request.analysis_type.value
+                if request.status is not None:
+                    topic_data["status"] = request.status.value
+                if request.metadata is not None:
+                    topic_data["metadata"] = request.metadata
+                
+                # Update timestamp
+                topic_data["updated_at"] = datetime.utcnow()
+                
+                # Save back to local storage
+                self._local_storage[session_id] = topic_data
+                
+                # Convert to TopicResponse
+                topic = self._dict_to_topic_config(topic_data)
+                
+                return TopicResponse(
+                    session_id=topic.session_id,
+                    topic=topic.topic,
+                    description=topic.description,
+                    search_queries=topic.search_queries,
+                    initial_urls=topic.initial_urls,
+                    analysis_type=topic.analysis_type,
+                    user_id=topic.user_id,
+                    created_at=topic.created_at,
+                    updated_at=topic.updated_at,
+                    status=topic.status,
+                    metadata=topic.metadata
+                )
+            else:
+                if not self.db:
+                    raise Exception("Firestore not initialized")
             
             # Get existing topic
             topic_ref = self.db.collection('topics').document(session_id)
@@ -332,6 +399,11 @@ class TopicService:
                          sort_by: str = "created_at", sort_order: str = "desc") -> TopicListResponse:
         """List topics for a user with pagination"""
         try:
+            logger.info(f"Listing topics for user: {user_id} - TopicService instance ID: {id(self)}")
+            logger.info(f"Using local fallback: {self._use_local_fallback}")
+            logger.info(f"Local storage size: {len(self._local_storage)}")
+            logger.info(f"Local storage keys: {list(self._local_storage.keys())}")
+            
             if self._use_local_fallback:
                 # Get from local storage
                 user_topics = []
@@ -445,8 +517,64 @@ class TopicService:
     async def search_topics(self, request: TopicSearchRequest) -> TopicListResponse:
         """Search topics with filters"""
         try:
-            if not self.db:
-                raise Exception("Firestore not initialized")
+            if self._use_local_fallback:
+                # Search in local storage
+                user_topics = []
+                for session_id, topic_data in self._local_storage.items():
+                    # Apply filters
+                    if request.user_id and topic_data.get("user_id") != request.user_id:
+                        continue
+                    if request.analysis_type and topic_data.get("analysis_type") != request.analysis_type.value:
+                        continue
+                    if request.status and topic_data.get("status") != request.status.value:
+                        continue
+                    
+                    # Apply text search
+                    if request.query:
+                        search_text = f"{topic_data.get('topic', '')} {topic_data.get('description', '')}".lower()
+                        if request.query.lower() not in search_text:
+                            continue
+                    
+                    # Convert to TopicResponse
+                    topic = self._dict_to_topic_config(topic_data)
+                    user_topics.append(TopicResponse(
+                        session_id=topic.session_id,
+                        topic=topic.topic,
+                        description=topic.description,
+                        search_queries=topic.search_queries,
+                        initial_urls=topic.initial_urls,
+                        analysis_type=topic.analysis_type,
+                        user_id=topic.user_id,
+                        created_at=topic.created_at,
+                        updated_at=topic.updated_at,
+                        status=topic.status,
+                        metadata=topic.metadata
+                    ))
+                
+                # Sort topics
+                if request.sort_by == "created_at":
+                    user_topics.sort(key=lambda x: x.created_at, reverse=(request.sort_order == "desc"))
+                elif request.sort_by == "updated_at":
+                    user_topics.sort(key=lambda x: x.updated_at, reverse=(request.sort_order == "desc"))
+                elif request.sort_by == "topic":
+                    user_topics.sort(key=lambda x: x.topic, reverse=(request.sort_order == "desc"))
+                
+                # Apply pagination
+                total_count = len(user_topics)
+                offset = (request.page - 1) * request.page_size
+                paginated_topics = user_topics[offset:offset + request.page_size]
+                
+                return TopicListResponse(
+                    topics=paginated_topics,
+                    total=total_count,
+                    page=request.page,
+                    page_size=request.page_size,
+                    has_next=(offset + request.page_size) < total_count,
+                    has_previous=request.page > 1
+                )
+            else:
+                if not self.db:
+                    raise Exception("Firestore not initialized")
             
             # Build base query
             query = self.db.collection('topics')
@@ -575,8 +703,32 @@ class TopicService:
     async def get_topic_stats(self, user_id: str) -> Dict[str, Any]:
         """Get topic statistics for a user"""
         try:
-            if not self.db:
-                raise Exception("Firestore not initialized")
+            if self._use_local_fallback:
+                # Get stats from local storage
+                user_topics = []
+                for session_id, topic_data in self._local_storage.items():
+                    if topic_data.get("user_id") == user_id:
+                        user_topics.append(topic_data)
+                
+                total_topics = len(user_topics)
+                topics_by_status = {}
+                topics_by_type = {}
+                
+                for topic_data in user_topics:
+                    status = topic_data.get('status', 'unknown')
+                    analysis_type = topic_data.get('analysis_type', 'unknown')
+                    
+                    topics_by_status[status] = topics_by_status.get(status, 0) + 1
+                    topics_by_type[analysis_type] = topics_by_type.get(analysis_type, 0) + 1
+                
+                return {
+                    "total_topics": total_topics,
+                    "topics_by_status": topics_by_status,
+                    "topics_by_type": topics_by_type
+                }
+            else:
+                if not self.db:
+                    raise Exception("Firestore not initialized")
             
             # Get all topics for user
             query = self.db.collection('topics').where('user_id', '==', user_id)
@@ -605,19 +757,16 @@ class TopicService:
             raise Exception(f"Failed to get topic stats: {str(e)}")
 
 
-# Global service instance
+# Module-level singleton instance (CRITICAL for persistence!)
+# This ensures ONE instance per FastAPI process
 _topic_service_instance = None
 
-def get_topic_service() -> TopicService:
-    """Get or create TopicService instance"""
+def get_topic_service_instance():
+    """Get the singleton TopicService instance"""
     global _topic_service_instance
-    # Only create new instance if none exists
     if _topic_service_instance is None:
-        import os
-        # Force local development mode for testing
-        os.environ['LOCAL_DEVELOPMENT_MODE'] = 'true'
         _topic_service_instance = TopicService()
     return _topic_service_instance
 
-# For backward compatibility - but this will be stale
-# topic_service = get_topic_service()
+# For backward compatibility
+topic_service = get_topic_service_instance()

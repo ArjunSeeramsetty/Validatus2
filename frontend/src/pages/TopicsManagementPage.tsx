@@ -35,6 +35,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { enqueueSnackbar } from 'notistack';
+import { topicService } from '../services/topicService';
 
 interface TopicConfig {
   session_id: string;
@@ -64,16 +65,23 @@ const TopicsManagementPage: React.FC = () => {
     loadTopics();
   }, []);
 
-  const loadTopics = () => {
+  const loadTopics = async () => {
     try {
-      const storedTopics = localStorage.getItem('created_topics');
-      if (storedTopics) {
-        const parsedTopics = JSON.parse(storedTopics);
-        setTopics(parsedTopics);
-      }
+      const response = await topicService.listTopics(1, 50, 'created_at', 'desc');
+      setTopics(response.topics);
     } catch (error) {
-      console.error('Error loading topics:', error);
-      enqueueSnackbar('Error loading topics', { variant: 'error' });
+      console.error('Error loading topics from service:', error);
+      // Fallback to localStorage
+      try {
+        const storedTopics = localStorage.getItem('created_topics');
+        if (storedTopics) {
+          const parsedTopics = JSON.parse(storedTopics);
+          setTopics(parsedTopics);
+        }
+      } catch (localError) {
+        console.error('Error loading topics from localStorage:', localError);
+        enqueueSnackbar('Error loading topics', { variant: 'error' });
+      }
     } finally {
       setLoading(false);
     }
@@ -89,14 +97,19 @@ const TopicsManagementPage: React.FC = () => {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (topicToDelete) {
       try {
-        const updatedTopics = topics.filter(topic => topic.session_id !== topicToDelete);
-        setTopics(updatedTopics);
-        localStorage.setItem('created_topics', JSON.stringify(updatedTopics));
-        enqueueSnackbar('Topic deleted successfully', { variant: 'success' });
+        const success = await topicService.deleteTopic(topicToDelete);
+        if (success) {
+          const updatedTopics = topics.filter(topic => topic.session_id !== topicToDelete);
+          setTopics(updatedTopics);
+          enqueueSnackbar('Topic deleted successfully', { variant: 'success' });
+        } else {
+          enqueueSnackbar('Failed to delete topic', { variant: 'error' });
+        }
       } catch (error) {
+        console.error('Error deleting topic:', error);
         enqueueSnackbar('Error deleting topic', { variant: 'error' });
       }
     }
@@ -105,9 +118,8 @@ const TopicsManagementPage: React.FC = () => {
   };
 
   const handleNavigateToTopic = (topic: TopicConfig) => {
-    // Navigate to analysis page with the topic data
-    // For now, navigate to dashboard with topic info
-    navigate('/dashboard', { state: { selectedTopic: topic } });
+    // Navigate to topic creation/edit page
+    navigate('/topic-creation', { state: { editTopic: topic } });
   };
 
   const formatDate = (dateString: string) => {

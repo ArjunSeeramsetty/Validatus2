@@ -13,9 +13,9 @@ import {
   Button,
   Tab,
   Tabs,
+  Alert,
   Paper,
-  CircularProgress,
-  Alert
+  CircularProgress
 } from '@mui/material';
 import {
   TrendingUp,
@@ -65,13 +65,24 @@ interface AdvancedAnalysisDashboardProps {
 const AdvancedAnalysisDashboard: React.FC<AdvancedAnalysisDashboardProps> = ({ sessionId: propSessionId }) => {
   const { sessionId: paramSessionId } = useParams<{ sessionId: string }>();
   // Use prop sessionId if provided (for HomePage), otherwise use URL param
-  const sessionId = propSessionId || paramSessionId || 'v2_analysis_20250905_185553_d5654178';
+  const sessionId = propSessionId || paramSessionId;
   
   const [results, setResults] = useState<AdvancedAnalysisResults | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState(0);
   const [sensitivityValues, setSensitivityValues] = useState<Record<string, number>>({});
+
+  // Early return if no sessionId
+  if (!sessionId) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="info">
+          No analysis results found. Please select a valid analysis session.
+        </Alert>
+      </Box>
+    );
+  }
 
   useEffect(() => {
     if (sessionId) {

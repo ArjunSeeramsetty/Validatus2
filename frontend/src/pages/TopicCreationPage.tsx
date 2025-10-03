@@ -55,6 +55,27 @@ interface TopicData {
   analysisType: 'pergola' | 'general' | 'custom';
 }
 
+// Map frontend analysis types to backend types
+const mapAnalysisType = (frontendType: 'pergola' | 'general' | 'custom'): 'standard' | 'comprehensive' => {
+  switch (frontendType) {
+    case 'pergola':
+      return 'comprehensive';
+    case 'general':
+      return 'standard';
+    case 'custom':
+      return 'standard';
+    default:
+      throw new Error(`Unexpected analysis type: ${frontendType}`);
+  }
+};
+
+// Get current user ID from authentication context
+const getCurrentUserId = (): string => {
+  // TODO: Replace with actual authentication context
+  // For now, return a demo user ID
+  return 'demo_user_123';
+};
+
 const TopicCreationPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -215,7 +236,7 @@ const TopicCreationPage: React.FC = () => {
           description: topicData.description.trim(),
           search_queries: topicData.searchQueries.filter(q => q.trim()),
           initial_urls: topicData.initialUrls.filter(u => u.trim()),
-          analysis_type: topicData.analysisType as 'standard' | 'comprehensive',
+          analysis_type: mapAnalysisType(topicData.analysisType),
           status: 'created'
         };
         
@@ -233,8 +254,8 @@ const TopicCreationPage: React.FC = () => {
           description: topicData.description.trim(),
           search_queries: topicData.searchQueries.filter(q => q.trim()),
           initial_urls: topicData.initialUrls.filter(u => u.trim()),
-          analysis_type: topicData.analysisType as 'standard' | 'comprehensive',
-          user_id: 'demo_user_123' // TODO: Get from authentication
+          analysis_type: mapAnalysisType(topicData.analysisType),
+          user_id: getCurrentUserId()
         };
         
         createdTopic = await topicService.createTopic(createRequest);

@@ -81,7 +81,14 @@ const HomePage: React.FC = () => {
           }
         } catch (migrationError) {
           console.error('Migration failed:', migrationError);
-          enqueueSnackbar('Failed to migrate topics from local storage', { variant: 'warning' });
+          enqueueSnackbar('Topics could not be migrated to the server — working offline with local topics. Please check your network or retry from Settings.', { 
+            variant: 'warning',
+            action: (
+              <Button color="inherit" size="small" onClick={handleMigrateTopics}>
+                Retry
+              </Button>
+            )
+          });
           // Fallback to localStorage topics
           setTopics(localTopics);
         }
@@ -506,7 +513,7 @@ const HomePage: React.FC = () => {
                 )}
                 {dashboardView === 'advanced-analysis' && (
                   <Box sx={{ p: 3, width: '100%' }}>
-                    <AdvancedAnalysisDashboard sessionId="v2_analysis_20250905_185553_d5654178" />
+                    <AdvancedAnalysisDashboard />
                   </Box>
                 )}
               </Box>

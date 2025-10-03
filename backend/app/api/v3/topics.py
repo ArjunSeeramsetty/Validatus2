@@ -16,7 +16,7 @@ from app.models.topic_models import (
     AnalysisType,
     TopicStatus
 )
-from app.services.topic_service import get_topic_service
+from app.services.topic_service import get_topic_service_instance
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v3/topics", tags=["topics"])
@@ -43,7 +43,8 @@ async def create_topic(
         logger.info(f"Creating topic: {request.topic} for user: {user_id}")
         
         # Create topic
-        topic = await get_topic_service().create_topic(request)
+        topic_service = get_topic_service_instance()
+        topic = await topic_service.create_topic(request)
         
         return topic
         
@@ -61,7 +62,8 @@ async def get_topic(
     try:
         logger.info(f"Getting topic: {session_id} for user: {user_id}")
         
-        topic = await get_topic_service().get_topic(session_id, user_id)
+        topic_service = get_topic_service_instance()
+        topic = await topic_service.get_topic(session_id, user_id)
         
         if not topic:
             raise HTTPException(status_code=404, detail="Topic not found")
@@ -85,7 +87,8 @@ async def update_topic(
     try:
         logger.info(f"Updating topic: {session_id} for user: {user_id}")
         
-        topic = await get_topic_service().update_topic(session_id, request, user_id)
+        topic_service = get_topic_service_instance()
+        topic = await topic_service.update_topic(session_id, request, user_id)
         
         if not topic:
             raise HTTPException(status_code=404, detail="Topic not found")
@@ -108,7 +111,8 @@ async def delete_topic(
     try:
         logger.info(f"Deleting topic: {session_id} for user: {user_id}")
         
-        success = await get_topic_service().delete_topic(session_id, user_id)
+        topic_service = get_topic_service_instance()
+        success = await topic_service.delete_topic(session_id, user_id)
         
         if not success:
             raise HTTPException(status_code=404, detail="Topic not found")
@@ -134,7 +138,8 @@ async def list_topics(
     try:
         logger.info(f"Listing topics for user: {user_id}, page: {page}")
         
-        topics = await get_topic_service().list_topics(
+        topic_service = get_topic_service_instance()
+        topics = await topic_service.list_topics(
             user_id=user_id,
             page=page,
             page_size=page_size,
@@ -162,7 +167,8 @@ async def search_topics(
         if not request.user_id:
             request.user_id = user_id
         
-        results = await get_topic_service().search_topics(request)
+        topic_service = get_topic_service_instance()
+        results = await topic_service.search_topics(request)
         
         return results
         
@@ -179,7 +185,8 @@ async def get_topic_stats(
     try:
         logger.info(f"Getting topic stats for user: {user_id}")
         
-        stats = await get_topic_service().get_topic_stats(user_id)
+        topic_service = get_topic_service_instance()
+        stats = await topic_service.get_topic_stats(user_id)
         
         return stats
         
@@ -231,7 +238,8 @@ async def migrate_from_localstorage(
                 )
                 
                 # Create topic
-                await get_topic_service().create_topic(request)
+                topic_service = get_topic_service_instance()
+                await topic_service.create_topic(request)
                 migrated_count += 1
                 
             except Exception as e:

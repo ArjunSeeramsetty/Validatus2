@@ -31,51 +31,13 @@ RUN apt-get update && apt-get install -y \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Upgrade pip
-RUN pip install --no-cache-dir --upgrade pip==24.2
+# Upgrade pip to latest stable version
+RUN pip install --no-cache-dir --upgrade pip==25.2
 
 # Copy requirements
 COPY requirements-minimal.txt /tmp/requirements-minimal.txt
 
-# Install Python dependencies in stages for better caching
-# Stage 2a: Core dependencies first
-RUN pip install --no-cache-dir \
-    protobuf==4.25.8 \
-    google-auth==2.35.0 \
-    google-api-core[grpc]==2.25.2 \
-    googleapis-common-protos==1.65.0 \
-    grpcio==1.66.2 \
-    grpcio-status==1.62.3
-
-# Stage 2b: FastAPI and web dependencies
-RUN pip install --no-cache-dir \
-    FastAPI==0.118.0 \
-    "uvicorn[standard]==0.37.0" \
-    pydantic==2.9.2 \
-    pydantic-settings==2.1.0
-
-# Stage 2c: Database dependencies
-RUN pip install --no-cache-dir \
-    asyncpg==0.29.0 \
-    redis==5.0.1 \
-    sqlalchemy==2.0.23
-
-# Stage 2d: Google Cloud services (lightweight versions)
-RUN pip install --no-cache-dir \
-    google-cloud-storage==2.18.0 \
-    google-cloud-secret-manager==2.16.4 \
-    google-cloud-firestore==2.13.1 \
-    google-cloud-logging==3.12.1
-
-# Stage 2e: Utility packages
-RUN pip install --no-cache-dir \
-    httpx==0.28.1 \
-    requests==2.31.0 \
-    python-dotenv==1.1.1 \
-    beautifulsoup4==4.12.2 \
-    aiofiles==23.2.1
-
-# Stage 2f: Install remaining requirements
+# Install all requirements from file to avoid conflicts and ensure consistency
 RUN pip install --no-cache-dir -r /tmp/requirements-minimal.txt
 
 # Stage 3: Production runtime

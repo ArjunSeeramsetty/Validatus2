@@ -292,13 +292,13 @@ function Test-Deployment {
     Write-Host "🧪 Verifying deployment..." -ForegroundColor Cyan
     
     try {
-        # Test Cloud SQL connection
+        # Test Cloud SQL connection (non-interactive)
         Write-Host "Testing Cloud SQL connection..." -ForegroundColor Cyan
-        gcloud sql connect validatus-primary --user=validatus_app --quiet 2>&1
+        gcloud sql instances describe validatus-primary --format="value(state)" 2>&1 | Out-Null
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✅ Cloud SQL connection successful" -ForegroundColor Green
+            Write-Host "✅ Cloud SQL instance accessible" -ForegroundColor Green
         } else {
-            Write-Host "❌ Cloud SQL connection failed" -ForegroundColor Red
+            Write-Host "❌ Cloud SQL instance not accessible" -ForegroundColor Red
         }
         
         # Test storage buckets

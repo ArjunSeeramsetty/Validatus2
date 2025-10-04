@@ -7,7 +7,7 @@ pydantic-settings==2.1.0
 
 # Essential Google Cloud dependencies
 protobuf==4.25.8
-google-auth==2.35.0
+google-auth==2.41.1
 google-api-core[grpc]==2.25.2
 googleapis-common-protos==1.65.0
 grpcio==1.66.2
@@ -18,15 +18,16 @@ google-cloud-storage==2.18.0
 google-cloud-secret-manager==2.16.4
 google-cloud-firestore==2.13.1
 google-cloud-logging==3.12.1
+cloud-sql-python-connector==1.18.4
 
 # Database dependencies
 asyncpg==0.29.0
 redis==5.0.1
 sqlalchemy==2.0.23
 
-# HTTP and utilities
+# HTTP and utilities (security updates)
 httpx==0.28.1
-requests==2.31.0
+requests==2.32.5
 python-dotenv==1.1.1
 beautifulsoup4==4.12.2
 aiofiles==23.2.1

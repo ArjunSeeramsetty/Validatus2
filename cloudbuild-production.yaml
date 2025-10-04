@@ -45,6 +45,12 @@ steps:
     waitFor: ['build-frontend']
 
   # Step 5: Deploy backend to Cloud Run
+  # NOTE: Public access is enabled for demo purposes
+  # In production, consider implementing:
+  # 1. IAM-based authentication with Cloud Run Invoker role
+  # 2. API Gateway with authentication
+  # 3. Identity-Aware Proxy (IAP)
+  # 4. Application-level authentication middleware
   - name: 'gcr.io/cloud-builders/gcloud'
     args:
       - 'run'
@@ -70,7 +76,7 @@ steps:
       - '--port'
       - '8000'
       - '--set-env-vars'
-      - 'GCP_PROJECT_ID=$PROJECT_ID,ENVIRONMENT=production'
+      - 'GCP_PROJECT_ID=$PROJECT_ID,ENVIRONMENT=production,ALLOWED_ORIGINS=https://validatus-frontend-ssivkqhvhq-uc.a.run.app'
     waitFor: ['push-backend']
     timeout: '600s'
 

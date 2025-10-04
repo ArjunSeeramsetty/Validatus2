@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 PROJECT_ID="validatus-platform"
 REGION="us-central1"

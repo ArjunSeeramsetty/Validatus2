@@ -49,8 +49,8 @@ RUN pip install --no-cache-dir \
 
 # Stage 2b: FastAPI and web dependencies
 RUN pip install --no-cache-dir \
-    FastAPI==0.104.1 \
-    "uvicorn[standard]==0.24.0" \
+    FastAPI==0.118.0 \
+    "uvicorn[standard]==0.37.0" \
     pydantic==2.9.2 \
     pydantic-settings==2.1.0
 

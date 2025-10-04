@@ -42,7 +42,12 @@ steps:
   # Step 4: Push frontend image
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/validatus-frontend:$BUILD_ID']
+    id: 'push-frontend'
     waitFor: ['build-frontend']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/validatus-frontend:latest']
+    waitFor: ['push-frontend']
 
   # Step 5: Deploy backend to Cloud Run
   # NOTE: Public access is enabled for demo purposes
@@ -105,7 +110,7 @@ steps:
       - '0'
       - '--port'
       - '80'
-    waitFor: ['build-frontend']
+    waitFor: ['push-frontend']
     timeout: '600s'
 
 options:

@@ -16,15 +16,11 @@ from app.core.gcp_persistence_config import get_gcp_persistence_settings
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def create_database_schema():
+async def create_database_schema(manager):
     """Create all database schemas and tables"""
     logger.info("🗄️ Setting up database schema...")
     
     try:
-        # Initialize persistence manager
-        manager = get_gcp_persistence_manager()
-        await manager.initialize()
-        
         # Create Cloud SQL tables
         await create_sql_schema(manager.sql_manager)
         
@@ -33,10 +29,8 @@ async def create_database_schema():
         
         logger.info("✅ Database schema setup completed successfully")
         
-        await manager.close()
-        
     except Exception as e:
-        logger.error(f"❌ Database setup failed: {e}")
+        logger.error(f"❌ Database schema setup failed: {e}")
         raise
 
 async def create_sql_schema(sql_manager):
@@ -48,7 +42,7 @@ async def create_sql_schema(sql_manager):
     
     if not schema_path.exists():
         logger.error(f"Schema file not found: {schema_path}")
-        return
+        raise FileNotFoundError(f"Schema file not found: {schema_path}")
     
     with open(schema_path, 'r') as f:
         schema_sql = f.read()
@@ -58,12 +52,24 @@ async def create_sql_schema(sql_manager):
         # Split and execute each statement
         statements = [stmt.strip() for stmt in schema_sql.split(';') if stmt.strip()]
         
+        failed_statements = []
         for statement in statements:
             try:
                 await conn.execute(statement)
                 logger.debug(f"Executed: {statement[:50]}...")
             except Exception as e:
-                logger.warning(f"Statement failed (may be expected): {e}")
+                # Only ignore "already exists" errors
+                if "already exists" in str(e).lower():
+                    logger.debug(f"Statement skipped (already exists): {statement[:50]}...")
+                else:
+                    logger.error(f"Statement failed: {e}")
+                    failed_statements.append((statement[:50], str(e)))
+        
+        if failed_statements:
+            logger.error(f"Schema creation had {len(failed_statements)} critical failures:")
+            for stmt, error in failed_statements:
+                logger.error(f"  - {stmt}... : {error}")
+            raise Exception(f"Schema creation failed with {len(failed_statements)} errors")
     
     logger.info("✅ Cloud SQL schema created")
 
@@ -78,17 +84,16 @@ async def verify_spanner_schema(spanner_manager):
             logger.info("✅ Spanner schema verified")
         else:
             logger.error("❌ Spanner schema verification failed")
+            raise Exception("Spanner schema verification failed")
     except Exception as e:
-        logger.warning(f"Spanner verification failed: {e}")
+        logger.error(f"❌ Spanner verification failed: {e}")
+        raise
 
-async def create_sample_data():
+async def create_sample_data(manager):
     """Create sample data for testing"""
     logger.info("🧪 Creating sample test data...")
     
     try:
-        manager = get_gcp_persistence_manager()
-        await manager.initialize()
-        
         # Create a sample topic
         topic_response = await manager.create_topic_complete(
             title="Sample Market Analysis",
@@ -98,19 +103,15 @@ async def create_sample_data():
         )
         logger.info(f"✅ Sample topic created: {topic_response['topic_id']}")
         
-        await manager.close()
-        
     except Exception as e:
         logger.error(f"❌ Sample data creation failed: {e}")
+        raise
 
-async def run_health_checks():
+async def run_health_checks(manager):
     """Run comprehensive health checks"""
     logger.info("🏥 Running health checks...")
     
     try:
-        manager = get_gcp_persistence_manager()
-        await manager.initialize()
-        
         health = await manager.health_check()
         
         logger.info("Health Check Results:")
@@ -121,8 +122,6 @@ async def run_health_checks():
                 logger.info(f"  ✅ {service}: {status['status']}")
             else:
                 logger.error(f"  ❌ {service}: {status.get('status', 'unknown')} - {status.get('error', '')}")
-        
-        await manager.close()
         
         if health['overall_status'] == 'healthy':
             logger.info("✅ All health checks passed")
@@ -151,15 +150,21 @@ def main():
     logger.info(f"Region: {settings.region}")
     
     async def setup_sequence():
+        manager = None
         try:
+            # Initialize persistence manager once for all operations
+            logger.info("🔧 Initializing persistence manager...")
+            manager = get_gcp_persistence_manager()
+            await manager.initialize()
+            
             # Step 1: Create database schema
-            await create_database_schema()
+            await create_database_schema(manager)
             
             # Step 2: Create sample data
-            await create_sample_data()
+            await create_sample_data(manager)
             
             # Step 3: Run health checks
-            healthy = await run_health_checks()
+            healthy = await run_health_checks(manager)
             
             if healthy:
                 logger.info("🎉 Database setup completed successfully!")
@@ -176,6 +181,15 @@ def main():
         except Exception as e:
             logger.error(f"❌ Database setup failed: {e}")
             return False
+        finally:
+            # Ensure manager is closed if it was initialized
+            if manager is not None:
+                try:
+                    logger.info("🧹 Cleaning up persistence manager...")
+                    await manager.close()
+                    logger.info("✅ Persistence manager closed successfully")
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to close manager: {e}")
     
     # Run the setup
     success = asyncio.run(setup_sequence())

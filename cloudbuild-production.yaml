@@ -1,0 +1,86 @@
+steps:
+  # Step 1: Build backend with optimized Dockerfile
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'backend/Dockerfile.production'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/validatus-backend:$BUILD_ID'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/validatus-backend:latest'
+      - 'backend'
+    timeout: '1200s'  # 20 minutes
+    id: 'build-backend'
+
+  # Step 2: Push backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/validatus-backend:$BUILD_ID']
+    id: 'push-backend'
+    waitFor: ['build-backend']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/validatus-backend:latest']
+    waitFor: ['push-backend']
+
+  # Step 3: Build frontend (parallel with backend)
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'frontend/Dockerfile'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/validatus-frontend:$BUILD_ID'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/validatus-frontend:latest'
+      - 'frontend'
+    timeout: '600s'  # 10 minutes
+    id: 'build-frontend'
+
+  # Step 4: Push frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/validatus-frontend:$BUILD_ID']
+    waitFor: ['build-frontend']
+
+  # Step 5: Deploy backend to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'validatus-backend'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/validatus-backend:$BUILD_ID'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '2Gi'
+      - '--cpu'
+      - '2'
+      - '--timeout'
+      - '900'
+      - '--max-instances'
+      - '10'
+      - '--min-instances'
+      - '0'
+      - '--port'
+      - '8000'
+      - '--set-env-vars'
+      - 'PORT=8000,GCP_PROJECT_ID=$PROJECT_ID,ENVIRONMENT=production'
+    waitFor: ['push-backend']
+    timeout: '600s'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  diskSizeGb: '100'
+  logging: CLOUD_LOGGING_ONLY
+  env:
+    - 'DOCKER_BUILDKIT=1'
+
+timeout: '2400s'  # 40 minutes total
+
+substitutions:
+  _SERVICE_NAME: 'validatus-backend'
+  _REGION: 'us-central1'

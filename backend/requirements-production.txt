@@ -1,0 +1,44 @@
+# Production-optimized requirements (no ML/AI packages)
+# Core FastAPI Dependencies
+FastAPI==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.9.2
+pydantic-settings==2.1.0
+
+# Google Cloud Core (Compatible versions)
+protobuf==4.25.8
+google-auth==2.35.0
+google-api-core[grpc]==2.25.2
+googleapis-common-protos==1.65.0
+grpcio==1.66.2
+grpcio-status==1.62.3
+
+# Essential Google Cloud Services only
+google-cloud-storage==2.18.0
+google-cloud-secret-manager==2.16.4
+google-cloud-firestore==2.13.1
+google-cloud-logging==3.12.1
+
+# Database Dependencies
+asyncpg==0.29.0
+redis==5.0.1
+sqlalchemy==2.0.23
+alembic==1.13.1
+
+# HTTP Clients
+httpx==0.28.1
+aiohttp==3.9.1
+requests==2.31.0
+
+# Utility Dependencies
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+beautifulsoup4==4.12.2
+lxml==4.9.3
+python-dotenv==1.1.1
+
+# System Dependencies
+psutil==7.1.0
+
+# Development Tools (minimal)
+pytest==7.4.3

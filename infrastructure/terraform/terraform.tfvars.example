@@ -1,0 +1,40 @@
+# Terraform Variables for Validatus GCP Infrastructure
+# Copy this file to terraform.tfvars and customize the values
+
+# Project Configuration
+project_id = "validatus-platform"
+region     = "us-central1"
+zone       = "us-central1-a"
+environment = "production"
+
+# Database Configuration
+db_instance_tier     = "db-custom-2-7680"  # 2 vCPU, 7.5GB RAM
+db_disk_size         = 100                 # GB
+db_max_connections   = 100
+
+# Redis Configuration
+redis_memory_size = 4    # GB
+redis_tier       = "STANDARD_HA"
+
+# Spanner Configuration
+spanner_processing_units = 100  # Minimum for production
+
+# Storage Configuration
+enable_bucket_versioning = true
+bucket_lifecycle_enabled = true
+
+# Security Configuration
+deletion_protection = false  # Set to true in production
+enable_backup       = true
+
+# Cost Optimization
+enable_cost_optimization = true
+
+# Tags
+tags = {
+  Project     = "Validatus"
+  Environment = "production"
+  ManagedBy   = "terraform"
+  Owner       = "DevOps Team"
+  CostCenter  = "Engineering"
+}

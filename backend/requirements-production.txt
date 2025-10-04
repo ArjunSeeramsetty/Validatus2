@@ -1,7 +1,7 @@
 # Production-optimized requirements (no ML/AI packages)
 # Core FastAPI Dependencies
-FastAPI==0.104.1
-uvicorn[standard]==0.24.0
+FastAPI==0.118.0
+uvicorn[standard]==0.37.0
 pydantic==2.9.2
 pydantic-settings==2.1.0
 
@@ -13,11 +13,14 @@ googleapis-common-protos==1.65.0
 grpcio==1.66.2
 grpcio-status==1.62.3
 
-# Essential Google Cloud Services only
+# Essential Google Cloud Services
 google-cloud-storage==2.18.0
 google-cloud-secret-manager==2.16.4
 google-cloud-firestore==2.13.1
 google-cloud-logging==3.12.1
+google-cloud-sql-connector==1.5.0
+google-cloud-spanner==3.48.0
+google-cloud-aiplatform==1.60.0
 
 # Database Dependencies
 asyncpg==0.29.0

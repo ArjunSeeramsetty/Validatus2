@@ -99,7 +99,7 @@ function Initialize-Terraform {
 }
 
 # Function to plan and apply infrastructure
-function Deploy-Infrastructure {
+function Invoke-InfrastructureDeployment {
     Write-Host "📋 Planning infrastructure deployment..." -ForegroundColor Cyan
     
     $planArgs = @(
@@ -211,7 +211,7 @@ ENABLE_MONITORING=true
 LOG_LEVEL=INFO
 "@
 
-    $envPath = "..\..\..\.env.production"
+    $envPath = "..\..\.env.production"
     $envContent | Out-File -FilePath $envPath -Encoding utf8 -NoNewline
     
     Write-Host "✅ Environment configuration generated: .env.production" -ForegroundColor Green
@@ -294,7 +294,7 @@ function Test-Deployment {
     try {
         # Test Cloud SQL connection
         Write-Host "Testing Cloud SQL connection..." -ForegroundColor Cyan
-        $sqlTest = gcloud sql connect validatus-primary --user=validatus_app --quiet 2>&1
+        gcloud sql connect validatus-primary --user=validatus_app --quiet 2>&1
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✅ Cloud SQL connection successful" -ForegroundColor Green
         } else {
@@ -304,7 +304,7 @@ function Test-Deployment {
         # Test storage buckets
         Write-Host "Testing Cloud Storage buckets..." -ForegroundColor Cyan
         $contentBucket = terraform output -raw content_bucket_name
-        $storageTest = gsutil ls "gs://$contentBucket" 2>$null
+        gsutil ls "gs://$contentBucket" 2>$null
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✅ Cloud Storage buckets accessible" -ForegroundColor Green
         } else {
@@ -346,7 +346,7 @@ try {
     Test-Dependencies
     Initialize-GCloudAuth
     Initialize-Terraform
-    Deploy-Infrastructure
+    Invoke-InfrastructureDeployment
     New-EnvironmentConfig
     Initialize-DatabaseSchema
     Test-Deployment

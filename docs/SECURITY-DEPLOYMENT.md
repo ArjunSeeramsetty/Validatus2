@@ -49,6 +49,15 @@ spec:
           value: "your-project"
 ```
 
+**Required: Bind the Kubernetes SA to the GCP SA**
+```bash
+# Required: Bind the Kubernetes SA to the GCP SA
+gcloud iam service-accounts add-iam-policy-binding \
+  validatus-backend@your-project.iam.gserviceaccount.com \
+  --role roles/iam.workloadIdentityUser \
+  --member "serviceAccount:your-project.svc.id.goog[default/validatus-backend]"
+```
+
 ### Redis Connection Security
 
 **❌ NEVER hardcode Redis IP addresses**
@@ -70,11 +79,13 @@ export REDIS_HOST
 
 2. **Update dynamic values**:
    ```bash
-   # Set Redis host from Terraform
-   echo "REDIS_HOST=$(terraform output -raw redis_host)" >> .env.production
+   # Set Redis host from Terraform (portable approach)
+   REDIS_HOST=$(terraform output -raw redis_host)
    
-   # Set project-specific values
-   sed -i 's/validatus-platform/your-project-id/g' .env.production
+   # Set project-specific values (portable sed)
+   sed "s/validatus-platform/your-project-id/g" .env.production | \
+   sed "s/\${REDIS_HOST}/$REDIS_HOST/g" > .env.production.tmp
+   mv .env.production.tmp .env.production
    ```
 
 3. **Remove sensitive defaults**:

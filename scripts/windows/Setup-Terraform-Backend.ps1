@@ -106,14 +106,6 @@ try {
       "condition": {
         "age": 90
       }
-    },
-    {
-      "action": {
-        "type": "Delete"
-      },
-      "condition": {
-        "age": 365
-      }
     }
   ]
 }
@@ -145,7 +137,7 @@ try {
     # Allow Cloud Build service account (if it exists)
     $cloudBuildSA = "${ProjectId}@cloudbuild.gserviceaccount.com"
     try {
-        gcloud iam service-accounts describe $cloudBuildSA >$null 2>&1
+        gcloud iam service-accounts describe $cloudBuildSA 2>&1 | Out-Null
         gsutil iam ch "serviceAccount:$cloudBuildSA:objectAdmin" "gs://$BucketName"
         Write-Host "✅ Added Cloud Build service account permissions" -ForegroundColor Green
     } catch {

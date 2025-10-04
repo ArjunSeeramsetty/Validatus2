@@ -35,7 +35,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade pip==24.2
 
 # Copy requirements
-COPY requirements-production.txt /tmp/requirements-production.txt
+COPY requirements-minimal.txt /tmp/requirements-minimal.txt
 
 # Install Python dependencies in stages for better caching
 # Stage 2a: Core dependencies first
@@ -76,7 +76,7 @@ RUN pip install --no-cache-dir \
     aiofiles==23.2.1
 
 # Stage 2f: Install remaining requirements
-RUN pip install --no-cache-dir -r /tmp/requirements-production.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-minimal.txt
 
 # Stage 3: Production runtime
 FROM base as production

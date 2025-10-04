@@ -187,7 +187,7 @@ EOF
     
     # Validate Secret Manager secrets
     echo "Validating Secret Manager secrets..."
-    if ! gcloud secrets describe cloud-sql-password --project=$PROJECT_ID &>/dev/null; then
+    if ! gcloud secrets describe cloud-sql-password --project="$PROJECT_ID" &>/dev/null; then
         echo "❌ Required secret 'cloud-sql-password' not found in Secret Manager"
         echo "Please create it with: gcloud secrets create cloud-sql-password --data-file=<password-file>"
         exit 1
@@ -215,7 +215,7 @@ setup_database() {
     
     # Run database migrations
     # Load environment variables safely
-    source ../../scripts/load-env.sh
+    source ../scripts/load-env.sh
     load_env_file .env.production
     python -c "
 import asyncio

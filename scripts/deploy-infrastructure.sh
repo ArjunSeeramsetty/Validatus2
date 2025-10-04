@@ -54,7 +54,7 @@ REQUIRED_APIS=(
 for api in "${REQUIRED_APIS[@]}"; do
     if ! gcloud services list --enabled --filter="name:${api}" --format="value(name)" | grep -q "${api}"; then
         echo -e "${YELLOW}⚠️  Enabling ${api}...${NC}"
-        gcloud services enable ${api} --project=${PROJECT_ID}
+        gcloud services enable "${api}" --project="${PROJECT_ID}"
     fi
 done
 

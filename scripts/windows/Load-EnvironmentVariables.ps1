@@ -39,9 +39,9 @@ function Load-EnvironmentFile {
                 $value = $line.Substring($equalsIndex + 1).Trim()
                 
                 # Handle quoted values
-                if ($value.StartsWith('"') -and $value.EndsWith('"')) {
+                if ($value.Length -ge 2 -and $value.StartsWith('"') -and $value.EndsWith('"')) {
                     $value = $value.Substring(1, $value.Length - 2)
-                } elseif ($value.StartsWith("'") -and $value.EndsWith("'")) {
+                } elseif ($value.Length -ge 2 -and $value.StartsWith("'") -and $value.EndsWith("'")) {
                     $value = $value.Substring(1, $value.Length - 2)
                 }
                 
@@ -59,7 +59,8 @@ function Load-EnvironmentFile {
 # Function to robustly load environment variables (alternative approach)
 function Load-EnvironmentFileRobust {
     param(
-        [string]$FilePath
+        [string]$FilePath,
+        [switch]$ProcessEscapes = $true
     )
     
     if (-not (Test-Path $FilePath)) {
@@ -93,16 +94,16 @@ function Load-EnvironmentFileRobust {
         $value = $line.Substring($equalsIndex + 1).Trim()
         
         # Handle various quote styles
-        if ($value.StartsWith('"') -and $value.EndsWith('"')) {
+        if ($value.Length -ge 2 -and $value.StartsWith('"') -and $value.EndsWith('"')) {
             $value = $value.Substring(1, $value.Length - 2)
-        } elseif ($value.StartsWith("'") -and $value.EndsWith("'")) {
+        } elseif ($value.Length -ge 2 -and $value.StartsWith("'") -and $value.EndsWith("'")) {
             $value = $value.Substring(1, $value.Length - 2)
-        } elseif ($value.StartsWith('`"') -and $value.EndsWith('`"')) {
+        } elseif ($value.Length -ge 4 -and $value.StartsWith('`"') -and $value.EndsWith('`"')) {
             $value = $value.Substring(2, $value.Length - 4)
         }
         
         # Handle escaped characters in robust mode
-        if ($Robust) {
+        if ($ProcessEscapes) {
             $value = $value -replace '\\n', "`n"
             $value = $value -replace '\\r', "`r"
             $value = $value -replace '\\t', "`t"
@@ -124,10 +125,13 @@ function Load-EnvironmentFileRobust {
     return $true
 }
 
+# Export functions for use in other scripts
+Export-ModuleMember -Function Load-EnvironmentFile, Load-EnvironmentFileRobust
+
 # Main execution
 try {
     if ($Robust) {
-        $success = Load-EnvironmentFileRobust -FilePath $EnvFile
+        $success = Load-EnvironmentFileRobust -FilePath $EnvFile -ProcessEscapes
     } else {
         $success = Load-EnvironmentFile -FilePath $EnvFile
     }
@@ -143,6 +147,3 @@ try {
     Write-Host "❌ Error loading environment variables: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }
-
-# Export functions for use in other scripts
-Export-ModuleMember -Function Load-EnvironmentFile, Load-EnvironmentFileRobust

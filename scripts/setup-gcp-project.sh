@@ -72,7 +72,7 @@ APIS=(
 
 for api in "${APIS[@]}"; do
     echo -e "${BLUE}  Enabling ${api}...${NC}"
-    gcloud services enable ${api} --project=${PROJECT_ID}
+    gcloud services enable "${api}" --project="${PROJECT_ID}"
 done
 
 echo -e "${GREEN}✅ All APIs enabled successfully${NC}"

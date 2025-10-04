@@ -17,7 +17,6 @@ google-cloud-error-reporting==1.12.0
 
 # GCP Persistence Dependencies
 google-cloud-spanner==3.14.1
-google-cloud-sql-connector==1.4.3
 asyncpg==0.29.0
 redis==5.0.1
 

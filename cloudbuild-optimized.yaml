@@ -9,7 +9,7 @@ steps:
       '-t', 'gcr.io/$PROJECT_ID/validatus-backend:latest',
       'backend/'
     ]
-    timeout: '30m'
+    timeout: '1800s'
 
   # Push backend image
   - name: 'gcr.io/cloud-builders/docker'
@@ -33,7 +33,7 @@ steps:
       '--set-env-vars', 'GCP_PROJECT_ID=$PROJECT_ID,LOCAL_DEVELOPMENT_MODE=false',
       '--allow-unauthenticated'
     ]
-    timeout: '10m'
+    timeout: '600s'
 
 # Optimized build options
 options:
@@ -42,7 +42,7 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 # Total timeout
-timeout: '60m'
+timeout: '3600s'
 
 # Substitutions
 substitutions:

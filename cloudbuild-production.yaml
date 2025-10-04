@@ -68,7 +68,7 @@ steps:
       - '--port'
       - '8000'
       - '--set-env-vars'
-      - 'PORT=8000,GCP_PROJECT_ID=$PROJECT_ID,ENVIRONMENT=production'
+      - 'GCP_PROJECT_ID=$PROJECT_ID,ENVIRONMENT=production'
     waitFor: ['push-backend']
     timeout: '600s'
 

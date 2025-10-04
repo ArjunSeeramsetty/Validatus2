@@ -50,7 +50,7 @@ class GCPVectorManager:
             logger.info("Vertex AI Vector Search Manager initialized")
             
         except Exception as e:
-            logger.error(f"Failed to initialize Vertex AI clients: {e}")
+            logger.exception("Failed to initialize Vertex AI clients")
             raise
     
     async def close(self):
@@ -99,7 +99,7 @@ class GCPVectorManager:
             }
             
         except Exception as e:
-            logger.error(f"Failed to create vector index for {session_id}: {e}")
+            logger.exception(f"Failed to create vector index for {session_id}")
             return {
                 "status": "failed",
                 "error": str(e),
@@ -134,7 +134,7 @@ class GCPVectorManager:
             return mock_embeddings
             
         except Exception as e:
-            logger.error(f"Failed to generate embeddings for session {session_id}: {e}")
+            logger.exception(f"Failed to generate embeddings for session {session_id}")
             return {}
     
     async def _create_vector_endpoint(self, index_id: str) -> str:
@@ -149,7 +149,7 @@ class GCPVectorManager:
             return endpoint_id
             
         except Exception as e:
-            logger.error(f"Failed to create vector endpoint {index_id}: {e}")
+            logger.exception(f"Failed to create vector endpoint {index_id}")
             raise
     
     async def _index_embeddings(self, endpoint_id: str, embeddings_data: Dict[str, Any]):
@@ -161,7 +161,7 @@ class GCPVectorManager:
             logger.info(f"Indexed {len(embeddings_data)} embeddings for endpoint {endpoint_id}")
             
         except Exception as e:
-            logger.error(f"Failed to index embeddings for endpoint {endpoint_id}: {e}")
+            logger.exception(f"Failed to index embeddings for endpoint {endpoint_id}")
             raise
     
     async def similarity_search(self, session_id: str, query: str, 
@@ -179,44 +179,77 @@ class GCPVectorManager:
             return results
             
         except Exception as e:
-            logger.error(f"Failed to perform similarity search for {session_id}: {e}")
+            logger.exception(f"Failed to perform similarity search for {session_id}")
             return []
     
     async def _generate_query_embedding(self, query: str) -> List[float]:
-        """Generate embedding for search query"""
+        """Generate embedding for search query using Vertex AI"""
         try:
-            # This would use Vertex AI to generate embeddings for the query
-            # For now, return a mock embedding
+            # Use Vertex AI to generate embeddings for the query
+            from google.cloud.aiplatform import gapic as aip
             
-            mock_embedding = [0.2] * self.settings.vector_dimensions
-            return mock_embedding
+            # Create prediction request
+            endpoint_name = f"projects/{self.settings.project_id}/locations/{self.settings.vector_search_location}/endpoints/embedding-endpoint"
+            
+            request = aip.PredictRequest(
+                endpoint=endpoint_name,
+                instances=[{"content": query}]
+            )
+            
+            # Execute prediction in thread pool to avoid blocking
+            def generate_embedding():
+                response = self.prediction_client.predict(request=request)
+                return response.predictions[0]["embeddings"]["values"]
+            
+            embedding = await asyncio.get_event_loop().run_in_executor(None, generate_embedding)
+            return embedding
             
         except Exception as e:
-            logger.error(f"Failed to generate query embedding: {e}")
+            logger.exception("Failed to generate query embedding")
             return []
     
     async def _search_vectors(self, session_id: str, query_embedding: List[float], 
                             top_k: int) -> List[Dict[str, Any]]:
-        """Search vectors using Vertex AI"""
+        """Search vectors using Vertex AI Matching Engine"""
         try:
-            # This would perform actual vector search
-            # For now, return mock results
+            # Perform actual vector search using Vertex AI Matching Engine
+            from google.cloud.aiplatform import gapic as aip
             
-            mock_results = [
-                {
-                    "chunk_id": f"chunk_{i}",
-                    "score": 0.9 - (i * 0.1),
-                    "content_preview": f"Mock search result {i}",
-                    "source_url": f"https://example.com/result{i}",
-                    "metadata": {"relevance": "high" if i < 3 else "medium"}
-                }
-                for i in range(min(top_k, 5))
-            ]
+            # Create search request
+            index_endpoint = f"projects/{self.settings.project_id}/locations/{self.settings.vector_search_location}/indexEndpoints/session-{session_id}"
             
-            return mock_results
+            request = aip.FindNeighborsRequest(
+                index_endpoint=index_endpoint,
+                queries=[aip.FindNeighborsRequest.Query(
+                    datapoint=aip.IndexDatapoint(
+                        feature_vector=query_embedding
+                    ),
+                    neighbor_count=top_k
+                )]
+            )
+            
+            # Execute search in thread pool
+            def search_vectors():
+                response = self.vector_search_client.find_neighbors(request=request)
+                return response.nearest_neighbors[0].neighbors
+            
+            neighbors = await asyncio.get_event_loop().run_in_executor(None, search_vectors)
+            
+            # Convert to expected format
+            results = []
+            for neighbor in neighbors:
+                results.append({
+                    "chunk_id": neighbor.datapoint.datapoint_id,
+                    "score": neighbor.distance,
+                    "content_preview": neighbor.datapoint.restricts[0].values[0] if neighbor.datapoint.restricts else "",
+                    "source_url": neighbor.datapoint.restricts[1].values[0] if len(neighbor.datapoint.restricts) > 1 else "",
+                    "metadata": {"relevance": "high" if neighbor.distance > 0.8 else "medium"}
+                })
+            
+            return results
             
         except Exception as e:
-            logger.error(f"Failed to search vectors for {session_id}: {e}")
+            logger.exception(f"Failed to search vectors for {session_id}")
             return []
     
     async def delete_vector_index(self, session_id: str, index_id: str) -> bool:
@@ -231,7 +264,7 @@ class GCPVectorManager:
             return True
             
         except Exception as e:
-            logger.error(f"Failed to delete vector index {index_id}: {e}")
+            logger.exception(f"Failed to delete vector index {index_id}")
             return False
     
     async def health_check(self) -> Dict[str, Any]:
@@ -239,11 +272,20 @@ class GCPVectorManager:
         await self._ensure_initialized()
         
         try:
-            # Test basic connectivity
+            # Test basic connectivity with real Vertex AI API call
             start_time = datetime.utcnow()
             
-            # Try to list endpoints (this would be a real API call)
-            # For now, just simulate a successful response
+            # Try to list index endpoints to verify connectivity
+            def test_connectivity():
+                from google.cloud.aiplatform import gapic as aip
+                request = aip.ListIndexEndpointsRequest(
+                    parent=f"projects/{self.settings.project_id}/locations/{self.settings.vector_search_location}"
+                )
+                # Just make the request, don't process all results
+                response = self.vector_search_client.list_index_endpoints(request=request)
+                return len(list(response))  # Consume iterator to ensure API call works
+            
+            endpoint_count = await asyncio.get_event_loop().run_in_executor(None, test_connectivity)
             
             end_time = datetime.utcnow()
             response_time = (end_time - start_time).total_seconds() * 1000
@@ -253,11 +295,12 @@ class GCPVectorManager:
                 "response_time_ms": response_time,
                 "vector_search_location": self.settings.vector_search_location,
                 "embedding_model": self.settings.embedding_model,
-                "vector_dimensions": self.settings.vector_dimensions
+                "vector_dimensions": self.settings.vector_dimensions,
+                "endpoint_count": endpoint_count
             }
             
         except Exception as e:
-            logger.error(f"Vertex AI health check failed: {e}")
+            logger.exception("Vertex AI health check failed")
             return {
                 "status": "unhealthy",
                 "error": str(e)

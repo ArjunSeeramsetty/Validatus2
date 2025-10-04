@@ -49,7 +49,7 @@ class GCPSQLManager:
             logger.info("Cloud SQL connection pool initialized")
             
         except Exception as e:
-            logger.error(f"Failed to initialize Cloud SQL pool: {e}")
+            logger.exception("Failed to initialize Cloud SQL pool")
             raise
     
     async def close(self):
@@ -121,7 +121,7 @@ class GCPSQLManager:
                 )
                 
         except Exception as e:
-            logger.error(f"Failed to create topic in Cloud SQL: {e}")
+            logger.exception("Failed to create topic in Cloud SQL")
             raise
     
     async def get_topic(self, session_id: str, user_id: str) -> Optional[TopicResponse]:
@@ -156,7 +156,7 @@ class GCPSQLManager:
                 )
                 
         except Exception as e:
-            logger.error(f"Failed to get topic {session_id}: {e}")
+            logger.exception(f"Failed to get topic {session_id}")
             return None
     
     async def list_topics(self, user_id: str, page: int = 1, page_size: int = 20,
@@ -211,7 +211,7 @@ class GCPSQLManager:
                 )
                 
         except Exception as e:
-            logger.error(f"Failed to list topics for user {user_id}: {e}")
+            logger.exception(f"Failed to list topics for user {user_id}")
             return TopicListResponse(topics=[], total=0, page=page, page_size=page_size, has_next=False, has_previous=False)
     
     async def update_topic_status(self, session_id: str, status: TopicStatus, 
@@ -248,7 +248,7 @@ class GCPSQLManager:
                     return success
                     
         except Exception as e:
-            logger.error(f"Failed to update topic status {session_id}: {e}")
+            logger.exception(f"Failed to update topic status {session_id}")
             return False
     
     async def store_urls(self, session_id: str, urls: List[str], source: str = "search") -> int:
@@ -273,7 +273,7 @@ class GCPSQLManager:
                 return stored_count
                 
         except Exception as e:
-            logger.error(f"Failed to store URLs for session {session_id}: {e}")
+            logger.exception(f"Failed to store URLs for session {session_id}")
             return 0
     
     async def update_url_content(self, session_id: str, url: str, 
@@ -313,7 +313,7 @@ class GCPSQLManager:
                 return success
                 
         except Exception as e:
-            logger.error(f"Failed to update URL content for {url}: {e}")
+            logger.exception(f"Failed to update URL content for {url}")
             return False
     
     async def get_urls_for_scraping(self, session_id: str, status: str = "pending", 
@@ -334,7 +334,7 @@ class GCPSQLManager:
                 return [dict(result) for result in results]
                 
         except Exception as e:
-            logger.error(f"Failed to get URLs for scraping {session_id}: {e}")
+            logger.exception(f"Failed to get URLs for scraping {session_id}")
             return []
     
     # Helper methods
@@ -377,3 +377,44 @@ class GCPSQLManager:
                 ON CONFLICT (session_id, url) DO NOTHING
             """
             await conn.execute(query, session_id, url)
+    
+    async def _get_topic_stats_aggregated(self, user_id: str) -> Dict[str, Any]:
+        """Get topic statistics using server-side aggregation"""
+        try:
+            async with self.get_connection() as conn:
+                query = """
+                    SELECT 
+                        COUNT(*) as total_topics,
+                        COUNT(CASE WHEN status = 'CREATED' THEN 1 END) as created_count,
+                        COUNT(CASE WHEN status = 'IN_PROGRESS' THEN 1 END) as in_progress_count,
+                        COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) as completed_count,
+                        COUNT(CASE WHEN status = 'FAILED' THEN 1 END) as failed_count,
+                        COUNT(CASE WHEN analysis_type = 'standard' THEN 1 END) as standard_count,
+                        COUNT(CASE WHEN analysis_type = 'comprehensive' THEN 1 END) as comprehensive_count
+                    FROM topics 
+                    WHERE user_id = $1
+                """
+                
+                result = await conn.fetchrow(query, user_id)
+                
+                return {
+                    "total_topics": result['total_topics'],
+                    "topics_by_status": {
+                        "CREATED": result['created_count'],
+                        "IN_PROGRESS": result['in_progress_count'],
+                        "COMPLETED": result['completed_count'],
+                        "FAILED": result['failed_count']
+                    },
+                    "topics_by_type": {
+                        "standard": result['standard_count'],
+                        "comprehensive": result['comprehensive_count']
+                    }
+                }
+                
+        except Exception as e:
+            logger.exception(f"Failed to get aggregated topic stats for user {user_id}")
+            return {
+                "total_topics": 0,
+                "topics_by_status": {},
+                "topics_by_type": {}
+            }

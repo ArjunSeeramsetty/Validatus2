@@ -1,6 +1,6 @@
 """
 Topic Service for Validatus Platform
-Handles topic CRUD operations with Google Cloud Firestore
+Handles topic CRUD operations with database persistence
 """
 import logging
 from typing import List, Optional, Dict, Any
@@ -25,17 +25,17 @@ logger = logging.getLogger(__name__)
 
 
 class TopicService:
-    """Service for managing topics with Firestore persistence"""
+    """Service for managing topics with database persistence"""
     
     def __init__(self):
         self.settings = None
         self.db = None
         self._use_database = True  # Use SQLite database for persistence
         self._local_storage = {}  # In-memory storage for local development
-        self._initialize_firestore()
+        self._initialize_storage()
     
-    def _initialize_firestore(self):
-        """Initialize Firestore client"""
+    def _initialize_storage(self):
+        """Initialize storage system"""
         try:
             import os
             
@@ -43,38 +43,15 @@ class TopicService:
             logger.info(f"TopicService initializing - instance ID: {id(self)}")
             logger.info("Using SQLite database for persistent storage")
             self.db = None
-            self._use_local_fallback = False  # Use database instead of in-memory
+            self._use_local_fallback = True  # Use database instead of in-memory
             logger.info(f"TopicService initialized with database persistence")
-            return
             
-            # Original logic (commented out for now):
-            # if os.getenv('LOCAL_DEVELOPMENT_MODE', '').lower() == 'true':
-            #     logger.info("Local development mode detected - using in-memory storage")
-            #     self.db = None
-            #     self._use_local_fallback = True
-            #     return
-            
-            # # Try to get settings for Firestore initialization
-            # try:
-            #     self.settings = get_gcp_settings()
-            # except Exception as e:
-            #     logger.warning(f"Failed to load GCP settings: {e}")
-            #     logger.info("Using local in-memory storage for development")
-            #     self.db = None
-            #     self._use_local_fallback = True
-            #     return
-            
-            # # Initialize Firestore client
-            # # In GCP, this will use the default service account
-            # # For local development, it will use application default credentials
-            # self.db = firestore.Client(project=self.settings.project_id)
-            # logger.info("Firestore client initialized successfully")
-            # self._use_local_fallback = False
         except Exception as e:
-            logger.error(f"Failed to initialize Firestore: {e}")
-            logger.info("Using local in-memory storage for development")
+            logger.exception("Failed to initialize storage")
+            # Fallback to local storage
             self.db = None
             self._use_local_fallback = True
+            logger.info("Using local in-memory storage for development")
     
     def _generate_session_id(self) -> str:
         """Generate a unique session ID"""
@@ -87,7 +64,7 @@ class TopicService:
         return f"topic_{timestamp}_{random_suffix}"
     
     def _topic_config_to_dict(self, topic: TopicConfig) -> Dict[str, Any]:
-        """Convert TopicConfig to dictionary for Firestore storage"""
+        """Convert TopicConfig to dictionary for storage"""
         return {
             "session_id": topic.session_id,
             "topic": topic.topic,
@@ -103,7 +80,7 @@ class TopicService:
         }
     
     def _dict_to_topic_config(self, data: Dict[str, Any]) -> TopicConfig:
-        """Convert Firestore document to TopicConfig"""
+        """Convert dictionary to TopicConfig"""
         return TopicConfig(
             session_id=data["session_id"],
             topic=data["topic"],
@@ -362,7 +339,7 @@ class TopicService:
                 return True
             else:
                 if not self.db:
-                    raise Exception("Firestore not initialized")
+                    raise Exception("Storage not initialized")
                 
                 # Get topic to check ownership
                 topic_ref = self.db.collection('topics').document(session_id)
@@ -378,10 +355,10 @@ class TopicService:
                     logger.warning(f"User {user_id} attempted to delete topic {session_id} owned by {topic_data.get('user_id')}")
                     return False
                 
-                # Delete from Firestore
+                # Delete from storage
                 topic_ref.delete()
                 
-                logger.info(f"Topic deleted successfully from Firestore: {session_id}")
+                logger.info(f"Topic deleted successfully from storage: {session_id}")
                 return True
             
         except Exception as e:
@@ -539,7 +516,7 @@ class TopicService:
                 )
             else:
                 if not self.db:
-                    raise Exception("Firestore not initialized")
+                    raise Exception("Storage not initialized")
             
             # Build base query
             query = self.db.collection('topics')
@@ -693,7 +670,7 @@ class TopicService:
                 }
             else:
                 if not self.db:
-                    raise Exception("Firestore not initialized")
+                    raise Exception("Storage not initialized")
             
             # Get all topics for user
             query = self.db.collection('topics').where('user_id', '==', user_id)
@@ -764,9 +741,9 @@ class TopicService:
                 logger.info(f"Updated topic status: {session_id} -> {status.value}")
                 return True
             else:
-                # Firestore implementation
+                # Storage implementation
                 if not self.db:
-                    raise Exception("Firestore not initialized")
+                    raise Exception("Storage not initialized")
                 
                 topic_ref = self.db.collection('topics').document(session_id)
                 topic_doc = topic_ref.get()
@@ -791,7 +768,7 @@ class TopicService:
                 
                 topic_ref.update(update_data)
                 
-                logger.info(f"Updated topic status in Firestore: {session_id} -> {status.value}")
+                logger.info(f"Updated topic status in storage: {session_id} -> {status.value}")
                 return True
                 
         except Exception as e:
@@ -824,9 +801,9 @@ class TopicService:
                         ))
                 return user_topics
             else:
-                # Firestore implementation
+                # Storage implementation
                 if not self.db:
-                    raise Exception("Firestore not initialized")
+                    raise Exception("Storage not initialized")
                 
                 query = (self.db.collection('topics')
                         .where('user_id', '==', user_id)

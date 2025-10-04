@@ -27,9 +27,9 @@ class GCPPersistenceSettings(BaseSettings):
     cloud_sql_connection_name: Optional[str] = None
     
     # Cloud Storage Configuration
-    content_storage_bucket: str = Field(env="CONTENT_STORAGE_BUCKET")
-    embeddings_storage_bucket: str = Field(env="EMBEDDINGS_STORAGE_BUCKET")
-    reports_storage_bucket: str = Field(env="REPORTS_STORAGE_BUCKET")
+    content_storage_bucket: Optional[str] = Field(default=None, env="CONTENT_STORAGE_BUCKET")
+    embeddings_storage_bucket: Optional[str] = Field(default=None, env="EMBEDDINGS_STORAGE_BUCKET")
+    reports_storage_bucket: Optional[str] = Field(default=None, env="REPORTS_STORAGE_BUCKET")
     
     # Vertex AI Vector Search Configuration
     vector_search_location: str = Field(default="us-central1", env="VECTOR_SEARCH_LOCATION")
@@ -41,7 +41,7 @@ class GCPPersistenceSettings(BaseSettings):
     spanner_database_id: str = Field(default="validatus-analytics", env="SPANNER_DATABASE_ID")
     
     # Memorystore Redis Configuration
-    redis_host: str = Field(env="REDIS_HOST")
+    redis_host: Optional[str] = Field(default="localhost", env="REDIS_HOST")
     redis_port: int = Field(default=6379, env="REDIS_PORT")
     redis_password: Optional[str] = Field(default=None, env="REDIS_PASSWORD")
     
@@ -70,11 +70,11 @@ class GCPPersistenceSettings(BaseSettings):
             self.cloud_sql_connection_name = f"{self.project_id}:{self.region}:{self.cloud_sql_instance}"
             
             # Build storage bucket names if not provided
-            if not hasattr(self, 'content_storage_bucket') or not self.content_storage_bucket:
+            if self.content_storage_bucket in (None, ""):
                 self.content_storage_bucket = f"{self.project_id}-validatus-content"
-            if not hasattr(self, 'embeddings_storage_bucket') or not self.embeddings_storage_bucket:
+            if self.embeddings_storage_bucket in (None, ""):
                 self.embeddings_storage_bucket = f"{self.project_id}-validatus-embeddings"
-            if not hasattr(self, 'reports_storage_bucket') or not self.reports_storage_bucket:
+            if self.reports_storage_bucket in (None, ""):
                 self.reports_storage_bucket = f"{self.project_id}-validatus-reports"
     
     def get_secret(self, secret_name: str) -> str:
@@ -83,13 +83,19 @@ class GCPPersistenceSettings(BaseSettings):
             return os.getenv(secret_name, "")
             
         try:
+            from google.api_core import exceptions as gcp_exceptions
+            import grpc
+            
             client = secretmanager.SecretManagerServiceClient()
             name = f"projects/{self.project_id}/secrets/{secret_name}/versions/latest"
             response = client.access_secret_version(request={"name": name})
             return response.payload.data.decode("UTF-8")
+        except (gcp_exceptions.GoogleAPIError, grpc.RpcError) as e:
+            logger.exception(f"Failed to retrieve secret {secret_name} from Secret Manager")
+            raise RuntimeError(f"Secret retrieval failed for {secret_name}") from e
         except Exception as e:
-            logger.error(f"Failed to retrieve secret {secret_name}: {e}")
-            return ""
+            logger.exception(f"Unexpected error retrieving secret {secret_name}")
+            raise RuntimeError(f"Unexpected secret retrieval error for {secret_name}") from e
     
     def get_cloud_sql_url(self) -> str:
         """Generate Cloud SQL connection URL"""
@@ -100,10 +106,10 @@ class GCPPersistenceSettings(BaseSettings):
         
         if self.use_iam_auth:
             # Use Cloud SQL Proxy with IAM authentication
-            return f"postgresql+asyncpg://{self.cloud_sql_user}@/{self.cloud_sql_database}?host=/cloudsql/{self.cloud_sql_connection_name}"
+            return f"postgresql://{self.cloud_sql_user}@/{self.cloud_sql_database}?host=/cloudsql/{self.cloud_sql_connection_name}"
         else:
             # Use password authentication
-            return f"postgresql+asyncpg://{self.cloud_sql_user}:{password}@/{self.cloud_sql_database}?host=/cloudsql/{self.cloud_sql_connection_name}"
+            return f"postgresql://{self.cloud_sql_user}:{password}@/{self.cloud_sql_database}?host=/cloudsql/{self.cloud_sql_connection_name}"
     
     class Config:
         env_file = ".env"

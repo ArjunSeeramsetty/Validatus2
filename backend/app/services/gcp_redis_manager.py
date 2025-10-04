@@ -70,6 +70,22 @@ class GCPRedisManager:
         if not self._initialized:
             await self.initialize()
     
+    def _ensure_json_serializable(self, data: Any) -> Any:
+        """Convert data to JSON-serializable format"""
+        if isinstance(data, dict):
+            return {key: self._ensure_json_serializable(value) for key, value in data.items()}
+        elif isinstance(data, list):
+            return [self._ensure_json_serializable(item) for item in data]
+        elif isinstance(data, (str, int, float, bool, type(None))):
+            return data
+        elif hasattr(data, 'isoformat'):  # datetime objects
+            return data.isoformat()
+        elif hasattr(data, '__dict__'):  # custom objects
+            return self._ensure_json_serializable(data.__dict__)
+        else:
+            # For unknown types, raise TypeError to surface serialization issues
+            raise TypeError(f"Object of type {type(data)} is not JSON serializable")
+    
     # Session Management
     async def cache_session_data(self, session_id: str, data: Dict[str, Any], ttl: int = 3600):
         """Cache session data with TTL"""
@@ -77,7 +93,9 @@ class GCPRedisManager:
         
         try:
             key = f"session:{session_id}"
-            await self.client.setex(key, ttl, json.dumps(data, default=str))
+            # Ensure data is JSON-serializable before calling json.dumps
+            serializable_data = self._ensure_json_serializable(data)
+            await self.client.setex(key, ttl, json.dumps(serializable_data))
             logger.debug(f"Cached session data for {session_id}")
             
         except Exception as e:
@@ -332,33 +350,55 @@ class GCPRedisManager:
     
     # Rate Limiting
     async def check_rate_limit(self, user_id: str, action: str, limit: int, window_seconds: int = 3600) -> bool:
-        """Check if user is within rate limit for an action"""
+        """Check if user is within rate limit for an action using atomic Lua script"""
         await self._ensure_initialized()
         
         try:
             key = f"rate_limit:{user_id}:{action}"
-            
-            # Use sliding window counter
             current_time = datetime.utcnow().timestamp()
             window_start = current_time - window_seconds
+            member = f"{current_time}:{user_id}"  # Unique member
             
-            # Remove old entries
-            await self.client.zremrangebyscore(key, 0, window_start)
+            # Atomic Lua script for rate limiting
+            lua_script = """
+            local key = KEYS[1]
+            local window_start = tonumber(ARGV[1])
+            local current_time = tonumber(ARGV[2])
+            local limit = tonumber(ARGV[3])
+            local member = ARGV[4]
+            local window_seconds = tonumber(ARGV[5])
             
-            # Count current entries
-            current_count = await self.client.zcard(key)
+            -- Remove old entries
+            redis.call('ZREMRANGEBYSCORE', key, 0, window_start)
             
-            if current_count >= limit:
-                return False
+            -- Get current count
+            local count = redis.call('ZCARD', key)
             
-            # Add current request
-            await self.client.zadd(key, {str(current_time): current_time})
-            await self.client.expire(key, window_seconds)
+            if count < limit then
+                -- Add current request
+                redis.call('ZADD', key, current_time, member)
+                redis.call('EXPIRE', key, window_seconds)
+                return 1
+            else
+                return 0
+            end
+            """
             
-            return True
+            result = await self.client.eval(
+                lua_script,
+                1,  # number of keys
+                key,
+                window_start,
+                current_time,
+                limit,
+                member,
+                window_seconds
+            )
+            
+            return bool(result)
             
         except Exception as e:
-            logger.error(f"Failed to check rate limit for {user_id}:{action}: {e}")
+            logger.exception(f"Failed to check rate limit for {user_id}:{action}")
             return True  # Allow on error
     
     # Health and Monitoring

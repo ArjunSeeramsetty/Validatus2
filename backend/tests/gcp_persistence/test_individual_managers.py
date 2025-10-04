@@ -173,7 +173,7 @@ class TestGCPSQLManager:
             metadata={}
         )
         
-        topic = await sql_manager.create_topic(request)
+        await sql_manager.create_topic(request)
         
         # Store URLs
         test_urls = [
@@ -460,5 +460,6 @@ class TestGCPSpannerManager:
         assert "spanner_database" in health_status
 
 if __name__ == "__main__":
-    # Run individual manager tests
-    asyncio.run(test_integration_end_to_end())
+    # Run individual manager tests using pytest
+    import pytest
+    pytest.main([__file__, "-v"])

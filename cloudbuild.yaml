@@ -36,7 +36,7 @@ steps:
   - --timeout
   - '900'
   - --set-env-vars
-  - PROJECT_ID=$PROJECT_ID,ENVIRONMENT=production,GCLOUD_PROJECT=$PROJECT_ID
+  - PROJECT_ID=$PROJECT_ID,ENVIRONMENT=production,GCLOUD_PROJECT=$PROJECT_ID,LOCAL_DEVELOPMENT_MODE=false
   - --allow-unauthenticated
   - --port=8000
 

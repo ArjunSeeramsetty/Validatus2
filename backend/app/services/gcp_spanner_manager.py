@@ -44,7 +44,7 @@ class GCPSpannerManager:
             logger.info("Cloud Spanner Manager initialized")
             
         except Exception as e:
-            logger.error(f"Failed to initialize Cloud Spanner: {e}")
+            logger.exception("Failed to initialize Cloud Spanner")
             raise
     
     async def close(self):
@@ -65,14 +65,48 @@ class GCPSpannerManager:
         await self._ensure_initialized()
         
         try:
-            # This would store workflow results in the analysis_results table
-            # For now, simulate the operation
+            # Store workflow results in the analysis_results table
+            analysis_id = f"workflow_{session_id}_{int(datetime.utcnow().timestamp())}"
+            
+            def store_workflow(transaction):
+                transaction.insert_or_update(
+                    'analysis_results',
+                    columns=[
+                        'session_id', 'analysis_id', 'analysis_type', 'user_id',
+                        'created_at', 'overall_score', 'confidence_score',
+                        'factor_scores', 'segment_scores', 'expert_analysis',
+                        'market_insights', 'competitive_analysis', 'processing_metadata',
+                        'processing_time_ms', 'data_points_analyzed'
+                    ],
+                    values=[(
+                        session_id,
+                        analysis_id,
+                        'workflow',
+                        workflow_result.get('user_id', 'unknown'),
+                        datetime.utcnow(),
+                        workflow_result.get('overall_score'),
+                        workflow_result.get('confidence_score'),
+                        json.dumps(workflow_result.get('factor_scores', {})),
+                        json.dumps(workflow_result.get('segment_scores', {})),
+                        json.dumps(workflow_result.get('expert_analysis', {})),
+                        json.dumps(workflow_result.get('market_insights', {})),
+                        json.dumps(workflow_result.get('competitive_analysis', {})),
+                        json.dumps(workflow_result.get('processing_metadata', {})),
+                        workflow_result.get('processing_time_ms', 0),
+                        workflow_result.get('data_points_analyzed', 0)
+                    )]
+                )
+            
+            await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: self.database.run_in_transaction(store_workflow)
+            )
             
             logger.info(f"Stored workflow results for session {session_id}")
             return True
             
         except Exception as e:
-            logger.error(f"Failed to store workflow results for {session_id}: {e}")
+            logger.exception(f"Failed to store workflow results for {session_id}")
             return False
     
     async def store_analysis_results(self, session_id: str, analysis_result: Dict[str, Any]) -> bool:
@@ -80,14 +114,48 @@ class GCPSpannerManager:
         await self._ensure_initialized()
         
         try:
-            # This would store analysis results in the analysis_results table
-            # For now, simulate the operation
+            # Store analysis results in the analysis_results table
+            analysis_id = f"analysis_{session_id}_{int(datetime.utcnow().timestamp())}"
+            
+            def store_analysis(transaction):
+                transaction.insert_or_update(
+                    'analysis_results',
+                    columns=[
+                        'session_id', 'analysis_id', 'analysis_type', 'user_id',
+                        'created_at', 'overall_score', 'confidence_score',
+                        'factor_scores', 'segment_scores', 'expert_analysis',
+                        'market_insights', 'competitive_analysis', 'processing_metadata',
+                        'processing_time_ms', 'data_points_analyzed'
+                    ],
+                    values=[(
+                        session_id,
+                        analysis_id,
+                        analysis_result.get('analysis_type', 'comprehensive'),
+                        analysis_result.get('user_id', 'unknown'),
+                        datetime.utcnow(),
+                        analysis_result.get('overall_score'),
+                        analysis_result.get('confidence_score'),
+                        json.dumps(analysis_result.get('factor_scores', {})),
+                        json.dumps(analysis_result.get('segment_scores', {})),
+                        json.dumps(analysis_result.get('expert_analysis', {})),
+                        json.dumps(analysis_result.get('market_insights', {})),
+                        json.dumps(analysis_result.get('competitive_analysis', {})),
+                        json.dumps(analysis_result.get('processing_metadata', {})),
+                        analysis_result.get('processing_time_ms', 0),
+                        analysis_result.get('data_points_analyzed', 0)
+                    )]
+                )
+            
+            await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: self.database.run_in_transaction(store_analysis)
+            )
             
             logger.info(f"Stored analysis results for session {session_id}")
             return True
             
         except Exception as e:
-            logger.error(f"Failed to store analysis results for {session_id}: {e}")
+            logger.exception(f"Failed to store analysis results for {session_id}")
             return False
     
     async def get_user_analytics(self, user_id: str, days: int = 30) -> Dict[str, Any]:
@@ -114,7 +182,7 @@ class GCPSpannerManager:
             return mock_analytics
             
         except Exception as e:
-            logger.error(f"Failed to get user analytics for {user_id}: {e}")
+            logger.exception(f"Failed to get user analytics for {user_id}")
             return {}
     
     async def get_market_intelligence(self, market_segment: str, 
@@ -155,10 +223,10 @@ class GCPSpannerManager:
             return mock_intelligence
             
         except Exception as e:
-            logger.error(f"Failed to get market intelligence for {market_segment}: {e}")
+            logger.exception(f"Failed to get market intelligence for {market_segment}")
             return {}
     
-    async def get_cross_topic_insights(self, user_id: str, insight_types: List[str] = None) -> List[Dict[str, Any]]:
+    async def get_cross_topic_insights(self, user_id: str, insight_types: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Get cross-topic insights for pattern recognition"""
         await self._ensure_initialized()
         
@@ -194,7 +262,7 @@ class GCPSpannerManager:
             return mock_insights
             
         except Exception as e:
-            logger.error(f"Failed to get cross-topic insights for {user_id}: {e}")
+            logger.exception(f"Failed to get cross-topic insights for {user_id}")
             return []
     
     async def store_cross_topic_insight(self, user_id: str, insight_data: Dict[str, Any]) -> bool:
@@ -211,7 +279,7 @@ class GCPSpannerManager:
             return True
             
         except Exception as e:
-            logger.error(f"Failed to store cross-topic insight for {user_id}: {e}")
+            logger.exception(f"Failed to store cross-topic insight for {user_id}")
             return False
     
     async def update_user_analytics(self, user_id: str, analytics_data: Dict[str, Any]) -> bool:
@@ -226,7 +294,7 @@ class GCPSpannerManager:
             return True
             
         except Exception as e:
-            logger.error(f"Failed to update user analytics for {user_id}: {e}")
+            logger.exception(f"Failed to update user analytics for {user_id}")
             return False
     
     async def aggregate_market_intelligence(self, market_segment: str, 
@@ -243,7 +311,7 @@ class GCPSpannerManager:
             return True
             
         except Exception as e:
-            logger.error(f"Failed to aggregate market intelligence for {market_segment}: {e}")
+            logger.exception(f"Failed to aggregate market intelligence for {market_segment}")
             return False
     
     async def health_check(self) -> Dict[str, Any]:
@@ -253,9 +321,14 @@ class GCPSpannerManager:
         try:
             start_time = datetime.utcnow()
             
-            # Test basic connectivity
-            # This would perform a simple query
-            # For now, simulate a successful response
+            # Test basic connectivity with a real query
+            def test_connectivity(transaction):
+                return list(transaction.execute_sql("SELECT 1 as test"))
+            
+            result = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: self.database.run_in_transaction(test_connectivity)
+            )
             
             end_time = datetime.utcnow()
             response_time = (end_time - start_time).total_seconds() * 1000
@@ -269,7 +342,7 @@ class GCPSpannerManager:
             }
             
         except Exception as e:
-            logger.error(f"Cloud Spanner health check failed: {e}")
+            logger.exception("Cloud Spanner health check failed")
             return {
                 "status": "unhealthy",
                 "error": str(e)

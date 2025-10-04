@@ -44,21 +44,36 @@ class GCPPersistenceManager:
             return
         
         try:
-            # Initialize services in parallel for faster startup
-            await asyncio.gather(
-                self.sql_manager.initialize(),
-                self.redis_manager.initialize(),
-                self.vector_manager.initialize(),
-                self.spanner_manager.initialize(),
-                return_exceptions=True
-            )
-            
-            self._initialized = True
-            logger.info("✅ All GCP services initialized successfully")
+            if self.settings.local_development_mode:
+                logger.info("🔧 Initializing in LOCAL DEVELOPMENT mode")
+                
+                # For local development, only initialize Redis if available
+                try:
+                    await self.redis_manager.initialize()
+                    logger.info("✅ Redis initialized for local development")
+                except Exception as e:
+                    logger.warning(f"⚠️ Redis not available in local mode: {e}")
+                
+                # Skip other services for local development
+                self._initialized = True
+                logger.info("✅ Local development mode initialized")
+            else:
+                # Initialize services in parallel for faster startup
+                await asyncio.gather(
+                    self.sql_manager.initialize(),
+                    self.redis_manager.initialize(),
+                    self.vector_manager.initialize(),
+                    self.spanner_manager.initialize(),
+                    return_exceptions=True
+                )
+                
+                self._initialized = True
+                logger.info("✅ All GCP services initialized successfully")
             
         except Exception as e:
-            logger.error(f"Failed to initialize GCP services: {e}")
-            raise
+            logger.exception("Failed to initialize GCP services")
+            if not self.settings.local_development_mode:
+                raise
     
     async def close(self):
         """Close all service connections"""
@@ -75,7 +90,7 @@ class GCPPersistenceManager:
             logger.info("All GCP service connections closed")
             
         except Exception as e:
-            logger.error(f"Error closing GCP services: {e}")
+            logger.exception("Error closing GCP services")
     
     async def _ensure_initialized(self):
         """Ensure all services are initialized"""
@@ -151,7 +166,7 @@ class GCPPersistenceManager:
             return topic_response
             
         except Exception as e:
-            logger.error(f"Failed to create topic with complete persistence: {e}")
+            logger.exception("Failed to create topic with complete persistence")
             # Cleanup any partial state
             await self._cleanup_failed_topic_creation(session_id if 'session_id' in locals() else None)
             raise
@@ -200,7 +215,7 @@ class GCPPersistenceManager:
             return topic_response
             
         except Exception as e:
-            logger.error(f"Failed to get topic {session_id}: {e}")
+            logger.exception(f"Failed to get topic {session_id}")
             return None
     
     async def list_topics_complete(self, user_id: str, **kwargs) -> TopicListResponse:
@@ -233,12 +248,12 @@ class GCPPersistenceManager:
             return topics_response
             
         except Exception as e:
-            logger.error(f"Failed to list topics for user {user_id}: {e}")
+            logger.exception(f"Failed to list topics for user {user_id}")
             return TopicListResponse(topics=[], total=0, page=1, page_size=20, has_next=False, has_previous=False)
     
     # Complete Workflow Execution
     async def execute_complete_workflow(self, session_id: str, user_id: str) -> Dict[str, Any]:
-        """Execute the complete 5-task workflow with full GCP persistence"""
+        """Execute the complete 5-task workflow with full GCP persistence and rollback capability"""
         await self._ensure_initialized()
         
         workflow_result = {
@@ -248,6 +263,9 @@ class GCPPersistenceManager:
             "overall_status": "in_progress",
             "started_at": datetime.utcnow().isoformat()
         }
+        
+        # Initialize workflow checkpoint tracking
+        completed_stages = []
         
         try:
             # Update topic status to IN_PROGRESS
@@ -264,6 +282,8 @@ class GCPPersistenceManager:
             
             urls_result = await self._execute_url_collection_stage(session_id)
             workflow_result["stages"]["url_collection"] = urls_result
+            completed_stages.append("url_collection")
+            await self._create_workflow_checkpoint(session_id, "URL_COLLECTION", completed_stages)
             
             # Stage 2: URL Scraping and Content Storage
             logger.info(f"Stage 2: URL Scraping for {session_id}")
@@ -271,6 +291,8 @@ class GCPPersistenceManager:
             
             scraping_result = await self._execute_scraping_stage(session_id)
             workflow_result["stages"]["url_scraping"] = scraping_result
+            completed_stages.append("url_scraping")
+            await self._create_workflow_checkpoint(session_id, "URL_SCRAPING", completed_stages)
             
             # Stage 3: Vector Store Creation
             logger.info(f"Stage 3: Vector Store Creation for {session_id}")
@@ -278,6 +300,8 @@ class GCPPersistenceManager:
             
             vector_result = await self._execute_vector_creation_stage(session_id)
             workflow_result["stages"]["vector_creation"] = vector_result
+            completed_stages.append("vector_creation")
+            await self._create_workflow_checkpoint(session_id, "VECTOR_CREATION", completed_stages)
             
             # Stage 4: Analysis Execution
             logger.info(f"Stage 4: Analysis Execution for {session_id}")
@@ -285,6 +309,8 @@ class GCPPersistenceManager:
             
             analysis_result = await self._execute_analysis_stage(session_id)
             workflow_result["stages"]["analysis"] = analysis_result
+            completed_stages.append("analysis")
+            await self._create_workflow_checkpoint(session_id, "ANALYSIS", completed_stages)
             
             # Stage 5: Complete and Store Results
             logger.info(f"Stage 5: Finalizing results for {session_id}")
@@ -320,14 +346,17 @@ class GCPPersistenceManager:
             return workflow_result
             
         except Exception as e:
-            logger.error(f"Workflow failed for {session_id}: {e}")
+            logger.exception(f"Workflow failed for {session_id}")
+            
+            # Execute rollback/compensation for completed stages
+            await self._execute_workflow_rollback(session_id, completed_stages)
             
             # Update failure status
             await self.sql_manager.update_topic_status(
                 session_id, 
                 TopicStatus.FAILED, 
                 user_id,
-                {"workflow_failed": True, "error": str(e)}
+                {"workflow_failed": True, "error": str(e), "rollback_executed": True}
             )
             
             await self._update_workflow_progress(
@@ -339,6 +368,7 @@ class GCPPersistenceManager:
             
             workflow_result["overall_status"] = "failed"
             workflow_result["error"] = str(e)
+            workflow_result["rollback_executed"] = True
             
             raise
     
@@ -383,7 +413,7 @@ class GCPPersistenceManager:
             }
             
         except Exception as e:
-            logger.error(f"URL collection stage failed for {session_id}: {e}")
+            logger.exception(f"URL collection stage failed for {session_id}")
             return {
                 "status": "failed",
                 "error": str(e),
@@ -445,7 +475,7 @@ class GCPPersistenceManager:
                         documents_processed += 1
                 
                 except Exception as url_error:
-                    logger.error(f"Failed to scrape {url}: {url_error}")
+                    logger.exception(f"Failed to scrape {url}")
                     continue
             
             return {
@@ -455,7 +485,7 @@ class GCPPersistenceManager:
             }
             
         except Exception as e:
-            logger.error(f"Scraping stage failed for {session_id}: {e}")
+            logger.exception(f"Scraping stage failed for {session_id}")
             return {
                 "status": "failed",
                 "error": str(e),
@@ -476,7 +506,7 @@ class GCPPersistenceManager:
             }
             
         except Exception as e:
-            logger.error(f"Vector creation stage failed for {session_id}: {e}")
+            logger.exception(f"Vector creation stage failed for {session_id}")
             return {
                 "status": "failed",
                 "error": str(e),
@@ -518,7 +548,7 @@ class GCPPersistenceManager:
             }
             
         except Exception as e:
-            logger.error(f"Analysis stage failed for {session_id}: {e}")
+            logger.exception(f"Analysis stage failed for {session_id}")
             return {
                 "status": "failed",
                 "error": str(e),
@@ -526,6 +556,137 @@ class GCPPersistenceManager:
             }
     
     # Helper Methods
+    async def _create_workflow_checkpoint(self, session_id: str, stage: str, completed_stages: List[str]):
+        """Create a durable checkpoint for workflow progress"""
+        try:
+            checkpoint_data = {
+                "stage": stage,
+                "completed_stages": completed_stages,
+                "timestamp": datetime.utcnow().isoformat(),
+                "checkpoint_id": f"{session_id}_{stage}_{int(datetime.utcnow().timestamp())}"
+            }
+            
+            # Store checkpoint in Redis for fast access
+            await self.redis_manager.cache_workflow_progress(
+                session_id, 
+                checkpoint_data, 
+                ttl=86400  # 24 hours
+            )
+            
+            # Also store in SQL for durability
+            async with self.sql_manager.get_connection() as conn:
+                await conn.execute(
+                    """
+                    INSERT INTO workflow_checkpoints (session_id, stage, completed_stages, checkpoint_data, created_at)
+                    VALUES ($1, $2, $3, $4, NOW())
+                    ON CONFLICT (session_id, stage) DO UPDATE SET
+                        completed_stages = $3,
+                        checkpoint_data = $4,
+                        created_at = NOW()
+                    """,
+                    session_id, stage, completed_stages, checkpoint_data
+                )
+            
+            logger.debug(f"Created workflow checkpoint for {session_id} at stage {stage}")
+            
+        except Exception as e:
+            logger.exception(f"Failed to create workflow checkpoint for {session_id}")
+    
+    async def _execute_workflow_rollback(self, session_id: str, completed_stages: List[str]):
+        """Execute rollback/compensation for completed workflow stages"""
+        try:
+            logger.info(f"Executing rollback for {session_id} - completed stages: {completed_stages}")
+            
+            # Execute rollback in reverse order (LIFO)
+            for stage in reversed(completed_stages):
+                try:
+                    await self._rollback_stage(session_id, stage)
+                    logger.info(f"Successfully rolled back stage {stage} for {session_id}")
+                except Exception as stage_error:
+                    logger.exception(f"Failed to rollback stage {stage} for {session_id}")
+                    # Continue with other stages even if one fails
+            
+            # Clear workflow checkpoints
+            await self._clear_workflow_checkpoints(session_id)
+            
+            logger.info(f"Rollback completed for {session_id}")
+            
+        except Exception as e:
+            logger.exception(f"Failed to execute workflow rollback for {session_id}")
+    
+    async def _rollback_stage(self, session_id: str, stage: str):
+        """Rollback a specific workflow stage"""
+        if stage == "url_collection":
+            await self._rollback_url_collection(session_id)
+        elif stage == "url_scraping":
+            await self._rollback_url_scraping(session_id)
+        elif stage == "vector_creation":
+            await self._rollback_vector_creation(session_id)
+        elif stage == "analysis":
+            await self._rollback_analysis(session_id)
+    
+    async def _rollback_url_collection(self, session_id: str):
+        """Rollback URL collection stage"""
+        # Clear URL queue and collected URLs
+        await self.redis_manager.client.delete(f"queue:scraping:{session_id}")
+        await self.redis_manager.client.delete(f"urls:collected:{session_id}")
+        
+        # Mark URLs as deleted in SQL
+        async with self.sql_manager.get_connection() as conn:
+            await conn.execute(
+                "UPDATE topic_urls SET status = 'deleted' WHERE session_id = $1",
+                session_id
+            )
+    
+    async def _rollback_url_scraping(self, session_id: str):
+        """Rollback URL scraping stage"""
+        # Delete scraped content from Cloud Storage
+        deleted_count = await self.storage_manager.batch_delete_content(session_id)
+        logger.info(f"Deleted {deleted_count} scraped content objects for {session_id}")
+        
+        # Mark URLs as pending for re-scraping
+        async with self.sql_manager.get_connection() as conn:
+            await conn.execute(
+                "UPDATE topic_urls SET status = 'pending', content_storage_path = NULL WHERE session_id = $1",
+                session_id
+            )
+    
+    async def _rollback_vector_creation(self, session_id: str):
+        """Rollback vector creation stage"""
+        # Delete vector index from Vertex AI
+        await self.vector_manager.delete_vector_index(session_id, f"index_{session_id}")
+        
+        # Clear vector embeddings metadata
+        async with self.sql_manager.get_connection() as conn:
+            await conn.execute(
+                "DELETE FROM vector_embeddings WHERE session_id = $1",
+                session_id
+            )
+    
+    async def _rollback_analysis(self, session_id: str):
+        """Rollback analysis stage"""
+        # Delete analysis results from Spanner
+        await self.spanner_manager.delete_analysis_results(session_id)
+        
+        # Clear analysis sessions metadata
+        async with self.sql_manager.get_connection() as conn:
+            await conn.execute(
+                "DELETE FROM analysis_sessions WHERE session_id = $1",
+                session_id
+            )
+    
+    async def _clear_workflow_checkpoints(self, session_id: str):
+        """Clear workflow checkpoints"""
+        # Clear from Redis
+        await self.redis_manager.client.delete(f"workflow:progress:{session_id}")
+        
+        # Clear from SQL
+        async with self.sql_manager.get_connection() as conn:
+            await conn.execute(
+                "DELETE FROM workflow_checkpoints WHERE session_id = $1",
+                session_id
+            )
+    
     async def _update_workflow_progress(self, session_id: str, stage: str, 
                                       percentage: int, message: str):
         """Update workflow progress in Redis"""
@@ -552,7 +713,7 @@ class GCPPersistenceManager:
             logger.info(f"Cleaned up failed topic creation: {session_id}")
             
         except Exception as e:
-            logger.error(f"Failed to cleanup failed topic creation {session_id}: {e}")
+            logger.exception(f"Failed to cleanup failed topic creation {session_id}")
     
     # Health Check
     async def health_check(self) -> Dict[str, Any]:
@@ -566,37 +727,56 @@ class GCPPersistenceManager:
         }
         
         try:
-            # Check all services in parallel
-            results = await asyncio.gather(
-                self._check_sql_health(),
-                self._check_redis_health(),
-                self._check_storage_health(),
-                self._check_vector_health(),
-                self._check_spanner_health(),
-                return_exceptions=True
-            )
-            
-            service_names = ["sql", "redis", "storage", "vector", "spanner"]
-            
-            for i, result in enumerate(results):
-                service_name = service_names[i]
-                
-                if isinstance(result, Exception):
-                    health_status["services"][service_name] = {
-                        "status": "unhealthy",
-                        "error": str(result)
+            if self.settings.local_development_mode:
+                # For local development, only check Redis if available
+                try:
+                    redis_result = await self._check_redis_health()
+                    health_status["services"]["redis"] = redis_result
+                    if redis_result.get("status") != "healthy":
+                        health_status["overall_status"] = "degraded"
+                except Exception as e:
+                    health_status["services"]["redis"] = {
+                        "status": "unavailable",
+                        "error": str(e)
                     }
                     health_status["overall_status"] = "degraded"
-                else:
-                    health_status["services"][service_name] = result
+                
+                health_status["mode"] = "local_development"
+                health_status["note"] = "Running in local development mode - GCP services not available"
+            else:
+                # Check all services in parallel
+                results = await asyncio.gather(
+                    self._check_sql_health(),
+                    self._check_redis_health(),
+                    self._check_storage_health(),
+                    self._check_vector_health(),
+                    self._check_spanner_health(),
+                    return_exceptions=True
+                )
+                
+                service_names = ["sql", "redis", "storage", "vector", "spanner"]
+                
+                for i, result in enumerate(results):
+                    service_name = service_names[i]
                     
-                    if result.get("status") != "healthy":
+                    if isinstance(result, Exception):
+                        health_status["services"][service_name] = {
+                            "status": "unhealthy",
+                            "error": str(result)
+                        }
                         health_status["overall_status"] = "degraded"
+                    else:
+                        health_status["services"][service_name] = result
+                        
+                        if result.get("status") != "healthy":
+                            health_status["overall_status"] = "degraded"
+                
+                health_status["mode"] = "production"
             
             return health_status
             
         except Exception as e:
-            logger.error(f"Health check failed: {e}")
+            logger.exception("Health check failed")
             return {
                 "overall_status": "unhealthy",
                 "error": str(e),

@@ -6,7 +6,12 @@ Quick test to verify the GCP persistence implementation is working
 import asyncio
 import sys
 import os
+import logging
 from datetime import datetime
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Add backend to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
@@ -123,16 +128,14 @@ async def test_gcp_persistence_integration():
         return True
         
     except Exception as e:
-        print(f"\n❌ GCP PERSISTENCE INTEGRATION TEST FAILED!")
-        print(f"Error: {e}")
-        print("=" * 50)
+        logger.exception("GCP PERSISTENCE INTEGRATION TEST FAILED!")
         
         # Try to close connections even on failure
         try:
             if 'persistence_manager' in locals():
                 await persistence_manager.close()
-        except:
-            pass
+        except Exception as close_error:
+            logger.exception("Failed to close persistence manager")
         
         return False
 

@@ -6,6 +6,15 @@ import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
+# Custom exceptions
+class TopicServiceError(Exception):
+    """Base exception for topic service errors"""
+    pass
+
+class RateLimitExceededError(TopicServiceError):
+    """Exception raised when rate limit is exceeded"""
+    pass
+
 from .gcp_persistence_manager import get_gcp_persistence_manager
 from ..models.topic_models import (
     TopicCreateRequest, TopicResponse, TopicUpdateRequest,
@@ -33,8 +42,8 @@ class TopicService:
             return topic_response
             
         except Exception as e:
-            logger.error(f"Failed to create topic: {e}")
-            raise Exception(f"Failed to create topic: {str(e)}")
+            logger.exception("Failed to create topic")
+            raise Exception(f"Failed to create topic: {str(e)}") from e
     
     async def get_topic(self, session_id: str, user_id: str) -> Optional[TopicResponse]:
         """Get topic with caching optimization"""
@@ -130,7 +139,7 @@ class TopicService:
             )
             
             if not rate_limit_ok:
-                raise Exception("Rate limit exceeded. Please wait before starting another workflow.")
+                raise RateLimitExceededError("Rate limit exceeded. Please wait before starting another workflow.")
             
             # Execute complete workflow
             workflow_result = await self.persistence_manager.execute_complete_workflow(session_id, user_id)
@@ -177,19 +186,13 @@ class TopicService:
     async def get_topic_stats(self, user_id: str) -> Dict[str, Any]:
         """Get comprehensive topic statistics"""
         try:
-            # Get basic stats from SQL
-            topics_response = await self.list_topics(user_id, page=1, page_size=1000)  # Get all for stats
+            # Get basic stats using server-side aggregation instead of fetching all topics
+            # This prevents memory issues with large topic lists
+            stats_response = await self.persistence_manager.sql_manager._get_topic_stats_aggregated(user_id)
             
-            total_topics = topics_response.total
-            topics_by_status = {}
-            topics_by_type = {}
-            
-            for topic in topics_response.topics:
-                status = topic.status.value
-                analysis_type = topic.analysis_type.value
-                
-                topics_by_status[status] = topics_by_status.get(status, 0) + 1
-                topics_by_type[analysis_type] = topics_by_type.get(analysis_type, 0) + 1
+            total_topics = stats_response["total_topics"]
+            topics_by_status = stats_response["topics_by_status"]
+            topics_by_type = stats_response["topics_by_type"]
             
             # Get recent activity from Redis
             recent_activity = await self.persistence_manager.redis_manager.get_recent_user_activity(

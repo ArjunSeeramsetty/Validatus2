@@ -96,7 +96,24 @@ CREATE TABLE analysis_sessions (
     summary_results JSONB DEFAULT '{}'::jsonb,
     
     -- Add constraints
-    CONSTRAINT chk_analysis_status CHECK (status IN ('pending', 'processing', 'completed', 'failed'))
+    CONSTRAINT chk_analysis_status CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    CONSTRAINT chk_analysis_type CHECK (analysis_type IN ('standard', 'comprehensive'))
+);
+
+-- Workflow checkpoints for rollback/compensation
+CREATE TABLE workflow_checkpoints (
+    session_id VARCHAR(50) NOT NULL REFERENCES topics(session_id) ON DELETE CASCADE,
+    stage VARCHAR(50) NOT NULL,
+    completed_stages TEXT[] DEFAULT '{}',
+    checkpoint_data JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    PRIMARY KEY (session_id, stage),
+    
+    -- Add constraints
+    CONSTRAINT chk_checkpoint_stage CHECK (stage IN (
+        'URL_COLLECTION', 'URL_SCRAPING', 'VECTOR_CREATION', 'ANALYSIS', 'COMPLETED'
+    ))
 );
 
 -- Performance indexes
@@ -118,6 +135,10 @@ CREATE INDEX idx_vector_embeddings_url ON vector_embeddings(url_id);
 
 CREATE INDEX idx_analysis_sessions_session_id ON analysis_sessions(session_id);
 CREATE INDEX idx_analysis_sessions_status ON analysis_sessions(status);
+
+CREATE INDEX idx_workflow_checkpoints_session_id ON workflow_checkpoints(session_id);
+CREATE INDEX idx_workflow_checkpoints_stage ON workflow_checkpoints(stage);
+CREATE INDEX idx_workflow_checkpoints_created_at ON workflow_checkpoints(created_at DESC);
 
 -- Full-text search indexes
 CREATE INDEX idx_topics_search ON topics USING GIN (to_tsvector('english', topic || ' ' || description));

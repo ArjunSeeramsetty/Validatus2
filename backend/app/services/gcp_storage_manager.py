@@ -112,7 +112,7 @@ class GCPStorageManager:
             return gcs_path
             
         except Exception as e:
-            logger.error(f"Failed to store scraped content for {url}: {e}")
+            logger.exception(f"Failed to store scraped content for {url}")
             raise
     
     async def get_scraped_content(self, gcs_path: str) -> Optional[str]:
@@ -140,7 +140,7 @@ class GCPStorageManager:
             logger.warning(f"Content not found at {gcs_path}")
             return None
         except Exception as e:
-            logger.error(f"Failed to retrieve content from {gcs_path}: {e}")
+            logger.exception(f"Failed to retrieve content from {gcs_path}")
             return None
     
     async def store_embeddings_data(self, session_id: str, 
@@ -178,7 +178,7 @@ class GCPStorageManager:
             return gcs_path
             
         except Exception as e:
-            logger.error(f"Failed to store embeddings for {session_id}: {e}")
+            logger.exception(f"Failed to store embeddings for {session_id}")
             raise
     
     async def store_analysis_report(self, session_id: str, analysis_id: str,
@@ -220,7 +220,7 @@ class GCPStorageManager:
             return gcs_path
             
         except Exception as e:
-            logger.error(f"Failed to store report for {session_id}/{analysis_id}: {e}")
+            logger.exception(f"Failed to store report for {session_id}/{analysis_id}")
             raise
     
     async def batch_delete_content(self, session_id: str) -> int:
@@ -234,10 +234,12 @@ class GCPStorageManager:
                 blob_names = [blob.name for blob in blobs]
                 
                 if blob_names:
-                    # Batch delete for efficiency
+                    # Batch delete for efficiency - fix closure bug by binding values
+                    current_bucket = bucket
+                    current_blob_names = blob_names
                     await asyncio.get_event_loop().run_in_executor(
                         None,
-                        lambda: bucket.delete_blobs(blob_names)
+                        lambda b=current_bucket, names=current_blob_names: b.delete_blobs(names)
                     )
                     deleted_count += len(blob_names)
             
@@ -245,7 +247,7 @@ class GCPStorageManager:
             return deleted_count
             
         except Exception as e:
-            logger.error(f"Failed to delete content for session {session_id}: {e}")
+            logger.exception(f"Failed to delete content for session {session_id}")
             return 0
     
     def generate_signed_url(self, gcs_path: str, expiration_hours: int = 1) -> str:
@@ -268,5 +270,5 @@ class GCPStorageManager:
             return signed_url
             
         except Exception as e:
-            logger.error(f"Failed to generate signed URL for {gcs_path}: {e}")
+            logger.exception(f"Failed to generate signed URL for {gcs_path}")
             return ""

@@ -71,6 +71,16 @@ async def verify_deployment():
                         print(f"✅ Created topic found in database: {created_topic.get('topic', 'Unknown')}")
                     else:
                         print("⚠️ Created topic not found in database (may be expected if using different storage)")
+                    
+                    # Cleanup: Delete test topic
+                    try:
+                        delete_response = await client.delete(f"{base_url}/api/v3/topics/{topic_id}")
+                        if delete_response.status_code == 200:
+                            print(f"✅ Test topic cleaned up")
+                        else:
+                            print(f"⚠️ Failed to cleanup test topic: {delete_response.status_code}")
+                    except Exception as e:
+                        print(f"⚠️ Cleanup failed: {e}")
                 else:
                     print(f"❌ Topics retrieval failed: {response.status_code}")
                 

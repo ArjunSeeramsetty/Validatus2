@@ -19,11 +19,19 @@ Write-Host "🔧 Setting environment variables from $EnvFile..." -ForegroundColo
 $envContent = Get-Content $EnvFile
 
 foreach ($line in $envContent) {
+    # Skip comments and empty lines
     if ($line -and -not $line.StartsWith("#") -and $line.Contains("=")) {
-        $parts = $line.Split("=", 2)
-        if ($parts.Length -eq 2) {
-            $key = $parts[0].Trim()
-            $value = $parts[1].Trim()
+        $equalsIndex = $line.IndexOf("=")
+        if ($equalsIndex -gt 0) {
+            $key = $line.Substring(0, $equalsIndex).Trim()
+            $value = $line.Substring($equalsIndex + 1).Trim()
+            
+            # Handle quoted values
+            if ($value.StartsWith('"') -and $value.EndsWith('"')) {
+                $value = $value.Substring(1, $value.Length - 2)
+            } elseif ($value.StartsWith("'") -and $value.EndsWith("'")) {
+                $value = $value.Substring(1, $value.Length - 2)
+            }
             
             # Set for current session
             [Environment]::SetEnvironmentVariable($key, $value, "Process")

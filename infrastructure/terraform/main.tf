@@ -1,6 +1,12 @@
 # Configure the Google Cloud Provider
 terraform {
   required_version = ">= 1.0"
+  
+  backend "gcs" {
+    bucket = "validatus-terraform-state"
+    prefix = "terraform/state"
+  }
+  
   required_providers {
     google = {
       source  = "hashicorp/google"
@@ -49,9 +55,9 @@ variable "zone" {
 }
 
 variable "environment" {
-  description = "Environment name"
+  description = "Environment name (e.g., development, staging, production)"
   type        = string
-  default     = "production"
+  # No default - must be explicitly set to prevent accidental production changes
 }
 
 # Data sources
@@ -92,6 +98,13 @@ resource "google_compute_network" "validatus_vpc" {
   auto_create_subnetworks = false
   project                 = var.project_id
 
+  labels = {
+    managed_by  = "terraform"
+    environment = var.environment
+    service     = "validatus"
+    component   = "networking"
+  }
+
   depends_on = [google_project_service.apis]
 }
 
@@ -105,6 +118,13 @@ resource "google_compute_subnetwork" "validatus_subnet" {
 
   # Enable private Google access
   private_ip_google_access = true
+
+  # Enable VPC flow logs for security and troubleshooting
+  log_config {
+    aggregation_interval = "INTERVAL_5_SEC"
+    flow_sampling        = 0.5
+    metadata             = "INCLUDE_ALL_METADATA"
+  }
 }
 
 # Create Cloud NAT for outbound internet access

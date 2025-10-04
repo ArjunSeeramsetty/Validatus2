@@ -6,6 +6,13 @@ resource "google_storage_bucket" "validatus_content" {
   uniform_bucket_level_access = true
   force_destroy              = false  # Set to false in production
 
+  labels = {
+    managed_by  = "terraform"
+    environment = var.environment
+    service     = "validatus"
+    component   = "content_storage"
+  }
+
   # Lifecycle management for cost optimization
   lifecycle_rule {
     action {
@@ -36,16 +43,27 @@ resource "google_storage_bucket" "validatus_content" {
     }
   }
 
+  # Lifecycle rule for noncurrent versions
+  lifecycle_rule {
+    action {
+      type = "Delete"
+    }
+    condition {
+      num_newer_versions = 5  # Keep only 5 most recent versions
+      days_since_noncurrent_time = 30  # Delete versions older than 30 days
+    }
+  }
+
   # Versioning
   versioning {
     enabled = true
   }
 
-  # CORS configuration
+  # CORS configuration - restricted for security
   cors {
-    origin          = ["*"]
+    origin          = ["https://validatus.arjuncode.com", "https://app.validatus.arjuncode.com"]
     method          = ["GET", "HEAD", "PUT", "POST", "DELETE"]
-    response_header = ["*"]
+    response_header = ["Content-Type", "Content-Length", "ETag"]
     max_age_seconds = 3600
   }
 
@@ -59,6 +77,13 @@ resource "google_storage_bucket" "validatus_embeddings" {
   uniform_bucket_level_access = true
   force_destroy              = false
 
+  labels = {
+    managed_by  = "terraform"
+    environment = var.environment
+    service     = "validatus"
+    component   = "embeddings_storage"
+  }
+
   lifecycle_rule {
     action {
       type          = "SetStorageClass"
@@ -66,6 +91,17 @@ resource "google_storage_bucket" "validatus_embeddings" {
     }
     condition {
       age = 60
+    }
+  }
+
+  # Lifecycle rule for noncurrent versions
+  lifecycle_rule {
+    action {
+      type = "Delete"
+    }
+    condition {
+      num_newer_versions = 3  # Keep only 3 most recent versions
+      days_since_noncurrent_time = 30  # Delete versions older than 30 days
     }
   }
 
@@ -83,6 +119,13 @@ resource "google_storage_bucket" "validatus_reports" {
   uniform_bucket_level_access = true
   force_destroy              = false
 
+  labels = {
+    managed_by  = "terraform"
+    environment = var.environment
+    service     = "validatus"
+    component   = "reports_storage"
+  }
+
   lifecycle_rule {
     action {
       type          = "SetStorageClass"
@@ -90,6 +133,17 @@ resource "google_storage_bucket" "validatus_reports" {
     }
     condition {
       age = 90
+    }
+  }
+
+  # Lifecycle rule for noncurrent versions
+  lifecycle_rule {
+    action {
+      type = "Delete"
+    }
+    condition {
+      num_newer_versions = 5  # Keep only 5 most recent versions
+      days_since_noncurrent_time = 60  # Delete versions older than 60 days
     }
   }
 

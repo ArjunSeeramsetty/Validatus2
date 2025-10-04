@@ -245,12 +245,24 @@ function Initialize-DatabaseSchema {
     # Load environment variables and run database setup
     Write-Host "Setting up database schema..." -ForegroundColor Cyan
     
+    # Load environment variables safely
     $envFile = Get-Content "..\.env.production"
     foreach ($line in $envFile) {
-        if ($line -and -not $line.StartsWith("#")) {
-            $parts = $line.Split("=", 2)
-            if ($parts.Length -eq 2) {
-                [Environment]::SetEnvironmentVariable($parts[0], $parts[1])
+        # Skip comments and empty lines
+        if ($line -and -not $line.StartsWith("#") -and $line.Contains("=")) {
+            $equalsIndex = $line.IndexOf("=")
+            if ($equalsIndex -gt 0) {
+                $key = $line.Substring(0, $equalsIndex).Trim()
+                $value = $line.Substring($equalsIndex + 1).Trim()
+                
+                # Handle quoted values
+                if ($value.StartsWith('"') -and $value.EndsWith('"')) {
+                    $value = $value.Substring(1, $value.Length - 2)
+                } elseif ($value.StartsWith("'") -and $value.EndsWith("'")) {
+                    $value = $value.Substring(1, $value.Length - 2)
+                }
+                
+                [Environment]::SetEnvironmentVariable($key, $value, "Process")
             }
         }
     }

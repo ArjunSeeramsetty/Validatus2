@@ -3,13 +3,21 @@ resource "google_sql_database_instance" "validatus_primary" {
   name                = "validatus-primary"
   database_version    = "POSTGRES_15"
   region             = var.region
-  deletion_protection = false  # Set to true in production
+  deletion_protection = var.environment == "production" ? true : false
+
+  labels = {
+    managed_by  = "terraform"
+    environment = var.environment
+    service     = "validatus"
+    component   = "database"
+    database_type = "postgresql"
+  }
 
   settings {
-    tier                  = "db-custom-2-7680"  # 2 vCPU, 7.5GB RAM
+    tier                  = var.db_instance_tier
     availability_type     = "REGIONAL"          # High availability
     disk_type            = "PD_SSD"
-    disk_size            = 100
+    disk_size            = var.db_disk_size
     disk_autoresize      = true
     disk_autoresize_limit = 500
 
@@ -29,12 +37,13 @@ resource "google_sql_database_instance" "validatus_primary" {
       ipv4_enabled                                  = false
       private_network                              = google_compute_network.validatus_vpc.id
       enable_private_path_for_google_cloud_services = true
+      require_ssl                                   = true
     }
 
     # Database flags for optimization
     database_flags {
       name  = "max_connections"
-      value = "100"
+      value = tostring(var.db_max_connections)
     }
     
     database_flags {
@@ -73,8 +82,13 @@ resource "google_sql_user" "validatus_user" {
 
 # Generate random password for database
 resource "random_password" "db_password" {
-  length  = 32
-  special = true
+  length           = 32
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+  min_numeric      = 1
+  min_upper        = 1
+  min_lower        = 1
+  min_special      = 1
 }
 
 # Store database password in Secret Manager
@@ -86,12 +100,28 @@ resource "google_secret_manager_secret" "db_password" {
     automatic = true
   }
 
+  labels = {
+    managed_by  = "terraform"
+    environment = var.environment
+    service     = "validatus"
+    component   = "database"
+    secret_type = "database_password"
+  }
+
   depends_on = [google_project_service.apis]
 }
 
 resource "google_secret_manager_secret_version" "db_password_version" {
   secret      = google_secret_manager_secret.db_password.id
   secret_data = random_password.db_password.result
+}
+
+# IAM binding for database password secret access
+resource "google_secret_manager_secret_iam_member" "db_password_accessor" {
+  secret_id = google_secret_manager_secret.db_password.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.validatus_backend.email}"
+  project   = var.project_id
 }
 
 # Private service connection for Cloud SQL

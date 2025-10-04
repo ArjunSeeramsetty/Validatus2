@@ -59,7 +59,10 @@ setup_monitoring() {
     
     # Deploy monitoring configuration
     if [ -f "scripts/deploy-monitoring.sh" ]; then
-        ./scripts/deploy-monitoring.sh
+        if ! ./scripts/deploy-monitoring.sh; then
+            echo "❌ Monitoring setup failed"
+            return 1
+        fi
     fi
     
     echo "✅ Monitoring setup completed"

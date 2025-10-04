@@ -19,7 +19,7 @@ variable "zone" {
 variable "environment" {
   description = "Environment name (development, staging, production)"
   type        = string
-  default     = "production"
+  # No default - must be explicitly set to prevent accidental production changes
   
   validation {
     condition     = contains(["development", "staging", "production"], var.environment)
@@ -38,12 +38,22 @@ variable "db_disk_size" {
   description = "Database disk size in GB"
   type        = number
   default     = 100
+  
+  validation {
+    condition     = var.db_disk_size >= 10
+    error_message = "Database disk size must be at least 10 GB."
+  }
 }
 
 variable "db_max_connections" {
   description = "Maximum database connections"
   type        = number
   default     = 100
+  
+  validation {
+    condition     = var.db_max_connections > 0
+    error_message = "Maximum database connections must be greater than 0."
+  }
 }
 
 # Redis Configuration
@@ -51,6 +61,11 @@ variable "redis_memory_size" {
   description = "Redis memory size in GB"
   type        = number
   default     = 4
+  
+  validation {
+    condition     = var.redis_memory_size >= 1
+    error_message = "Redis memory size must be at least 1 GB."
+  }
 }
 
 variable "redis_tier" {
@@ -69,6 +84,11 @@ variable "spanner_processing_units" {
   description = "Spanner processing units"
   type        = number
   default     = 100
+  
+  validation {
+    condition     = var.spanner_processing_units >= 100 && var.spanner_processing_units % 100 == 0
+    error_message = "Spanner processing units must be at least 100 and in multiples of 100."
+  }
 }
 
 # Storage Configuration
@@ -88,7 +108,7 @@ variable "bucket_lifecycle_enabled" {
 variable "deletion_protection" {
   description = "Enable deletion protection for critical resources"
   type        = bool
-  default     = false
+  default     = true  # Safer default to prevent accidental deletion
 }
 
 variable "enable_backup" {
@@ -104,13 +124,38 @@ variable "enable_cost_optimization" {
   default     = true
 }
 
+# Deployment Configuration
+variable "deployment_target" {
+  description = "Deployment target platform"
+  type        = string
+  default     = "cloud_run"
+  
+  validation {
+    condition     = contains(["cloud_run", "gke", "compute_engine"], var.deployment_target)
+    error_message = "Deployment target must be one of: cloud_run, gke, compute_engine."
+  }
+}
+
+# Kubernetes Configuration (for GKE deployments)
+variable "k8s_namespace" {
+  description = "Kubernetes namespace for the application"
+  type        = string
+  default     = "default"
+}
+
+variable "k8s_service_account" {
+  description = "Kubernetes service account name"
+  type        = string
+  default     = "validatus-backend"
+}
+
 # Tags
 variable "tags" {
   description = "Common tags to apply to all resources"
   type        = map(string)
   default = {
-    Project     = "Validatus"
-    Environment = "production"
-    ManagedBy   = "terraform"
+    Project   = "Validatus"
+    ManagedBy = "terraform"
   }
+  # Note: Environment tag should be added dynamically using merge(var.tags, { Environment = var.environment })
 }

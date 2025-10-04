@@ -1,40 +1,41 @@
-# Terraform Variables for Validatus GCP Infrastructure
-# Copy this file to terraform.tfvars and customize the values
+# Terraform Variables Example
+# Copy this file to terraform.tfvars and fill in your values
 
-# Project Configuration
-project_id = "validatus-platform"
-region     = "us-central1"
-zone       = "us-central1-a"
-environment = "production"
+# GCP Project Configuration
+project_id = "your-gcp-project-id"
+
+# Environment Configuration (REQUIRED - no default to prevent accidents)
+environment = "development"  # Options: development, staging, production
+
+# GCP Region Configuration
+region = "us-central1"
+zone   = "us-central1-a"
+
+# Security Configuration
+deletion_protection = true  # Set to false only for development/testing
 
 # Database Configuration
-db_instance_tier     = "db-custom-2-7680"  # 2 vCPU, 7.5GB RAM
-db_disk_size         = 100                 # GB
-db_max_connections   = 100
+db_disk_size = 100  # Minimum: 10 GB
+db_max_connections = 100  # Must be > 0
 
 # Redis Configuration
-redis_memory_size = 4    # GB
-redis_tier       = "STANDARD_HA"
+redis_memory_size = 4  # Minimum: 1 GB
+redis_tier = "STANDARD_HA"  # Options: BASIC, STANDARD_HA
 
 # Spanner Configuration
-spanner_processing_units = 100  # Minimum for production
+spanner_processing_units = 100  # Minimum: 100, must be multiple of 100
 
 # Storage Configuration
 enable_bucket_versioning = true
 bucket_lifecycle_enabled = true
 
-# Security Configuration
-deletion_protection = false  # Set to true in production
-enable_backup       = true
-
 # Cost Optimization
 enable_cost_optimization = true
+enable_backup = true
 
-# Tags
-tags = {
-  Project     = "Validatus"
-  Environment = "production"
-  ManagedBy   = "terraform"
-  Owner       = "DevOps Team"
-  CostCenter  = "Engineering"
-}
+# Deployment Configuration
+deployment_target = "cloud_run"  # Options: cloud_run, gke, compute_engine
+
+# Kubernetes Configuration (only needed for GKE)
+k8s_namespace = "default"
+k8s_service_account = "validatus-backend"

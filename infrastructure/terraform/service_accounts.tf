@@ -27,23 +27,19 @@ resource "google_project_iam_member" "validatus_backend_roles" {
   member  = "serviceAccount:${google_service_account.validatus_backend.email}"
 }
 
-# Create service account key
-resource "google_service_account_key" "validatus_backend_key" {
+# Workload Identity Configuration (for GKE deployments)
+# This allows Kubernetes service accounts to authenticate as GCP service accounts
+# without requiring service account key files
+
+# Enable Workload Identity on the service account
+resource "google_service_account_iam_member" "workload_identity_user" {
   service_account_id = google_service_account.validatus_backend.name
-  public_key_type    = "TYPE_X509_PEM_FILE"
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[${var.k8s_namespace}/${var.k8s_service_account}]"
+  
+  # Only create this binding if deploying to GKE
+  count = var.deployment_target == "gke" ? 1 : 0
 }
 
-# Store service account key in Secret Manager
-resource "google_secret_manager_secret" "service_account_key" {
-  secret_id = "validatus-service-account-key"
-  project   = var.project_id
-
-  replication {
-    automatic = true
-  }
-}
-
-resource "google_secret_manager_secret_version" "service_account_key_version" {
-  secret      = google_secret_manager_secret.service_account_key.id
-  secret_data = base64decode(google_service_account_key.validatus_backend_key.private_key)
-}
+# Allow the service account to be used by Cloud Run (automatic)
+# No additional configuration needed for Cloud Run deployments

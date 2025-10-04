@@ -3,11 +3,23 @@
 set -e
 
 # Configuration
-PROJECT_ID="validatus-platform"
-REGION="us-central1"
+PROJECT_ID="${1:-}"
+REGION="${2:-us-central1}"
+ENVIRONMENT="${3:-}"
 TERRAFORM_DIR="infrastructure/terraform"
 
+if [ -z "$PROJECT_ID" ] || [ -z "$ENVIRONMENT" ]; then
+    echo "❌ Usage: $0 <PROJECT_ID> <ENVIRONMENT> [REGION]"
+    echo "   Example: $0 validatus-platform development us-central1"
+    echo "   Environment options: development, staging, production"
+    exit 1
+fi
+
 echo "🚀 Setting up GCP Infrastructure for Validatus..."
+echo "Project ID: $PROJECT_ID"
+echo "Environment: $ENVIRONMENT"
+echo "Region: $REGION"
+echo ""
 
 # Check if required tools are installed
 check_dependencies() {
@@ -60,15 +72,35 @@ setup_terraform() {
     echo "✅ Terraform initialized successfully"
 }
 
+# Setup Terraform backend
+setup_terraform_backend() {
+    echo "🪣 Setting up Terraform backend..."
+    
+    # Run the backend setup script
+    ../../scripts/setup-terraform-backend.sh "$PROJECT_ID"
+    
+    echo "✅ Terraform backend setup completed"
+}
+
 # Plan and apply infrastructure
 deploy_infrastructure() {
     echo "📋 Planning infrastructure deployment..."
     
-    # Generate Terraform plan
+    # Generate Terraform plan with required variables
     terraform plan \
         -var="project_id=$PROJECT_ID" \
         -var="region=$REGION" \
+        -var="environment=$ENVIRONMENT" \
         -out=tfplan
+    
+    # Check for non-interactive mode
+    if [ "${AUTO_APPROVE:-false}" = "true" ]; then
+        echo "🚀 Auto-approve enabled, applying Terraform plan..."
+        terraform apply tfplan
+        echo "✅ Infrastructure deployment completed successfully!"
+        rm -f tfplan
+        return
+    fi
     
     echo ""
     echo "📊 Terraform plan generated. Review the plan above."
@@ -153,6 +185,15 @@ EOF
 
     echo "✅ Environment configuration generated: backend/.env.production"
     
+    # Validate Secret Manager secrets
+    echo "Validating Secret Manager secrets..."
+    if ! gcloud secrets describe cloud-sql-password --project=$PROJECT_ID &>/dev/null; then
+        echo "❌ Required secret 'cloud-sql-password' not found in Secret Manager"
+        echo "Please create it with: gcloud secrets create cloud-sql-password --data-file=<password-file>"
+        exit 1
+    fi
+    echo "✅ Required secrets validated"
+    
     # Clean up
     rm -f outputs.json
 }
@@ -173,7 +214,9 @@ setup_database() {
     fi
     
     # Run database migrations
-    export $(cat .env.production | xargs)
+    # Load environment variables safely
+    source ../../scripts/load-env.sh
+    load_env_file .env.production
     python -c "
 import asyncio
 from app.services.gcp_persistence_manager import get_gcp_persistence_manager
@@ -231,6 +274,7 @@ main() {
     
     check_dependencies
     setup_gcloud
+    setup_terraform_backend
     setup_terraform
     deploy_infrastructure
     generate_env_config

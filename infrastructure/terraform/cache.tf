@@ -5,7 +5,7 @@ resource "google_redis_instance" "validatus_cache" {
   region         = var.region
   
   # Use basic tier for development, standard for production
-  tier = "STANDARD_HA"  # High availability
+  tier = var.environment == "production" ? "STANDARD_HA" : "BASIC"
   
   # Network configuration
   authorized_network      = google_compute_network.validatus_vpc.id

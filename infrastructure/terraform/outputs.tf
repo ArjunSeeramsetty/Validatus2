@@ -97,5 +97,5 @@ output "env_template" {
     SPANNER_DATABASE_ID         = google_spanner_database.validatus_analytics_db.name
     SERVICE_ACCOUNT_EMAIL       = google_service_account.validatus_backend.email
   }
-  sensitive = false
+  sensitive = true
 }

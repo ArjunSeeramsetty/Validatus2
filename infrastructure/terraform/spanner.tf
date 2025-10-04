@@ -5,7 +5,7 @@ resource "google_spanner_instance" "validatus_analytics" {
   name         = "validatus-analytics"
   
   # Use processing units for cost optimization
-  processing_units = 100  # Minimum for production, 1000 PU = 1 node
+  processing_units = var.spanner_processing_units
   
   labels = {
     managed_by  = "terraform"
@@ -76,13 +76,13 @@ resource "google_spanner_database" "validatus_analytics_db" {
     ) PRIMARY KEY (user_id, metric_date)
     EOT
     ,
-    # Create indexes
+    # Create indexes (avoiding write hotspot indexes)
     "CREATE INDEX idx_analysis_results_user_type ON analysis_results (user_id, analysis_type, created_at DESC)",
-    "CREATE INDEX idx_cross_topic_insights_type ON cross_topic_insights (insight_type, created_at DESC)",
-    "CREATE INDEX idx_user_analytics_activity ON user_analytics (topics_created DESC, analyses_completed DESC)"
+    "CREATE INDEX idx_cross_topic_insights_type ON cross_topic_insights (insight_type, created_at DESC)"
+    # Removed idx_user_analytics_activity to prevent write hotspots from metrics updates
   ]
 
-  deletion_protection = false  # Set to true in production
+  deletion_protection = var.environment == "production" ? true : false
   
   depends_on = [google_spanner_instance.validatus_analytics]
 }

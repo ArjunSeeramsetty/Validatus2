@@ -3,6 +3,21 @@
 
 set -e
 
+# Function to safely load environment variables
+load_env_file() {
+    local env_file="$1"
+    if [ -f "$env_file" ]; then
+        echo "Loading environment variables from $env_file..."
+        set -a  # automatically export all variables
+        source "$env_file"
+        set +a  # disable automatic export
+        echo "✅ Environment variables loaded successfully"
+    else
+        echo "⚠️ Environment file not found: $env_file"
+        return 1
+    fi
+}
+
 PROJECT_ID="validatus-platform"
 REGION="us-central1"
 
@@ -32,7 +47,11 @@ if [ -f "scripts/setup_database.py" ]; then
     # Check if virtual environment exists
     if [ ! -d "venv" ]; then
         echo "Creating Python virtual environment..."
-        python -m venv venv
+        if ! python -m venv venv; then
+            echo "❌ Failed to create virtual environment"
+            echo "Please ensure python3-venv is installed: apt-get install python3-venv"
+            exit 1
+        fi
     fi
     
     source venv/bin/activate
@@ -63,15 +82,18 @@ else
     echo "⚠️ Verification script not found, skipping verification"
 fi
 
+# Get the actual service URL dynamically
+SERVICE_URL=$(gcloud run services describe validatus-backend --region=us-central1 --format="value(status.url)" 2>/dev/null || echo "https://validatus-backend-ssivkqhvhq-uc.a.run.app")
+
 echo ""
 echo "🎉 Validatus production setup completed!"
 echo ""
 echo "Your application is now running on GCP with full database persistence!"
 echo ""
 echo "📋 Quick Links:"
-echo "• Application: https://validatus-backend-ssivkqhvhq-uc.a.run.app"
-echo "• Health Check: https://validatus-backend-ssivkqhvhq-uc.a.run.app/health"
-echo "• API Docs: https://validatus-backend-ssivkqhvhq-uc.a.run.app/docs"
+echo "• Application: $SERVICE_URL"
+echo "• Health Check: $SERVICE_URL/health"
+echo "• API Docs: $SERVICE_URL/docs"
 echo ""
 echo "🔧 Next Steps:"
 echo "1. Configure your frontend to use the new backend URL"

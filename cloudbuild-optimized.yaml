@@ -44,7 +44,4 @@ options:
 # Total timeout
 timeout: '3600s'
 
-# Substitutions
-substitutions:
-  _REGION: 'us-central1'
-  _SERVICE_NAME: 'validatus-backend'
+# No substitutions needed

@@ -8,6 +8,7 @@ resource "google_spanner_instance" "validatus_analytics" {
   processing_units = 100  # Minimum for production, 1000 PU = 1 node
   
   labels = {
+    managed_by  = "terraform"
     environment = var.environment
     service     = "validatus"
     component   = "analytics"
@@ -45,7 +46,7 @@ resource "google_spanner_database" "validatus_analytics_db" {
       
       -- Performance metrics
       processing_time_ms INT64,
-      data_points_analyzed INT64,
+      data_points_analyzed INT64
     ) PRIMARY KEY (session_id, analysis_id)
     EOT
     ,
@@ -58,7 +59,7 @@ resource "google_spanner_database" "validatus_analytics_db" {
       insight_data JSON,
       confidence_score FLOAT64,
       created_at TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
-      validation_status STRING(20) DEFAULT 'pending',
+      validation_status STRING(20) DEFAULT 'pending'
     ) PRIMARY KEY (user_id, insight_id)
     EOT
     ,
@@ -71,7 +72,7 @@ resource "google_spanner_database" "validatus_analytics_db" {
       total_urls_processed INT64 DEFAULT 0,
       average_analysis_quality FLOAT64,
       usage_patterns JSON,
-      created_at TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
+      created_at TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true)
     ) PRIMARY KEY (user_id, metric_date)
     EOT
     ,

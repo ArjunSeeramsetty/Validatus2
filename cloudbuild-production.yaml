@@ -80,7 +80,3 @@ options:
     - 'DOCKER_BUILDKIT=1'
 
 timeout: '2400s'  # 40 minutes total
-
-substitutions:
-  _SERVICE_NAME: 'validatus-backend'
-  _REGION: 'us-central1'

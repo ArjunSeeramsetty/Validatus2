@@ -6,10 +6,11 @@ set -euo pipefail
 
 PROJECT_ID="${1:-}"
 BUCKET_NAME="${2:-validatus-terraform-state}"
+BUCKET_LOCATION="${3:-us-central1}"
 
 if [ -z "$PROJECT_ID" ]; then
-    echo "❌ Usage: $0 <PROJECT_ID> [BUCKET_NAME]"
-    echo "   Example: $0 validatus-platform validatus-terraform-state"
+    echo "❌ Usage: $0 <PROJECT_ID> [BUCKET_NAME] [BUCKET_LOCATION]"
+    echo "   Example: $0 validatus-platform validatus-terraform-state us-central1"
     exit 1
 fi
 
@@ -17,6 +18,7 @@ echo "🚀 Setting up Terraform GCS Backend"
 echo "=================================="
 echo "Project ID: $PROJECT_ID"
 echo "Bucket Name: $BUCKET_NAME"
+echo "Bucket Location: $BUCKET_LOCATION"
 echo ""
 
 # Check if gcloud is authenticated
@@ -41,7 +43,7 @@ if gsutil ls -b "gs://$BUCKET_NAME" >/dev/null 2>&1; then
     echo "✅ Bucket $BUCKET_NAME already exists"
 else
     # Create bucket with versioning and lifecycle
-    gsutil mb -l us-central1 "gs://$BUCKET_NAME"
+    gsutil mb -l "$BUCKET_LOCATION" "gs://$BUCKET_NAME"
     
     # Enable versioning for state safety
     gsutil versioning set on "gs://$BUCKET_NAME"

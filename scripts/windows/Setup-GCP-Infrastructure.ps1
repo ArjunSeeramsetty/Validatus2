@@ -256,9 +256,9 @@ function Initialize-DatabaseSchema {
                 $value = $line.Substring($equalsIndex + 1).Trim()
                 
                 # Handle quoted values
-                if ($value.StartsWith('"') -and $value.EndsWith('"')) {
+                if ($value.Length -ge 2 -and $value.StartsWith('"') -and $value.EndsWith('"')) {
                     $value = $value.Substring(1, $value.Length - 2)
-                } elseif ($value.StartsWith("'") -and $value.EndsWith("'")) {
+                } elseif ($value.Length -ge 2 -and $value.StartsWith("'") -and $value.EndsWith("'")) {
                     $value = $value.Substring(1, $value.Length - 2)
                 }
                 

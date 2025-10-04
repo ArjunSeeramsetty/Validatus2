@@ -4,7 +4,7 @@
 # GCP Project Configuration
 project_id = "your-gcp-project-id"
 
-# Environment Configuration (REQUIRED - no default to prevent accidents)
+# Environment Configuration
 environment = "development"  # Options: development, staging, production
 
 # GCP Region Configuration

@@ -14,7 +14,11 @@ load_env_file() {
     
     # Use set -a to automatically export all variables
     set -a
-    source "$env_file"
+    source "$env_file" || {
+        set +a
+        echo "❌ Failed to source environment file" >&2
+        return 1
+    }
     set +a
     
     echo "✅ Environment variables loaded successfully"

@@ -4,6 +4,7 @@ Handles analytics and cross-topic insights storage
 """
 import asyncio
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any, Tuple
 import json
@@ -66,7 +67,8 @@ class GCPSpannerManager:
         
         try:
             # Store workflow results in the analysis_results table
-            analysis_id = f"workflow_{session_id}_{int(datetime.utcnow().timestamp())}"
+            analysis_id = f"workflow_{session_id}_{uuid.uuid4().hex}"
+            created_at = datetime.now(timezone.utc)
             
             def store_workflow(transaction):
                 transaction.insert_or_update(
@@ -83,7 +85,7 @@ class GCPSpannerManager:
                         analysis_id,
                         'workflow',
                         workflow_result.get('user_id', 'unknown'),
-                        datetime.utcnow(),
+                        created_at,
                         workflow_result.get('overall_score'),
                         workflow_result.get('confidence_score'),
                         json.dumps(workflow_result.get('factor_scores', {})),
@@ -115,7 +117,8 @@ class GCPSpannerManager:
         
         try:
             # Store analysis results in the analysis_results table
-            analysis_id = f"analysis_{session_id}_{int(datetime.utcnow().timestamp())}"
+            analysis_id = f"analysis_{session_id}_{uuid.uuid4().hex}"
+            created_at = datetime.now(timezone.utc)
             
             def store_analysis(transaction):
                 transaction.insert_or_update(
@@ -132,7 +135,7 @@ class GCPSpannerManager:
                         analysis_id,
                         analysis_result.get('analysis_type', 'comprehensive'),
                         analysis_result.get('user_id', 'unknown'),
-                        datetime.utcnow(),
+                        created_at,
                         analysis_result.get('overall_score'),
                         analysis_result.get('confidence_score'),
                         json.dumps(analysis_result.get('factor_scores', {})),
@@ -244,7 +247,7 @@ class GCPSpannerManager:
                         "supporting_evidence": ["tech_analysis", "finance_analysis", "healthcare_analysis"],
                         "relevance_score": 0.92
                     },
-                    "created_at": datetime.utcnow().isoformat()
+                    "created_at": datetime.now(timezone.utc).isoformat()
                 },
                 {
                     "insight_id": "insight_002",
@@ -255,7 +258,7 @@ class GCPSpannerManager:
                         "supporting_evidence": ["multiple_sector_analyses"],
                         "relevance_score": 0.88
                     },
-                    "created_at": datetime.utcnow().isoformat()
+                    "created_at": datetime.now(timezone.utc).isoformat()
                 }
             ]
             
@@ -273,7 +276,7 @@ class GCPSpannerManager:
             # This would insert into the cross_topic_insights table
             # For now, simulate the operation
             
-            insight_id = f"insight_{int(datetime.utcnow().timestamp())}"
+            insight_id = f"insight_{uuid.uuid4().hex}"
             logger.info(f"Stored cross-topic insight {insight_id} for user {user_id}")
             
             return True
@@ -319,7 +322,7 @@ class GCPSpannerManager:
         await self._ensure_initialized()
         
         try:
-            start_time = datetime.utcnow()
+            start_time = datetime.now(timezone.utc)
             
             # Test basic connectivity with a real query
             def test_connectivity(transaction):
@@ -330,7 +333,7 @@ class GCPSpannerManager:
                 lambda: self.database.run_in_transaction(test_connectivity)
             )
             
-            end_time = datetime.utcnow()
+            end_time = datetime.now(timezone.utc)
             response_time = (end_time - start_time).total_seconds() * 1000
             
             return {

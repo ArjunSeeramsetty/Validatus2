@@ -59,13 +59,28 @@ class GCPPersistenceManager:
                 logger.info("✅ Local development mode initialized")
             else:
                 # Initialize services in parallel for faster startup
-                await asyncio.gather(
+                service_names = ["sql_manager", "redis_manager", "vector_manager", "spanner_manager"]
+                services = [
                     self.sql_manager.initialize(),
                     self.redis_manager.initialize(),
                     self.vector_manager.initialize(),
-                    self.spanner_manager.initialize(),
-                    return_exceptions=True
-                )
+                    self.spanner_manager.initialize()
+                ]
+                
+                results = await asyncio.gather(*services, return_exceptions=True)
+                
+                # Check for initialization failures
+                failures = []
+                for i, result in enumerate(results):
+                    if isinstance(result, Exception):
+                        service_name = service_names[i]
+                        logger.exception(f"Failed to initialize {service_name}: {result}")
+                        failures.append(f"{service_name}: {str(result)}")
+                
+                if failures:
+                    error_msg = f"Service initialization failures: {', '.join(failures)}"
+                    logger.error(error_msg)
+                    raise Exception(error_msg)
                 
                 self._initialized = True
                 logger.info("✅ All GCP services initialized successfully")

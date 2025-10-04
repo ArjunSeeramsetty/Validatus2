@@ -4,15 +4,18 @@ uvicorn[standard]==0.24.0
 pydantic==2.9.2
 pydantic-settings==2.1.0
 
-# Google Cloud Core (Fixed compatible versions)
+# Critical: Install in specific order to resolve protobuf conflicts
+# Step 1: Core Google packages with compatible protobuf version
+protobuf>=4.25.0,<5.0.0
 google-auth==2.35.0
 google-api-core[grpc]==2.25.2
 googleapis-common-protos==1.65.0
-grpcio==1.66.2
-grpcio-status==1.66.2
-protobuf>=5.26.1,<6.0.0
 
-# Google Cloud Services (Compatible versions)
+# Step 2: gRPC packages (compatible with protobuf <5.0.0)
+grpcio==1.66.2
+grpcio-status==1.62.3
+
+# Step 3: Google Cloud Services (using older compatible versions)
 google-cloud-storage==2.18.0
 google-cloud-secret-manager==2.16.4
 google-cloud-firestore==2.13.1
@@ -22,11 +25,12 @@ google-cloud-functions==1.20.4
 google-cloud-monitoring==2.16.0
 google-cloud-error-reporting==1.12.0
 google-cloud-logging==3.12.1
-google-cloud-spanner==3.14.1
 
-# Vertex AI (Specific compatible version)
-google-cloud-aiplatform==1.75.0
-google-genai==1.21.0
+# Cloud Spanner (older version for compatibility)
+google-cloud-spanner==3.48.0
+
+# Vertex AI (older compatible versions)
+google-cloud-aiplatform==1.60.0
 
 # Database Dependencies
 asyncpg==0.29.0
@@ -34,10 +38,10 @@ redis==5.0.1
 sqlalchemy==2.0.23
 alembic==1.13.1
 
-# ML/AI Dependencies (Pinned versions)
+# ML/AI Dependencies
 sentence-transformers==3.0.1
-transformers==4.57.0
-torch==2.5.1
+transformers==4.44.0
+torch==2.4.0
 numpy==1.25.2
 scikit-learn==1.3.2
 scipy==1.11.4

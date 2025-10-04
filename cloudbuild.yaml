@@ -1,74 +1,84 @@
-# cloudbuild.yaml
-
 steps:
-# Build and push backend image
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/validatus-backend:latest', '-f', './backend/Dockerfile.gcp', './backend']
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/validatus-backend:latest']
+  # Build optimized Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'backend/Dockerfile.optimized'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/validatus-backend:$BUILD_ID'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/validatus-backend:latest'
+      - '.'
+    timeout: '1800s'  # 30 minutes
 
-# Build and push frontend image
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/validatus-frontend:latest', './frontend']
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/validatus-frontend:latest']
+  # Push to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/validatus-backend:$BUILD_ID']
 
-# Deploy backend to Cloud Run
-- name: 'gcr.io/cloud-builders/gcloud'
-  args:
-  - run
-  - deploy
-  - validatus-backend
-  - --image
-  - gcr.io/$PROJECT_ID/validatus-backend:latest
-  - --region
-  - us-central1
-  - --platform
-  - managed
-  - --memory
-  - 2Gi
-  - --cpu
-  - '2'
-  - --concurrency
-  - '100'
-  - --max-instances
-  - '10'
-  - --timeout
-  - '900'
-  - --set-env-vars
-  - PROJECT_ID=$PROJECT_ID,ENVIRONMENT=production,GCLOUD_PROJECT=$PROJECT_ID,LOCAL_DEVELOPMENT_MODE=false
-  - --allow-unauthenticated
-  - --port=8000
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/validatus-backend:latest']
 
-# Deploy frontend to Cloud Run
-- name: 'gcr.io/cloud-builders/gcloud'
-  args:
-  - run
-  - deploy
-  - validatus-frontend
-  - --image
-  - gcr.io/$PROJECT_ID/validatus-frontend:latest
-  - --region
-  - us-central1
-  - --platform
-  - managed
-  - --memory
-  - 512Mi
-  - --cpu
-  - '1'
-  - --concurrency
-  - '1000'
-  - --max-instances
-  - '5'
-  - --timeout
-  - '300'
-  - --port=80
-  - --allow-unauthenticated
+  # Build and push frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/validatus-frontend:latest', './frontend']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/validatus-frontend:latest']
+
+  # Deploy backend to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'validatus-backend'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/validatus-backend:$BUILD_ID'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '2Gi'
+      - '--cpu'
+      - '2'
+      - '--timeout'
+      - '900'
+      - '--max-instances'
+      - '10'
+      - '--set-env-vars'
+      - 'PROJECT_ID=$PROJECT_ID,ENVIRONMENT=production,GCLOUD_PROJECT=$PROJECT_ID,LOCAL_DEVELOPMENT_MODE=false'
+      - '--port=8000'
+
+  # Deploy frontend to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'validatus-frontend'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/validatus-frontend:latest'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--timeout'
+      - '300'
+      - '--port=80'
+      - '--allow-unauthenticated'
 
 images:
-- 'gcr.io/$PROJECT_ID/validatus-backend:latest'
-- 'gcr.io/$PROJECT_ID/validatus-frontend:latest'
+  - 'gcr.io/$PROJECT_ID/validatus-backend:$BUILD_ID'
+  - 'gcr.io/$PROJECT_ID/validatus-backend:latest'
+  - 'gcr.io/$PROJECT_ID/validatus-frontend:latest'
 
 options:
-  machineType: 'E2_HIGHCPU_8'
+  machineType: 'E2_HIGHCPU_8'  # More CPU for faster builds
+  diskSizeGb: '100'
   logging: CLOUD_LOGGING_ONLY
+
+timeout: '3600s'  # 1 hour total timeout

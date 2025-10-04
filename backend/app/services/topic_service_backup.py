@@ -44,7 +44,7 @@ class TopicService:
             logger.info("Using SQLite database for persistent storage")
             self.db = None
             self._use_local_fallback = True  # Use database instead of in-memory
-            logger.info(f"TopicService initialized with database persistence")
+            logger.info("TopicService initialized with database persistence")
             
         except Exception as e:
             logger.exception("Failed to initialize storage")

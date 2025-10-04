@@ -4,12 +4,12 @@ steps:
     args:
       - 'build'
       - '-f'
-      - 'backend/Dockerfile.optimized'
+      - 'backend/Dockerfile.gcp'
       - '-t'
       - 'gcr.io/$PROJECT_ID/validatus-backend:$BUILD_ID'
       - '-t'
       - 'gcr.io/$PROJECT_ID/validatus-backend:latest'
-      - '.'
+      - 'backend/'
     timeout: '1800s'  # 30 minutes
 
   # Push to Container Registry

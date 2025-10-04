@@ -36,16 +36,16 @@ class TopicResponse(BaseModel):
     message: str
     timestamp: str
 
-# Try to import GCP persistence (with graceful fallback)
+# Try to import GCP persistence
 try:
     from .core.gcp_persistence_config import get_gcp_persistence_settings
     from .services.gcp_persistence_manager import get_gcp_persistence_manager
     GCP_AVAILABLE = True
-    logger.info("✅ GCP persistence services available")
+    logger.info("✅ GCP persistence services imported successfully")
 except ImportError as e:
     GCP_AVAILABLE = False
-    logger.warning(f"⚠️ GCP persistence not available: {e}")
-    logger.info("📝 Using local storage fallback")
+    logger.error(f"❌ Failed to import GCP persistence services: {e}")
+    raise RuntimeError("GCP persistence services are required but not available")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -53,18 +53,21 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting Validatus Backend with GCP persistence...")
     
     try:
-        if GCP_AVAILABLE:
-            # Initialize GCP persistence manager
-            persistence_manager = get_gcp_persistence_manager()
-            await persistence_manager.initialize()
-            core_services['persistence_manager'] = persistence_manager
-            logger.info("✅ GCP persistence manager initialized")
-        else:
-            logger.info("📝 Using local storage fallback")
-            
+        # Initialize GCP persistence manager
+        logger.info("🔧 Initializing GCP persistence manager...")
+        persistence_manager = get_gcp_persistence_manager()
+        
+        # Force initialization - don't allow fallback
+        logger.info("⚙️ Configuring GCP persistence settings...")
+        await persistence_manager.initialize()
+        
+        core_services['persistence_manager'] = persistence_manager
+        logger.info("✅ GCP persistence manager initialized successfully")
+        
     except Exception as e:
         logger.exception("❌ Failed to initialize GCP persistence services")
-        logger.info("📝 Continuing with local storage fallback")
+        logger.error("💥 Application cannot start without GCP persistence")
+        raise RuntimeError(f"Failed to initialize GCP persistence: {e}")
     
     yield
     
@@ -117,16 +120,18 @@ app.add_middleware(
 async def health_check():
     """Enhanced health check for Cloud Run with GCP services status"""
     try:
-        gcp_status = {}
-        if GCP_AVAILABLE and 'persistence_manager' in core_services:
-            try:
-                gcp_health = await core_services['persistence_manager'].health_check()
-                gcp_status = gcp_health
-            except Exception as e:
-                logger.exception("GCP health check failed")
-                gcp_status = {"status": "degraded", "error": str(e)}
-        else:
-            gcp_status = {"status": "unavailable", "reason": "not_initialized"}
+        if 'persistence_manager' not in core_services:
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "unhealthy",
+                    "error": "GCP persistence manager not initialized",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            )
+        
+        # Check GCP services health
+        gcp_health = await core_services['persistence_manager'].health_check()
         
         return {
             "status": "healthy",
@@ -135,7 +140,7 @@ async def health_check():
             "timestamp": datetime.utcnow().isoformat(),
             "environment": os.getenv("ENVIRONMENT", "development"),
             "port": os.getenv("PORT", "8000"),
-            "gcp_persistence": gcp_status
+            "gcp_persistence": gcp_health
         }
     except Exception as e:
         logger.exception("Health check failed")
@@ -158,7 +163,7 @@ async def root():
         "status": "running",
         "docs": "/docs",
         "health": "/health",
-        "gcp_persistence": "enabled" if GCP_AVAILABLE else "fallback"
+        "gcp_persistence": "enabled"
     }
 
 # Basic API endpoints for production
@@ -169,7 +174,7 @@ async def api_status():
         "status": "operational",
         "version": "3.1.0",
         "timestamp": datetime.utcnow().isoformat(),
-        "gcp_persistence": "enabled" if GCP_AVAILABLE else "fallback"
+        "gcp_persistence": "enabled"
     }
 
 # Topics endpoint with GCP persistence
@@ -177,91 +182,69 @@ async def api_status():
 async def list_topics():
     """List topics endpoint with GCP persistence"""
     try:
-        if GCP_AVAILABLE and 'persistence_manager' in core_services:
-            topics = await core_services['persistence_manager'].list_topics_complete()
-            return {
-                "topics": topics,
-                "message": "Topics retrieved from GCP persistence",
-                "timestamp": datetime.utcnow().isoformat(),
-                "source": "gcp"
-            }
-        else:
-            return {
-                "topics": [],
-                "message": "GCP persistence not available, using local fallback",
-                "timestamp": datetime.utcnow().isoformat(),
-                "source": "local"
-            }
+        if 'persistence_manager' not in core_services:
+            raise HTTPException(status_code=503, detail="GCP persistence manager not initialized")
+        
+        topics = await core_services['persistence_manager'].list_topics_complete()
+        return {
+            "topics": topics,
+            "message": "Topics retrieved from GCP persistence",
+            "timestamp": datetime.utcnow().isoformat(),
+            "source": "gcp"
+        }
     except Exception as e:
         logger.exception("Failed to list topics")
-        return {
-            "topics": [],
-            "message": "Error retrieving topics",
-            "error": str(e),
-            "timestamp": datetime.utcnow().isoformat()
-        }
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve topics: {str(e)}")
 
 # Create topic endpoint with GCP persistence
 @app.post("/api/v3/topics/create", response_model=TopicResponse)
 async def create_topic(topic_data: TopicCreateRequest):
     """Create topic endpoint with GCP persistence"""
     try:
-        if GCP_AVAILABLE and 'persistence_manager' in core_services:
-            # Create topic with GCP persistence
-            topic_result = await core_services['persistence_manager'].create_topic_complete(
-                title=topic_data.title,
-                description=topic_data.description,
-                user_id=topic_data.user_id,
-                analysis_type=topic_data.analysis_type
-            )
-            
-            return TopicResponse(
-                success=True,
-                topic_id=topic_result['topic_id'],
-                message=f"Topic '{topic_data.title}' created and persisted in GCP",
-                timestamp=datetime.utcnow().isoformat()
-            )
-        else:
-            # Fallback to local storage
-            topic_id = f"topic-{topic_data.user_id}-{int(datetime.utcnow().timestamp())}"
-            
-            return TopicResponse(
-                success=True,
-                topic_id=topic_id,
-                message=f"Topic '{topic_data.title}' created (local fallback)",
-                timestamp=datetime.utcnow().isoformat()
-            )
+        if 'persistence_manager' not in core_services:
+            raise HTTPException(status_code=503, detail="GCP persistence manager not initialized")
+        
+        # Create topic with GCP persistence
+        topic_result = await core_services['persistence_manager'].create_topic_complete(
+            title=topic_data.title,
+            description=topic_data.description,
+            user_id=topic_data.user_id,
+            analysis_type=topic_data.analysis_type
+        )
+        
+        return TopicResponse(
+            success=True,
+            topic_id=topic_result['topic_id'],
+            message=f"Topic '{topic_data.title}' created and persisted in GCP database",
+            timestamp=datetime.utcnow().isoformat()
+        )
     except Exception as e:
         logger.exception("Failed to create topic")
-        raise HTTPException(status_code=500, detail="Failed to create topic")
+        raise HTTPException(status_code=500, detail=f"Failed to create topic: {str(e)}")
 
 # URL collection endpoint
 @app.post("/api/v3/topics/{topic_id}/collect-urls")
 async def collect_urls(topic_id: str, background_tasks: BackgroundTasks):
     """Collect URLs for a topic"""
     try:
-        if GCP_AVAILABLE and 'persistence_manager' in core_services:
-            # Start URL collection workflow
-            result = await core_services['persistence_manager'].execute_complete_workflow(
-                topic_id=topic_id,
-                workflow_type="url_collection"
-            )
-            
-            return {
-                "success": True,
-                "message": "URL collection workflow started",
-                "workflow_id": result.get('workflow_id'),
-                "timestamp": datetime.utcnow().isoformat()
-            }
-        else:
-            return {
-                "success": False,
-                "message": "GCP persistence not available for URL collection",
-                "timestamp": datetime.utcnow().isoformat()
-            }
+        if 'persistence_manager' not in core_services:
+            raise HTTPException(status_code=503, detail="GCP persistence manager not initialized")
+        
+        # Start URL collection workflow
+        result = await core_services['persistence_manager'].execute_complete_workflow(
+            topic_id=topic_id,
+            workflow_type="url_collection"
+        )
+        
+        return {
+            "success": True,
+            "message": "URL collection workflow started",
+            "workflow_id": result.get('workflow_id'),
+            "timestamp": datetime.utcnow().isoformat()
+        }
     except Exception as e:
         logger.exception("Failed to start URL collection")
-        raise HTTPException(status_code=500, detail="Failed to start URL collection")
+        raise HTTPException(status_code=500, detail=f"Failed to start URL collection: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

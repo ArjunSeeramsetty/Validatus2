@@ -19,13 +19,10 @@ export interface TopicConfig {
 }
 
 export interface TopicCreateRequest {
-  topic: string;
+  title: string;
   description: string;
-  search_queries: string[];
-  initial_urls: string[];
   analysis_type: 'standard' | 'comprehensive';
   user_id: string;
-  metadata?: Record<string, any>;
 }
 
 export interface TopicUpdateRequest {
@@ -66,7 +63,7 @@ class TopicService {
    */
   async createTopic(request: TopicCreateRequest): Promise<TopicConfig> {
     try {
-      const response = await apiClient.post(this.baseUrl, request);
+      const response = await apiClient.post(`${this.baseUrl}/create`, request);
       return response.data;
     } catch (error: any) {
       console.error('Failed to create topic:', error);

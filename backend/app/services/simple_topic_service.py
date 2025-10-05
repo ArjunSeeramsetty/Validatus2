@@ -27,8 +27,8 @@ class SimpleTopicService:
         try:
             logger.info(f"Creating topic: {request.topic} for user: {request.user_id}")
             
-            # Generate unique session ID
-            session_id = f"topic_{request.user_id}_{int(datetime.utcnow().timestamp())}"
+            # Generate unique session ID using UUID to prevent collisions
+            session_id = f"topic_{request.user_id}_{uuid.uuid4().hex}"
             
             # Prepare topic data
             topic_data = {
@@ -58,8 +58,8 @@ class SimpleTopicService:
                     initial_urls=request.initial_urls,
                     analysis_type=request.analysis_type,
                     user_id=request.user_id,
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow(),
+                    created_at=datetime.fromisoformat(topic_data['created_at']),
+                    updated_at=datetime.fromisoformat(topic_data['updated_at']),
                     status=TopicStatus.CREATED,
                     metadata={}
                 )
@@ -76,6 +76,11 @@ class SimpleTopicService:
             topic_data = self.db_manager.get_topic(session_id)
             
             if not topic_data:
+                return None
+            
+            # Verify user owns this topic
+            if topic_data['user_id'] != user_id:
+                logger.warning(f"User {user_id} attempted to access topic {session_id} owned by {topic_data['user_id']}")
                 return None
             
             # Convert database data to response
@@ -102,7 +107,7 @@ class SimpleTopicService:
         try:
             # Use page_size if provided, otherwise use limit
             actual_limit = page_size if page_size is not None else limit
-            topics_data = self.db_manager.list_topics(user_id, actual_limit, offset)
+            topics_data, total_count = self.db_manager.list_topics(user_id, actual_limit, offset)
             
             # Convert to TopicResponse objects
             topics = []
@@ -124,7 +129,7 @@ class SimpleTopicService:
             
             return TopicListResponse(
                 topics=topics,
-                total=len(topics),
+                total=total_count,
                 page=offset // actual_limit + 1 if actual_limit > 0 else 1,
                 page_size=actual_limit,
                 has_next=len(topics) == actual_limit,
@@ -146,10 +151,10 @@ class SimpleTopicService:
             # Prepare update data
             update_data = {
                 'session_id': session_id,
-                'topic': request.topic or existing_topic.topic,
-                'description': request.description or existing_topic.description,
-                'analysis_type': request.analysis_type or existing_topic.analysis_type,
-                'status': request.status or existing_topic.status,
+                'topic': request.topic if request.topic is not None else existing_topic.topic,
+                'description': request.description if request.description is not None else existing_topic.description,
+                'analysis_type': request.analysis_type if request.analysis_type is not None else existing_topic.analysis_type,
+                'status': request.status if request.status is not None else existing_topic.status,
                 'updated_at': datetime.utcnow().isoformat()
             }
             
@@ -180,6 +185,14 @@ class SimpleTopicService:
     async def delete_topic(self, session_id: str, user_id: str) -> bool:
         """Delete topic"""
         try:
+            # Verify user owns this topic before deleting
+            topic_data = self.db_manager.get_topic(session_id)
+            if not topic_data:
+                return False
+            if topic_data['user_id'] != user_id:
+                logger.warning(f"User {user_id} attempted to delete topic {session_id} owned by {topic_data['user_id']}")
+                return False
+            
             success = self.db_manager.delete_topic(session_id)
             logger.info(f"Topic deletion {'successful' if success else 'failed'}: {session_id}")
             return success

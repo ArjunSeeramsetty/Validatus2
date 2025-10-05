@@ -56,6 +56,8 @@ const TopicsManagementPage: React.FC = () => {
 
   const [topics, setTopics] = useState<TopicConfig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [selectedTopic, setSelectedTopic] = useState<TopicConfig | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -66,17 +68,39 @@ const TopicsManagementPage: React.FC = () => {
   }, []);
 
   const loadTopics = async () => {
+    console.log('Loading topics...');
+    setLoading(true);
+    setError(null);
+
     try {
+      console.log('Attempting to fetch topics from backend API...');
       const response = await topicService.listTopics(1, 50, 'created_at', 'desc');
-      setTopics(response.topics);
-    } catch (error) {
-      console.error('Error loading topics from service:', error);
-      // Fallback to localStorage
+      
+      console.log('Topics API response:', response);
+      
+      if (response && response.topics) {
+        setTopics(response.topics);
+        console.log(`Successfully loaded ${response.topics.length} topics from database`);
+        setRetryCount(0); // Reset retry count on success
+      } else {
+        console.warn('Unexpected API response format:', response);
+        setTopics([]);
+      }
+    } catch (error: any) {
+      console.error('Failed to load topics from backend:', error);
+      setError(error.message || 'Failed to load topics from server');
+      
+      // Fallback to localStorage for demo purposes
       try {
+        console.log('Attempting fallback to localStorage...');
         const storedTopics = localStorage.getItem('created_topics');
         if (storedTopics) {
           const parsedTopics = JSON.parse(storedTopics);
           setTopics(parsedTopics);
+          console.log(`Loaded ${parsedTopics.length} topics from localStorage fallback`);
+          setError(null); // Clear error if fallback succeeds
+        } else {
+          console.log('No topics found in localStorage');
         }
       } catch (localError) {
         console.error('Error loading topics from localStorage:', localError);
@@ -85,6 +109,11 @@ const TopicsManagementPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    loadTopics();
   };
 
   const handleViewTopic = (topic: TopicConfig) => {
@@ -135,7 +164,72 @@ const TopicsManagementPage: React.FC = () => {
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography>Loading topics...</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography>Loading topics from database...</Typography>
+          {retryCount > 0 && (
+            <Typography variant="caption" color="text.secondary">
+              Retry attempt: {retryCount}
+            </Typography>
+          )}
+        </Box>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert 
+          severity="error" 
+          sx={{ mb: 3 }}
+          action={
+            <Button color="inherit" size="small" onClick={handleRetry}>
+              Retry
+            </Button>
+          }
+        >
+          <Typography variant="h6" gutterBottom>
+            Failed to Load Topics
+          </Typography>
+          <Typography variant="body2">
+            {error}
+          </Typography>
+          {retryCount > 0 && (
+            <Typography variant="caption" sx={{ mt: 1, display: 'block' }}>
+              Retry attempts: {retryCount}
+            </Typography>
+          )}
+        </Alert>
+        
+        <Card>
+          <CardContent sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="h6" gutterBottom>
+              Debug Information
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Backend URL: {process.env.VITE_API_URL || 'https://validatus-backend-ssivkqhvhq-uc.a.run.app'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Retry Count: {retryCount}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Timestamp: {new Date().toLocaleString()}
+            </Typography>
+            
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+              <Button variant="contained" onClick={handleRetry} startIcon={<SearchIcon />}>
+                Retry Loading
+              </Button>
+              <Button 
+                variant="outlined" 
+                onClick={() => navigate('/topic-creation')}
+                startIcon={<AddIcon />}
+              >
+                Create New Topic
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
       </Container>
     );
   }
@@ -145,19 +239,29 @@ const TopicsManagementPage: React.FC = () => {
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Topics Management
+            Topics Management ({topics.length})
           </Typography>
           <Typography variant="body1" color="text.secondary">
             Manage your analysis topics and view their configurations.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/topic-creation')}
-        >
-          Create New Topic
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<SearchIcon />}
+            onClick={loadTopics}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/topic-creation')}
+          >
+            Create New Topic
+          </Button>
+        </Box>
       </Box>
 
       {topics.length === 0 ? (

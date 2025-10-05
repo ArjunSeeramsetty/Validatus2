@@ -1,4 +1,6 @@
 GCP_PROJECT_ID=validatus-platform
-DATABASE_URL=postgresql+asyncpg://validatus_app:Validatus2024!@35.232.190.254:5432/validatusdb
+# DATABASE_URL should be injected via GCP Secret Manager or secure environment variables
+# Never commit actual credentials to version control
+DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/validatusdb
 ENVIRONMENT=production
-ALLOWED_ORIGINS=https://validatus-frontend-ssivkqhvhq-uc.a.run.app,https://validatus-backend-ssivkqhvhq-uc.a.run.app
+ALLOWED_ORIGINS=https://validatus-frontend-${PROJECT_ID}.run.app,https://validatus-backend-${PROJECT_ID}.run.app

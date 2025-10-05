@@ -218,12 +218,25 @@ class DatabaseManager:
             logger.error(f"Failed to delete topic {session_id}: {e}")
             return False
     
-    def list_topics(self, user_id: str = None, limit: int = 20, offset: int = 0) -> List[Dict[str, Any]]:
-        """List topics with optional filtering"""
+    def list_topics(self, user_id: str = None, limit: int = 20, offset: int = 0) -> Tuple[List[Dict[str, Any]], int]:
+        """List topics with optional filtering and return total count"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 
+                # Build base query for counting
+                count_query = "SELECT COUNT(*) FROM topics"
+                count_params = []
+                
+                if user_id:
+                    count_query += " WHERE user_id = ?"
+                    count_params.append(user_id)
+                
+                # Get total count
+                cursor.execute(count_query, count_params)
+                total_count = cursor.fetchone()[0]
+                
+                # Build query for fetching topics
                 query = "SELECT * FROM topics"
                 params = []
                 
@@ -250,11 +263,11 @@ class DatabaseManager:
                     
                     topics.append(topic_data)
                 
-                return topics
+                return topics, total_count
                 
         except Exception as e:
             logger.error(f"Failed to list topics: {e}")
-            return []
+            return [], 0
     
     def add_urls(self, session_id: str, urls: List[str], source: str = 'search') -> bool:
         """Add URLs to a topic"""

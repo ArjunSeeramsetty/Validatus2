@@ -54,22 +54,29 @@ app = FastAPI(
     redoc_url="/redoc" if os.getenv("ENVIRONMENT") != "production" else None,
 )
 
-# CORS configuration for production
+# CORS configuration for production - FIXED
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
 if not allowed_origins_env:
-    logger.error("ALLOWED_ORIGINS environment variable is required in production")
-    raise RuntimeError("ALLOWED_ORIGINS must be set in production environment")
+    logger.warning("ALLOWED_ORIGINS not set, using default origins")
+    # Default origins for production
+    allowed_origins = [
+        "https://validatus-frontend-ssivkqhvhq-uc.a.run.app",
+        "https://validatus-backend-ssivkqhvhq-uc.a.run.app",
+        "http://localhost:3000",
+        "http://localhost:5173"
+    ]
+else:
+    allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
 
-allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+# Add wildcard for debugging if needed
+if os.getenv("ENVIRONMENT") == "development":
+    allowed_origins.append("*")
 
-# Validate no wildcard when credentials are allowed
-if "*" in allowed_origins:
-    logger.error("Wildcard origin '*' not allowed when credentials are enabled")
-    raise RuntimeError("Wildcard origin not allowed in production with credentials")
+logger.info(f"CORS allowed origins: {allowed_origins}")
 
 # Use explicit origins with credentials
 allow_credentials = True
-allow_headers = ["Authorization", "Content-Type", "X-Requested-With"]
+allow_headers = ["Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "User-Agent"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -77,6 +84,7 @@ app.add_middleware(
     allow_credentials=allow_credentials,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=allow_headers,
+    expose_headers=["*"],
 )
 
 # Include the topics router for proper database integration

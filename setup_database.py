@@ -1,14 +1,25 @@
 #!/usr/bin/env python3
 """
-Simple database schema setup for Validatus
+Secure database schema setup for Validatus
 """
 import asyncio
 import asyncpg
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 async def setup_database():
-    # Database connection details
-    connection_string = "postgresql://validatus_app:Validatus2024!@35.232.190.254:5432/validatusdb"
+    # Database connection details from environment variables
+    connection_string = os.getenv(
+        "DATABASE_URL",
+        "postgresql://validatus_app@localhost:5432/validatusdb"
+    )
+    
+    if not connection_string or connection_string == "postgresql://validatus_app@localhost:5432/validatusdb":
+        print("⚠️  Warning: Using default connection string. Set DATABASE_URL environment variable for production.")
+        print("   Example: DATABASE_URL=postgresql://username:password@host:port/database")
     
     try:
         # Connect to database
@@ -45,14 +56,15 @@ async def setup_database():
             url TEXT NOT NULL,
             source VARCHAR(100) NOT NULL DEFAULT 'unknown',
             status VARCHAR(50) DEFAULT 'pending',
-            quality_score DECIMAL(3,2),
+            quality_score DECIMAL(3,2) CHECK (quality_score >= 0 AND quality_score <= 1),
             scraped_at TIMESTAMP WITH TIME ZONE,
             content_preview TEXT,
             title TEXT,
             word_count INTEGER,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             
-            UNIQUE(session_id, url)
+            UNIQUE(session_id, url),
+            FOREIGN KEY (session_id) REFERENCES topics(session_id) ON DELETE CASCADE
         );
 
         -- Simple analysis results table
@@ -64,15 +76,16 @@ async def setup_database():
             user_id VARCHAR(100) NOT NULL,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             
-            -- Core scoring results
-            overall_score DECIMAL(5,4),
-            confidence_score DECIMAL(5,4),
+            -- Core scoring results (normalized 0.0-1.0 with validation)
+            overall_score DECIMAL(5,4) CHECK (overall_score >= 0 AND overall_score <= 1),
+            confidence_score DECIMAL(5,4) CHECK (confidence_score >= 0 AND confidence_score <= 1),
             
             -- Detailed results as JSON
             results_data JSONB DEFAULT '{}'::jsonb,
             processing_metadata JSONB DEFAULT '{}'::jsonb,
             
-            UNIQUE(session_id, analysis_id)
+            UNIQUE(session_id, analysis_id),
+            FOREIGN KEY (session_id) REFERENCES topics(session_id) ON DELETE CASCADE
         );
 
         -- User activity tracking
@@ -94,9 +107,9 @@ async def setup_database():
         CREATE INDEX IF NOT EXISTS idx_analysis_results_session_id ON analysis_results(session_id);
         CREATE INDEX IF NOT EXISTS idx_user_activity_user_id ON user_activity(user_id);
 
-        -- Grant permissions to application user
-        GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO validatus_app;
-        GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO validatus_app;
+        -- Grant minimal necessary permissions to application user
+        GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO validatus_app;
+        GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO validatus_app;
         GRANT USAGE ON SCHEMA public TO validatus_app;
 
         -- Insert sample data for testing
@@ -111,7 +124,8 @@ async def setup_database():
         """
         
         print("Creating database schema...")
-        await conn.execute(schema_sql)
+        async with conn.transaction():
+            await conn.execute(schema_sql)
         print("Database schema created successfully")
         
         # Test the setup

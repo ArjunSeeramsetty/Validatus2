@@ -24,8 +24,8 @@ cloud-sql-python-connector==1.18.4
 asyncpg==0.29.0
 redis==5.0.1
 sqlalchemy==2.0.23
-alembic==1.13.1
-psycopg2-binary==2.9.7
+alembic==1.16.5
+psycopg2-binary==2.9.10
 
 # HTTP and utilities (security updates)
 httpx==0.28.1

@@ -29,7 +29,7 @@ function Update-BackendConfig {
 Updated backend configuration for production deployment with Cloud SQL
 """
 import os
-from typing import Optional
+from typing import Optional, List
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     port: int = 8000
     
     # GCP
-    gcp_project_id: str = "$ProjectId"
+    gcp_project_id: str = "$($ProjectId.Replace('"', '\"'))"
     gcp_region: str = "us-central1"
     
     # Database
@@ -52,9 +52,9 @@ class Settings(BaseSettings):
     cloud_sql_database: str = "validatus"
     cloud_sql_user: str = "validatus_app"
     
-    # Redis
-    redis_host: str = "localhost"
-    redis_port: int = 6379
+    # Redis (configure via environment variables for production)
+    redis_host: str = os.getenv("REDIS_HOST", "localhost")
+    redis_port: int = int(os.getenv("REDIS_PORT", "6379"))
     
     # Features
     local_development_mode: bool = False
@@ -62,10 +62,13 @@ class Settings(BaseSettings):
     enable_monitoring: bool = True
     
     # CORS
-    allowed_origins: list = ["$FrontendUrl", "$BackendUrl"]
+    allowed_origins: List[str] = [
+        "$($FrontendUrl.Replace('"', '\"'))",
+        "$($BackendUrl.Replace('"', '\"'))"
+    ]
     
     class Config:
-        env_file = ".env"
+        env_file = os.getenv("ENV_FILE", ".env")
         case_sensitive = True
 
 settings = Settings()
@@ -101,7 +104,7 @@ REACT_APP_ENVIRONMENT=production
     $frontendConfig = @"
 // Frontend API configuration
 const API_CONFIG = {
-  BASE_URL: '$BackendUrl',
+  BASE_URL: '$($BackendUrl.Replace("'", "\'"))',
   ENDPOINTS: {
     HEALTH: '/health',
     TOPICS: '/api/v3/topics',
@@ -232,6 +235,9 @@ options:
   machineType: 'E2_HIGHCPU_8'
   logging: CLOUD_LOGGING_ONLY
 
+substitutions:
+  _DATABASE_URL: 'postgresql://user:pass@/cloudsql/connection'  # Update with actual value
+
 timeout: '2400s'
 "@
 
@@ -239,8 +245,28 @@ timeout: '2400s'
     Write-Host "✅ Deployment configuration created: cloudbuild-update.yaml" -ForegroundColor Green
 }
 
+# Validate ProjectId to prevent injection attacks
+function Test-ProjectId {
+    param([string]$ProjectId)
+    
+    # Project IDs should be alphanumeric with hyphens only
+    if ($ProjectId -notmatch '^[a-z][a-z0-9-]*[a-z0-9]$' -and $ProjectId.Length -gt 6 -and $ProjectId.Length -lt 64) {
+        throw "Invalid Project ID format. Project IDs must be lowercase alphanumeric with hyphens, 6-63 characters long, starting and ending with alphanumeric characters."
+    }
+    
+    # Check for dangerous characters
+    if ($ProjectId -match '["''<>{}|\\`$]') {
+        throw "Project ID contains dangerous characters that could cause injection attacks."
+    }
+    
+    return $true
+}
+
 # Main execution
 try {
+    # Validate inputs
+    Test-ProjectId $ProjectId
+    
     Write-Host "Project ID: $ProjectId" -ForegroundColor White
     Write-Host "Backend URL: $BackendUrl" -ForegroundColor White
     Write-Host "Frontend URL: $FrontendUrl" -ForegroundColor White

@@ -20,10 +20,10 @@ class Settings(BaseSettings):
     gcp_region: str = "us-central1"
     
     # Database
-    database_url: Optional[str] = "postgresql+asyncpg://validatus_app:Validatus2024!@/validatusdb?host=/cloudsql/validatus-platform:us-central1:validatus-sql"
-    cloud_sql_connection_name: str = "validatus-platform:us-central1:validatus-sql"
-    cloud_sql_database: str = "validatusdb"
-    cloud_sql_user: str = "validatus_app"
+    database_url: Optional[str] = None
+    cloud_sql_connection_name: str = ""
+    cloud_sql_database: str = ""
+    cloud_sql_user: str = ""
     
     # Redis
     redis_host: str = "localhost"

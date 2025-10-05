@@ -7,8 +7,11 @@
 
 [CmdletBinding()]
 param(
-    [string]$BackendUrl = "https://validatus-backend-ssivkqhvhq-uc.a.run.app",
-    [string]$FrontendUrl = "https://validatus-frontend-ssivkqhvhq-uc.a.run.app",
+    [string]$BackendUrl,
+    [string]$FrontendUrl,
+    [string]$ProjectId = "validatus-platform",
+    [string]$Region = "us-central1",
+    [int]$PerformanceThresholdMs = 3000,
     [switch]$Verbose
 )
 
@@ -17,6 +20,52 @@ Write-Host "========================================" -ForegroundColor Green
 
 $testResults = @{}
 $ErrorActionPreference = "Continue"
+
+# Function to retrieve service URLs dynamically
+function Get-ServiceUrls {
+    param(
+        [string]$ProjectId,
+        [string]$Region
+    )
+    
+    try {
+        Write-Host "🔍 Retrieving service URLs dynamically..." -ForegroundColor Cyan
+        
+        # Get backend URL
+        if (-not $BackendUrl) {
+            $BackendUrl = gcloud run services describe validatus-backend --region $Region --project=$ProjectId --format="value(status.url)" 2>$null
+            if ([string]::IsNullOrWhiteSpace($BackendUrl)) {
+                Write-Host "❌ Failed to retrieve backend URL. Please provide -BackendUrl parameter." -ForegroundColor Red
+                exit 1
+            }
+        }
+        
+        # Get frontend URL
+        if (-not $FrontendUrl) {
+            $FrontendUrl = gcloud run services describe validatus-frontend --region $Region --project=$ProjectId --format="value(status.url)" 2>$null
+            if ([string]::IsNullOrWhiteSpace($FrontendUrl)) {
+                Write-Host "❌ Failed to retrieve frontend URL. Please provide -FrontendUrl parameter." -ForegroundColor Red
+                exit 1
+            }
+        }
+        
+        Write-Host "✅ Service URLs retrieved:" -ForegroundColor Green
+        Write-Host "  Frontend: $FrontendUrl" -ForegroundColor White
+        Write-Host "  Backend:  $BackendUrl" -ForegroundColor White
+        Write-Host "  Health:   $BackendUrl/health" -ForegroundColor White
+        Write-Host "  API Docs: $BackendUrl/docs" -ForegroundColor White
+        Write-Host ""
+        
+        return @{
+            BackendUrl = $BackendUrl
+            FrontendUrl = $FrontendUrl
+        }
+    } catch {
+        Write-Host "❌ Failed to retrieve service URLs: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Please provide URLs manually using -BackendUrl and -FrontendUrl parameters." -ForegroundColor Yellow
+        exit 1
+    }
+}
 
 # Function to test health endpoints
 function Test-HealthEndpoints {
@@ -89,6 +138,17 @@ function Test-DatabaseOperations {
             
             if ($createdTopic) {
                 Write-Host "✅ Topic retrieval successful - Topic persisted in database" -ForegroundColor Green
+                
+                # Cleanup: Delete the test topic
+                try {
+                    Invoke-RestMethod -Uri "$BackendUrl/api/v3/topics/$($createResponse.session_id)" -Method Delete -TimeoutSec 30
+                    if ($Verbose) {
+                        Write-Host "   🧹 Test topic cleaned up" -ForegroundColor Gray
+                    }
+                } catch {
+                    Write-Host "   ⚠️ Failed to cleanup test topic: $($_.Exception.Message)" -ForegroundColor Yellow
+                }
+                
                 return $true
             } else {
                 Write-Host "⚠️ Topic was created but not found in listing - possible consistency issue" -ForegroundColor Yellow
@@ -171,7 +231,7 @@ function Test-APIEndpoints {
             $url = "$BackendUrl$($endpoint.Path)"
             
             if ($endpoint.Method -eq "GET") {
-                $response = Invoke-RestMethod -Uri $url -Method Get -TimeoutSec 20
+                Invoke-RestMethod -Uri $url -Method Get -TimeoutSec 20 | Out-Null
                 Write-Host "   ✅ $($endpoint.Description): OK" -ForegroundColor Green
                 $passedEndpoints++
             }
@@ -186,7 +246,7 @@ function Test-APIEndpoints {
         return $true
     } else {
         Write-Host "⚠️ Some API endpoints failed ($passedEndpoints/$($endpoints.Count))" -ForegroundColor Yellow
-        return $passedEndpoints -gt 0
+        return $false
     }
 }
 
@@ -200,7 +260,7 @@ function Test-Performance {
     for ($i = 1; $i -le $testCount; $i++) {
         try {
             $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-            $response = Invoke-RestMethod -Uri "$BackendUrl/health" -Method Get -TimeoutSec 10
+            Invoke-RestMethod -Uri "$BackendUrl/health" -Method Get -TimeoutSec 10 | Out-Null
             $stopwatch.Stop()
             
             $responseTime = $stopwatch.ElapsedMilliseconds
@@ -224,12 +284,12 @@ function Test-Performance {
         Write-Host "   Min: $minResponseTime ms" -ForegroundColor White
         Write-Host "   Max: $maxResponseTime ms" -ForegroundColor White
         
-        if ($avgResponseTime -lt 3000) {
-            Write-Host "✅ Performance is acceptable (< 3s)" -ForegroundColor Green
+        if ($avgResponseTime -lt $PerformanceThresholdMs) {
+            Write-Host "✅ Performance is acceptable (< $PerformanceThresholdMs ms)" -ForegroundColor Green
             return $true
         } else {
-            Write-Host "⚠️ Performance is slow (> 3s)" -ForegroundColor Yellow
-            return $true
+            Write-Host "⚠️ Performance is slow (> $PerformanceThresholdMs ms)" -ForegroundColor Yellow
+            return $false
         }
     } else {
         Write-Host "❌ Performance test failed - no successful requests" -ForegroundColor Red
@@ -271,9 +331,10 @@ function New-TestReport {
 
 # Main execution
 try {
-    Write-Host "Backend URL: $BackendUrl" -ForegroundColor White
-    Write-Host "Frontend URL: $FrontendUrl" -ForegroundColor White
-    Write-Host ""
+    # Retrieve service URLs dynamically if not provided
+    $urls = Get-ServiceUrls -ProjectId $ProjectId -Region $Region
+    $BackendUrl = $urls.BackendUrl
+    $FrontendUrl = $urls.FrontendUrl
     
     # Run all tests
     $testResults["Health Endpoints"] = Test-HealthEndpoints

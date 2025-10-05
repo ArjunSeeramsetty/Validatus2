@@ -39,8 +39,11 @@ function Test-DatabaseInstance {
 function New-MinimalCloudSQL {
     Write-Host "🔧 Creating minimal Cloud SQL instance..." -ForegroundColor Cyan
     
-    # Generate random password
-    $password = -join ((1..16) | ForEach-Object { Get-Random -InputObject ([char[]]'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*') })
+    # Generate separate secure passwords (no special characters for URL safety)
+    $postgresPassword = -join ((1..20) | ForEach-Object { Get-Random -InputObject ([char[]]'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') })
+    $appPassword = -join ((1..20) | ForEach-Object { Get-Random -InputObject ([char[]]'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') })
+    
+    Write-Host "Generated separate passwords for postgres and application user" -ForegroundColor Green
     
     # Create Cloud SQL instance
     $createArgs = @(
@@ -51,7 +54,6 @@ function New-MinimalCloudSQL {
         "--storage-type=SSD",
         "--storage-size=10GB",
         "--storage-auto-increase",
-        "--enable-bin-log",
         "--backup-start-time=03:00",
         "--maintenance-release-channel=production",
         "--maintenance-window-day=SUN",
@@ -66,31 +68,56 @@ function New-MinimalCloudSQL {
         throw "Failed to create Cloud SQL instance"
     }
     
-    # Set root password
-    Write-Host "Setting database password..." -ForegroundColor Cyan
-    gcloud sql users set-password postgres --instance=$DatabaseInstanceName --password=$password --project=$ProjectId
+    # Set postgres superuser password
+    Write-Host "Setting postgres superuser password..." -ForegroundColor Cyan
+    gcloud sql users set-password postgres --instance=$DatabaseInstanceName --password=$postgresPassword --project=$ProjectId
     
-    # Create application user
-    Write-Host "Creating application user..." -ForegroundColor Cyan
-    gcloud sql users create $DatabaseUser --instance=$DatabaseInstanceName --password=$password --project=$ProjectId
+    # Create application user with separate password
+    Write-Host "Creating application user with separate password..." -ForegroundColor Cyan
+    gcloud sql users create $DatabaseUser --instance=$DatabaseInstanceName --password=$appPassword --project=$ProjectId
     
     # Create database
     Write-Host "Creating application database..." -ForegroundColor Cyan
     gcloud sql databases create $DatabaseName --instance=$DatabaseInstanceName --project=$ProjectId
     
-    # Store password in Secret Manager
-    Write-Host "Storing password in Secret Manager..." -ForegroundColor Cyan
+    # Store passwords securely in Secret Manager
+    Write-Host "Storing passwords in Secret Manager..." -ForegroundColor Cyan
     
-    # Create secret
+    # Store postgres password
     try {
-        echo $password | gcloud secrets create cloud-sql-password --data-file=- --project=$ProjectId 2>$null
+        $tempFile = [System.IO.Path]::GetTempFileName()
+        $postgresPassword | Out-File -FilePath $tempFile -Encoding utf8 -NoNewline
+        gcloud secrets create cloud-sql-postgres-password --data-file=$tempFile --project=$ProjectId 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            # Secret might already exist, update it
+            gcloud secrets versions add cloud-sql-postgres-password --data-file=$tempFile --project=$ProjectId
+        }
+        Remove-Item $tempFile -ErrorAction SilentlyContinue
+        Write-Host "✅ Postgres password stored securely" -ForegroundColor Green
     } catch {
-        # Secret might already exist, update it
-        echo $password | gcloud secrets versions add cloud-sql-password --data-file=- --project=$ProjectId
+        Write-Host "❌ Failed to store postgres password: $($_.Exception.Message)" -ForegroundColor Red
     }
     
-    Write-Host "✅ Cloud SQL instance created successfully" -ForegroundColor Green
-    return $password
+    # Store application password
+    try {
+        $tempFile = [System.IO.Path]::GetTempFileName()
+        $appPassword | Out-File -FilePath $tempFile -Encoding utf8 -NoNewline
+        gcloud secrets create cloud-sql-app-password --data-file=$tempFile --project=$ProjectId 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            # Secret might already exist, update it
+            gcloud secrets versions add cloud-sql-app-password --data-file=$tempFile --project=$ProjectId
+        }
+        Remove-Item $tempFile -ErrorAction SilentlyContinue
+        Write-Host "✅ Application password stored securely" -ForegroundColor Green
+    } catch {
+        Write-Host "❌ Failed to store application password: $($_.Exception.Message)" -ForegroundColor Red
+    }
+    
+    Write-Host "✅ Cloud SQL instance created successfully with separate passwords" -ForegroundColor Green
+    return @{
+        PostgresPassword = $postgresPassword
+        AppPassword = $appPassword
+    }
 }
 
 # Function to setup database schema
@@ -133,7 +160,7 @@ CREATE TABLE IF NOT EXISTS topic_urls (
     url TEXT NOT NULL,
     source VARCHAR(100) NOT NULL DEFAULT 'unknown',
     status VARCHAR(50) DEFAULT 'pending',
-    quality_score DECIMAL(3,2),
+    quality_score DECIMAL(3,2) CHECK (quality_score >= 0 AND quality_score <= 1),
     scraped_at TIMESTAMP WITH TIME ZONE,
     content_preview TEXT,
     title TEXT,
@@ -141,7 +168,8 @@ CREATE TABLE IF NOT EXISTS topic_urls (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
     UNIQUE(session_id, url),
-    CONSTRAINT chk_url_status CHECK (status IN ('pending', 'processing', 'scraped', 'failed', 'skipped'))
+    CONSTRAINT chk_url_status CHECK (status IN ('pending', 'processing', 'scraped', 'failed', 'skipped')),
+    FOREIGN KEY (session_id) REFERENCES topics(session_id) ON DELETE CASCADE
 );
 
 -- Simple analysis results table
@@ -153,15 +181,16 @@ CREATE TABLE IF NOT EXISTS analysis_results (
     user_id VARCHAR(100) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
-    -- Core scoring results
-    overall_score DECIMAL(5,4),
-    confidence_score DECIMAL(5,4),
+    -- Core scoring results (normalized 0.0-1.0 with validation)
+    overall_score DECIMAL(5,4) CHECK (overall_score >= 0 AND overall_score <= 1),
+    confidence_score DECIMAL(5,4) CHECK (confidence_score >= 0 AND confidence_score <= 1),
     
     -- Detailed results as JSON
     results_data JSONB DEFAULT '{}'::jsonb,
     processing_metadata JSONB DEFAULT '{}'::jsonb,
     
-    UNIQUE(session_id, analysis_id)
+    UNIQUE(session_id, analysis_id),
+    FOREIGN KEY (session_id) REFERENCES topics(session_id) ON DELETE CASCADE
 );
 
 -- User activity tracking
@@ -197,9 +226,9 @@ DROP TRIGGER IF EXISTS update_topics_updated_at ON topics;
 CREATE TRIGGER update_topics_updated_at BEFORE UPDATE ON topics
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Grant permissions to application user
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO validatus_app;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO validatus_app;
+-- Grant minimal necessary permissions to application user
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO validatus_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO validatus_app;
 GRANT USAGE ON SCHEMA public TO validatus_app;
 
 -- Insert sample data for testing
@@ -330,7 +359,7 @@ LOG_LEVEL=INFO
 "@
 
     $envPath = ".env.production"
-    $envContent | Out-File -FilePath $envPath -Encoding utf8 -NoNewline
+    $envContent | Out-File -FilePath $envPath -Encoding utf8
     
     Write-Host "✅ Environment configuration saved to .env.production" -ForegroundColor Green
 }
@@ -379,6 +408,7 @@ try {
     Write-Host ""
     
     # Step 2: Create database infrastructure
+    $password = $null
     if (-not $SkipInfrastructure) {
         Write-Host "📋 Step 2: Creating database infrastructure..." -ForegroundColor Cyan
         
@@ -387,7 +417,7 @@ try {
             
             # Get existing password from Secret Manager
             try {
-                $password = gcloud secrets versions access latest --secret="cloud-sql-password" --project=$ProjectId
+                $password = (gcloud secrets versions access latest --secret="cloud-sql-password" --project=$ProjectId).Trim()
                 Write-Host "✅ Retrieved existing database password" -ForegroundColor Green
             } catch {
                 Write-Host "❌ Failed to retrieve password from Secret Manager" -ForegroundColor Red
@@ -398,6 +428,14 @@ try {
         }
         
         Write-Host ""
+    } else {
+        # Retrieve password from Secret Manager when skipping infrastructure
+        Write-Host "⚠️ Skipping infrastructure creation, retrieving existing password..." -ForegroundColor Yellow
+        try {
+            $password = (gcloud secrets versions access latest --secret="cloud-sql-password" --project=$ProjectId).Trim()
+        } catch {
+            throw "Cannot proceed without password. Ensure cloud-sql-password secret exists or remove -SkipInfrastructure flag."
+        }
     }
     
     # Step 3: Setup database schema

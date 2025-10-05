@@ -34,7 +34,7 @@ try {
     
     # Step 2: Check if database instance exists
     Write-Host "📋 Step 2: Checking database instance..." -ForegroundColor Cyan
-    $instanceExists = gcloud sql instances describe validatus-primary --project=$ProjectId 2>$null
+    gcloud sql instances describe validatus-primary --project=$ProjectId 2>$null
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "✅ Cloud SQL instance already exists" -ForegroundColor Green
@@ -57,7 +57,7 @@ try {
     Write-Host "📋 Step 3: Testing database connection..." -ForegroundColor Cyan
     try {
         $env:PGPASSWORD = $password
-        $result = gcloud sql connect validatus-primary --user=validatus_app --database=validatus --quiet --command="SELECT COUNT(*) FROM topics;" 2>$null
+        gcloud sql connect validatus-primary --user=validatus_app --database=validatus --quiet --command="SELECT COUNT(*) FROM topics;" 2>$null
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✅ Database connection test successful" -ForegroundColor Green
@@ -83,9 +83,12 @@ try {
     $envContent += "GCP_PROJECT_ID=$ProjectId`n"
     $envContent += "GCP_REGION=$Region`n"
     $envContent += "ENVIRONMENT=production`n"
-    $envContent += "FRONTEND_URL=https://validatus-frontend-ssivkqhvhq-uc.a.run.app`n"
-    $envContent += "BACKEND_URL=https://validatus-backend-ssivkqhvhq-uc.a.run.app`n"
-    $envContent += "DATABASE_URL=postgresql+asyncpg://validatus_app:$password@/validatus?host=/cloudsql/$connectionName`n"
+    # Dynamically construct URLs or leave as template
+    $envContent += "FRONTEND_URL=https://validatus-frontend-${ProjectId}.run.app`n"
+    $envContent += "BACKEND_URL=https://validatus-backend-${ProjectId}.run.app`n"
+    # Reference secret instead of embedding password
+    $envContent += "DATABASE_URL=postgresql+asyncpg://validatus_app:[SECRET]@/validatus?host=/cloudsql/$connectionName`n"
+    $envContent += "CLOUD_SQL_PASSWORD_SECRET=cloud-sql-password`n"
     $envContent += "CLOUD_SQL_CONNECTION_NAME=$connectionName`n"
     $envContent += "CLOUD_SQL_DATABASE=validatus`n"
     $envContent += "CLOUD_SQL_USER=validatus_app`n"
@@ -97,6 +100,19 @@ try {
     $envContent | Out-File -FilePath $envPath -Encoding utf8 -NoNewline
     
     Write-Host "✅ Environment configuration saved to .env.production" -ForegroundColor Green
+    
+    # Add .env.production to .gitignore to prevent accidental commits
+    $gitignorePath = ".gitignore"
+    if (Test-Path $gitignorePath) {
+        $gitignoreContent = Get-Content $gitignorePath -Raw
+        if ($gitignoreContent -notmatch "\.env\.production") {
+            Add-Content $gitignorePath "`n.env.production"
+            Write-Host "✅ Added .env.production to .gitignore" -ForegroundColor Green
+        }
+    } else {
+        ".env.production" | Out-File -FilePath $gitignorePath -Encoding utf8
+        Write-Host "✅ Created .gitignore with .env.production" -ForegroundColor Green
+    }
     
     # Success summary
     Write-Host ""

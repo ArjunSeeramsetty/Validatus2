@@ -14,7 +14,7 @@ param(
     [switch]$SkipInfrastructure,
     [switch]$SkipRedeployment,
     [switch]$SkipTesting,
-    [switch]$CreateMinimalSetup = $true
+    [bool]$CreateMinimalSetup = $true
 )
 
 Write-Host "🎯 Complete Validatus Database Setup and Deployment" -ForegroundColor Green

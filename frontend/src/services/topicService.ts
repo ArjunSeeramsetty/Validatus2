@@ -19,10 +19,13 @@ export interface TopicConfig {
 }
 
 export interface TopicCreateRequest {
-  title: string;
+  topic: string;
   description: string;
+  search_queries?: string[];
+  initial_urls?: string[];
   analysis_type: 'standard' | 'comprehensive';
   user_id: string;
+  metadata?: Record<string, any>;
 }
 
 export interface TopicUpdateRequest {

@@ -1,0 +1,4 @@
+GCP_PROJECT_ID: validatus-platform
+DATABASE_URL: postgresql+asyncpg://validatus_app:Validatus2024!@35.232.190.254:5432/validatusdb
+ENVIRONMENT: production
+ALLOWED_ORIGINS: https://validatus-frontend-ssivkqhvhq-uc.a.run.app,https://validatus-backend-ssivkqhvhq-uc.a.run.app

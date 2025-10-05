@@ -13,6 +13,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+# Import the topics router
+from app.api.v3.topics import router as topics_router
+
 # Configure logging for Cloud Run
 logging.basicConfig(
     level=logging.INFO,
@@ -22,19 +25,6 @@ logger = logging.getLogger(__name__)
 
 # Global services storage
 core_services = {}
-
-# Pydantic models for request validation
-class TopicCreateRequest(BaseModel):
-    title: str = Field(..., min_length=1, max_length=200, description="Topic title")
-    description: str = Field(default="", max_length=1000, description="Topic description")
-    analysis_type: str = Field(default="comprehensive", description="Analysis type")
-    user_id: str = Field(..., min_length=1, max_length=100, description="User identifier")
-
-class TopicResponse(BaseModel):
-    success: bool
-    topic_id: str
-    message: str
-    timestamp: str
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -89,6 +79,9 @@ app.add_middleware(
     allow_headers=allow_headers,
 )
 
+# Include the topics router for proper database integration
+app.include_router(topics_router)
+
 # Health check endpoint (CRITICAL for Cloud Run)
 @app.get("/health")
 async def health_check():
@@ -135,33 +128,7 @@ async def api_status():
         "timestamp": datetime.utcnow().isoformat()
     }
 
-# Topics endpoint (basic)
-@app.get("/api/v3/topics")
-async def list_topics():
-    """List topics endpoint"""
-    return {
-        "topics": [],
-        "message": "Topics endpoint ready",
-        "timestamp": datetime.utcnow().isoformat()
-    }
-
-# Create topic endpoint (basic)
-@app.post("/api/v3/topics/create", response_model=TopicResponse)
-async def create_topic(topic_data: TopicCreateRequest):
-    """Create topic endpoint with validation"""
-    try:
-        # Generate a demo topic ID (in production, this would create in database)
-        topic_id = f"topic-{topic_data.user_id}-{int(datetime.utcnow().timestamp())}"
-        
-        return TopicResponse(
-            success=True,
-            topic_id=topic_id,
-            message=f"Topic '{topic_data.title}' created successfully",
-            timestamp=datetime.utcnow().isoformat()
-        )
-    except Exception as e:
-        logger.exception("Failed to create topic")
-        raise HTTPException(status_code=500, detail="Failed to create topic")
+# Topics endpoints are now handled by the topics router
 
 if __name__ == "__main__":
     import uvicorn

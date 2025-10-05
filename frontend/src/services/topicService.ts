@@ -3,6 +3,7 @@
  * Handles communication with backend topic API
  */
 import { apiClient } from './apiClient';
+import { API_CONFIG } from '../config/api';
 
 export interface TopicConfig {
   session_id: string;

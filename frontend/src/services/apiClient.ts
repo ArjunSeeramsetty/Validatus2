@@ -1,7 +1,9 @@
 // frontend/src/services/apiClient.ts - UPDATED with better error handling
 import axios from 'axios';
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8001';
+// Force HTTPS for production, localhost for development
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 
+  (window.location.hostname === 'localhost' ? 'http://localhost:8001' : 'https://validatus-backend-ssivkqhvhq-uc.a.run.app');
 
 console.log('API Client initialized with base URL:', API_BASE_URL);
 

@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     @field_validator('database_url', 'cloud_sql_connection_name', 'cloud_sql_database', 'cloud_sql_user')
     @classmethod
     def validate_db_config(cls, v, info):
-        if not v and cls.environment == "production":
+        if not v and info.data.get('environment') == "production":
             raise ValueError(f"{info.field_name} must be provided in production environment")
         return v
     

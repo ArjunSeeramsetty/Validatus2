@@ -201,7 +201,7 @@ const TopicsManagementPage: React.FC = () => {
           )}
         </Alert>
         
-        {process.env.NODE_ENV === 'development' && (
+        {import.meta.env.DEV && (
           <Card>
             <CardContent sx={{ textAlign: 'center', py: 4 }}>
               <Typography variant="h6" gutterBottom>

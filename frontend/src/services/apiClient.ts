@@ -1,7 +1,7 @@
 // frontend/src/services/apiClient.ts - UPDATED with better error handling
 import axios from 'axios';
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8001';
 
 console.log('API Client initialized with base URL:', API_BASE_URL);
 
@@ -56,7 +56,7 @@ apiClient.interceptors.response.use(
     }
     
     // Provide more detailed error messages
-    if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
       error.message = 'Network error: Unable to connect to the server. Please check your internet connection.';
     } else if (error.response?.status >= 500) {
       error.message = `Server error (${error.response.status}): ${error.response.data?.detail || 'Internal server error'}`;

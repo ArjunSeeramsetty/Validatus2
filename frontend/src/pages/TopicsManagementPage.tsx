@@ -201,20 +201,21 @@ const TopicsManagementPage: React.FC = () => {
           )}
         </Alert>
         
-        <Card>
-          <CardContent sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="h6" gutterBottom>
-              Debug Information
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Backend URL: {process.env.VITE_API_URL || 'https://validatus-backend-ssivkqhvhq-uc.a.run.app'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Retry Count: {retryCount}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Timestamp: {new Date().toLocaleString()}
-            </Typography>
+        {process.env.NODE_ENV === 'development' && (
+          <Card>
+            <CardContent sx={{ textAlign: 'center', py: 4 }}>
+              <Typography variant="h6" gutterBottom>
+                Debug Information
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Backend URL: {process.env.VITE_API_URL || 'https://validatus-backend-ssivkqhvhq-uc.a.run.app'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Retry Count: {retryCount}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Timestamp: {new Date().toLocaleString()}
+              </Typography>
             
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
               <Button variant="contained" onClick={handleRetry} startIcon={<SearchIcon />}>
@@ -228,8 +229,9 @@ const TopicsManagementPage: React.FC = () => {
                 Create New Topic
               </Button>
             </Box>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </Container>
     );
   }

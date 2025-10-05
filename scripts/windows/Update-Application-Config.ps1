@@ -249,9 +249,9 @@ timeout: '2400s'
 function Test-ProjectId {
     param([string]$ProjectId)
     
-    # Project IDs should be alphanumeric with hyphens only
-    if ($ProjectId -notmatch '^[a-z][a-z0-9-]*[a-z0-9]$' -and $ProjectId.Length -gt 6 -and $ProjectId.Length -lt 64) {
-        throw "Invalid Project ID format. Project IDs must be lowercase alphanumeric with hyphens, 6-63 characters long, starting and ending with alphanumeric characters."
+    # Project IDs must follow GCP naming requirements
+    if ($ProjectId -notmatch '^[a-z][a-z0-9-]*[a-z0-9]$' -or $ProjectId.Length -lt 6 -or $ProjectId.Length -gt 30) {
+        throw "Invalid Project ID format. Project IDs must be lowercase alphanumeric with hyphens, 6-30 characters long, starting and ending with alphanumeric characters."
     }
     
     # Check for dangerous characters

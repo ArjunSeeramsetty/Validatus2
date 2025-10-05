@@ -12,14 +12,12 @@ load_dotenv()
 
 async def setup_database():
     # Database connection details from environment variables
-    connection_string = os.getenv(
-        "DATABASE_URL",
-        "postgresql://validatus_app@localhost:5432/validatusdb"
-    )
+    connection_string = os.getenv("DATABASE_URL")
     
-    if not connection_string or connection_string == "postgresql://validatus_app@localhost:5432/validatusdb":
-        print("⚠️  Warning: Using default connection string. Set DATABASE_URL environment variable for production.")
+    if not connection_string:
+        print("❌ Error: DATABASE_URL environment variable is required.")
         print("   Example: DATABASE_URL=postgresql://username:password@host:port/database")
+        raise ValueError("DATABASE_URL environment variable must be set")
     
     try:
         # Connect to database

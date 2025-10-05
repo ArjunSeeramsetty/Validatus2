@@ -3,6 +3,7 @@ Production configuration for Validatus with database connectivity
 """
 import os
 from typing import Optional
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -19,11 +20,19 @@ class Settings(BaseSettings):
     gcp_project_id: str = "validatus-platform"
     gcp_region: str = "us-central1"
     
-    # Database
+    # Database - Must be provided via environment variables:
+    # DATABASE_URL, CLOUD_SQL_CONNECTION_NAME, CLOUD_SQL_DATABASE, CLOUD_SQL_USER
     database_url: Optional[str] = None
-    cloud_sql_connection_name: str = ""
-    cloud_sql_database: str = ""
-    cloud_sql_user: str = ""
+    cloud_sql_connection_name: Optional[str] = None
+    cloud_sql_database: Optional[str] = None
+    cloud_sql_user: Optional[str] = None
+    
+    @field_validator('database_url', 'cloud_sql_connection_name', 'cloud_sql_database', 'cloud_sql_user')
+    @classmethod
+    def validate_db_config(cls, v, info):
+        if not v and cls.environment == "production":
+            raise ValueError(f"{info.field_name} must be provided in production environment")
+        return v
     
     # Redis
     redis_host: str = "localhost"

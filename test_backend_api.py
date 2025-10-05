@@ -5,6 +5,7 @@ Test script to verify backend API is working correctly
 import requests
 import json
 import sys
+import uuid
 
 def test_backend_api():
     """Test the backend API endpoints"""
@@ -20,10 +21,18 @@ def test_backend_api():
         response = requests.get(f"{base_url}/health", timeout=10)
         print(f"   Status: {response.status_code}")
         if response.status_code == 200:
-            health_data = response.json()
+            try:
+                health_data = response.json()
+            except requests.exceptions.JSONDecodeError:
+                print(f"   ❌ Invalid JSON response")
+                return
             print(f"   ✅ Health check passed: {health_data.get('status', 'unknown')}")
         else:
             print(f"   ❌ Health check failed: {response.text}")
+    except requests.Timeout:
+        print(f"   ❌ Health check timeout")
+    except requests.ConnectionError as e:
+        print(f"   ❌ Health check connection error: {e}")
     except Exception as e:
         print(f"   ❌ Health check error: {e}")
     
@@ -47,6 +56,10 @@ def test_backend_api():
     print("\n3. Testing CORS headers...")
     try:
         response = requests.options(f"{base_url}/api/v3/topics", timeout=10)
+        print(f"   Status: {response.status_code}")
+        if response.status_code not in [200, 204]:
+            print(f"   ❌ OPTIONS request failed with status {response.status_code}")
+            return
         cors_headers = {
             'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
             'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
@@ -62,14 +75,15 @@ def test_backend_api():
     
     # Test 4: Create topic test
     print("\n4. Testing topic creation...")
+    created_topic_id = None
     try:
         test_topic = {
-            "topic": "API Test Topic",
+            "topic": f"API Test Topic {uuid.uuid4()}",
             "description": "Test topic created via API test script",
             "search_queries": ["test", "api"],
             "initial_urls": ["https://example.com/test"],
             "analysis_type": "comprehensive",
-            "user_id": "test_user_api",
+            "user_id": f"test_user_api_{uuid.uuid4()}",
             "metadata": {"test": True}
         }
         
@@ -80,11 +94,21 @@ def test_backend_api():
         print(f"   Status: {response.status_code}")
         if response.status_code == 201:
             topic_response = response.json()
-            print(f"   ✅ Topic creation successful: {topic_response.get('session_id', 'Unknown')}")
+            created_topic_id = topic_response.get('session_id')
+            print(f"   ✅ Topic creation successful: {created_topic_id}")
         else:
             print(f"   ❌ Topic creation failed: {response.text}")
     except Exception as e:
         print(f"   ❌ Topic creation error: {e}")
+    
+    # Cleanup: Delete the test topic
+    if created_topic_id:
+        print(f"\n5. Cleaning up test topic...")
+        try:
+            delete_response = requests.delete(f"{base_url}/api/v3/topics/{created_topic_id}", timeout=10)
+            print(f"   🧹 Cleanup: Topic deleted (status {delete_response.status_code})")
+        except Exception as e:
+            print(f"   ⚠️  Cleanup failed: {e}")
     
     print("\n" + "=" * 50)
     print("🎯 Backend API test completed!")

@@ -68,9 +68,14 @@ if not allowed_origins_env:
 else:
     allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
 
-# Add wildcard for debugging if needed
+# For development, add specific local origins instead of wildcard
 if os.getenv("ENVIRONMENT") == "development":
-    allowed_origins.append("*")
+    allowed_origins.extend([
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173"
+    ])
 
 logger.info(f"CORS allowed origins: {allowed_origins}")
 

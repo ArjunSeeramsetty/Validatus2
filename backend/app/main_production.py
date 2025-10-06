@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 # Import the topics router
 from app.api.v3.topics import router as topics_router
+from app.api.v3.enhanced_topics import router as enhanced_topics_router
 
 # Configure logging for Cloud Run
 logging.basicConfig(
@@ -95,6 +96,7 @@ app.add_middleware(
 
 # Include the topics router for proper database integration
 app.include_router(topics_router)
+app.include_router(enhanced_topics_router)
 
 # Health check endpoint (CRITICAL for Cloud Run)
 @app.get("/health")

@@ -40,7 +40,14 @@ class IntegratedTopicService(SimpleTopicService):
         try:
             # Step 1: Create the topic using existing service
             topic_result = await self.create_topic(request)
-            session_id = topic_result["session_id"]
+            
+            # Handle both dict and TopicResponse object returns
+            if hasattr(topic_result, 'session_id'):
+                session_id = topic_result.session_id
+                topic_dict = topic_result.dict() if hasattr(topic_result, 'dict') else topic_result.__dict__
+            else:
+                session_id = topic_result["session_id"]
+                topic_dict = topic_result
             
             logger.info(f"Topic created with session ID: {session_id}")
             
@@ -74,7 +81,7 @@ class IntegratedTopicService(SimpleTopicService):
             
             # Step 3: Prepare integrated response
             response = {
-                **topic_result,
+                **topic_dict,
                 "url_collection": {
                     "status": url_collection_result.collection_status if url_collection_result else "skipped",
                     "urls_collected": url_collection_result.urls_stored if url_collection_result else 0,

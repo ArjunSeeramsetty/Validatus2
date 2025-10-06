@@ -3,7 +3,10 @@ Database Migration API Endpoints
 """
 
 from fastapi import APIRouter, HTTPException
-from app.run_migration import run_migration
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
+from run_migration import run_migration
 import asyncio
 
 router = APIRouter(prefix="/migration", tags=["migration"])

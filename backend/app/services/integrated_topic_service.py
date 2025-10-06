@@ -24,8 +24,7 @@ class IntegratedTopicService(SimpleTopicService):
         self.url_collection_service = None
     
     async def initialize(self):
-        """Initialize parent service and URL collection"""
-        await super().initialize()
+        """Initialize URL collection service"""
         self.url_collection_service = await get_url_collection_service()
         
     async def create_topic_with_url_collection(self, request: TopicCreateRequest) -> Dict[str, Any]:

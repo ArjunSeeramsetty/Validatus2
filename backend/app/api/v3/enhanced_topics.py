@@ -59,7 +59,9 @@ async def create_topic_with_url_collection(
         return TopicWithURLsResponse(**result)
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create topic with URL collection: {str(e)}")
+        import logging
+        logging.error(f"Failed to create topic with URL collection: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create topic with URL collection")
 
 async def start_stage_1_background_processing(service, session_id: str):
     """Background task to start Stage 1 processing"""
@@ -85,7 +87,9 @@ async def get_topic_with_urls(session_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get topic: {str(e)}")
+        import logging
+        logging.error(f"Failed to get topic: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get topic")
 
 @router.get("", response_model=dict)
 async def list_topics_with_url_stats(
@@ -100,7 +104,9 @@ async def list_topics_with_url_stats(
         return result
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list topics: {str(e)}")
+        import logging
+        logging.error(f"Failed to list topics: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to list topics")
 
 @router.post("/{session_id}/collect-urls")
 async def collect_urls_for_existing_topic(
@@ -138,7 +144,9 @@ async def collect_urls_for_existing_topic(
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to collect URLs: {str(e)}")
+        import logging
+        logging.error(f"Failed to collect URLs: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to collect URLs")
 
 @router.get("/{session_id}/urls")
 async def get_collected_urls(session_id: str):
@@ -153,7 +161,9 @@ async def get_collected_urls(session_id: str):
         return result
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get collected URLs: {str(e)}")
+        import logging
+        logging.error(f"Failed to get collected URLs: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get collected URLs")
 
 @router.post("/{session_id}/start-stage-1")
 async def start_stage_1_processing(session_id: str):
@@ -164,7 +174,9 @@ async def start_stage_1_processing(session_id: str):
         return result
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to start Stage 1 processing: {str(e)}")
+        import logging
+        logging.error(f"Failed to start Stage 1 processing: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to start Stage 1 processing")
 
 # Legacy endpoints for backward compatibility
 @router.post("/create-simple", response_model=TopicResponse, status_code=201)
@@ -176,4 +188,6 @@ async def create_simple_topic(request: TopicCreateRequest):
         return TopicResponse(**result)
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create topic: {str(e)}")
+        import logging
+        logging.error(f"Failed to create topic: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create topic")

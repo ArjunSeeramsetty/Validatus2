@@ -131,7 +131,7 @@ class GCPPersistenceSettings(BaseSettings):
             # For Cloud Run with --add-cloudsql-instances, use Unix socket
             return f"postgresql://{self.cloud_sql_user}:{password}@/{self.cloud_sql_database}?host=/cloudsql/{self.cloud_sql_connection_name}"
     
-    async def get_secure_api_key(self) -> str:
+    def get_secure_api_key(self) -> str:
         """Retrieve Google Custom Search API key from Secret Manager"""
         if self.google_cse_api_key:
             return self.google_cse_api_key
@@ -140,11 +140,11 @@ class GCPPersistenceSettings(BaseSettings):
             try:
                 return self.get_secret("google-cse-api-key")
             except Exception as e:
-                raise Exception(f"Failed to retrieve Google CSE API key: {e}")
+                raise RuntimeError(f"Failed to retrieve Google CSE API key: {e}") from e
         
-        return self.google_cse_api_key
+        raise ValueError("Google CSE API key not configured for local development mode. Set GOOGLE_CSE_API_KEY environment variable.")
     
-    async def get_secure_cse_id(self) -> str:
+    def get_secure_cse_id(self) -> str:
         """Retrieve Google Custom Search Engine ID from Secret Manager"""
         if self.google_cse_id:
             return self.google_cse_id
@@ -153,9 +153,9 @@ class GCPPersistenceSettings(BaseSettings):
             try:
                 return self.get_secret("google-cse-id")
             except Exception as e:
-                raise Exception(f"Failed to retrieve Google CSE ID: {e}")
+                raise RuntimeError(f"Failed to retrieve Google CSE ID: {e}") from e
         
-        return self.google_cse_id
+        raise ValueError("Google CSE ID not configured for local development mode. Set GOOGLE_CSE_ID environment variable.")
     
     def get_site_filters(self) -> List[str]:
         """Get list of site filters"""

@@ -7,7 +7,7 @@ import json
 import hashlib
 import urllib.parse
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass
 
 from .google_custom_search_service import get_google_search_service, SearchResult
@@ -126,7 +126,7 @@ class EnhancedURLCollectionService:
             
             return URLCollectionResult(
                 session_id=request.session_id,
-                campaign_id=0,
+                campaign_id=-1,  # Indicates no campaign was created
                 urls_discovered=0,
                 urls_stored=0,
                 queries_processed=0,
@@ -270,7 +270,7 @@ class EnhancedURLCollectionService:
                         ON CONFLICT (session_id, url_hash) DO NOTHING
                         """
                         
-                        await connection.execute(
+                        result = await connection.execute(
                             insert_sql,
                             session_id,
                             url_data["url"],
@@ -287,7 +287,9 @@ class EnhancedURLCollectionService:
                             json.dumps(url_data["metadata"])
                         )
                         
-                        stored_count += 1
+                        # Only increment if a row was actually inserted
+                        if result == "INSERT 0 1":
+                            stored_count += 1
                         
                     except Exception as e:
                         logger.error(f"Error storing URL {url_data['url']}: {e}")
@@ -313,7 +315,7 @@ class EnhancedURLCollectionService:
             """
             
             completion_metadata = {
-                "completion_time": datetime.utcnow().isoformat(),
+                "completion_time": datetime.now(timezone.utc).isoformat(),
                 "search_stats": metadata.get("query_stats", {}),
                 "total_api_calls": metadata.get("total_api_calls", 0)
             }
@@ -324,7 +326,7 @@ class EnhancedURLCollectionService:
                 100.0,
                 urls_discovered,
                 urls_stored,
-                datetime.utcnow(),
+                datetime.now(timezone.utc),
                 json.dumps(completion_metadata),
                 campaign_id
             )
@@ -340,13 +342,13 @@ class EnhancedURLCollectionService:
             
             error_metadata = {
                 "error": error_message,
-                "failed_at": datetime.utcnow().isoformat()
+                "failed_at": datetime.now(timezone.utc).isoformat()
             }
             
             await connection.execute(
                 update_sql,
                 "failed",
-                datetime.utcnow(),
+                datetime.now(timezone.utc),
                 json.dumps(error_metadata),
                 campaign_id
             )
@@ -354,8 +356,9 @@ class EnhancedURLCollectionService:
     def _generate_url_hash(self, url: str) -> str:
         """Generate hash for URL deduplication"""
         parsed = urllib.parse.urlparse(url.lower())
-        normalized = f"{parsed.netloc}{parsed.path}"
-        return hashlib.sha256(normalized.encode()).hexdigest()[:16]
+        # Include query params for accurate deduplication
+        normalized = f"{parsed.netloc}{parsed.path}{parsed.query}"
+        return hashlib.sha256(normalized.encode()).hexdigest()
     
     async def get_collected_urls(self, session_id: str) -> Dict[str, Any]:
         """Get collected URLs for a session"""
@@ -422,11 +425,15 @@ class EnhancedURLCollectionService:
 
 # Global service instance
 _url_collection_service: Optional[EnhancedURLCollectionService] = None
+_initialization_lock = asyncio.Lock()
 
 async def get_url_collection_service() -> EnhancedURLCollectionService:
     """Get or create global URL collection service instance"""
     global _url_collection_service
     if _url_collection_service is None:
-        _url_collection_service = EnhancedURLCollectionService()
-        await _url_collection_service.initialize()
+        async with _initialization_lock:
+            # Double-check after acquiring lock
+            if _url_collection_service is None:
+                _url_collection_service = EnhancedURLCollectionService()
+                await _url_collection_service.initialize()
     return _url_collection_service

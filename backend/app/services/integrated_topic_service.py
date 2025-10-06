@@ -102,7 +102,7 @@ class IntegratedTopicService(SimpleTopicService):
             logger.error(f"Error in integrated topic creation: {e}")
             # Return basic topic creation result even if URL collection fails
             return {
-                **await self.create_topic(request),
+                **topic_dict,
                 "url_collection": {
                     "status": "failed",
                     "error": str(e)
@@ -213,10 +213,13 @@ class IntegratedTopicService(SimpleTopicService):
         """
         logger.info(f"Starting Stage 1 processing for session {session_id}")
         
+        if not self.url_collection_service:
+            await self.initialize()
+        
         # Get collected URLs
         urls_data = await self.url_collection_service.get_collected_urls(session_id)
         
-        if not urls_data["urls"]:
+        if not urls_data or not urls_data.get("urls"):
             return {
                 "status": "failed",
                 "error": "No URLs available for processing"
@@ -234,11 +237,19 @@ class IntegratedTopicService(SimpleTopicService):
 
 # Global service instance
 _integrated_topic_service: Optional[IntegratedTopicService] = None
+_service_lock = asyncio.Lock()
 
 async def get_integrated_topic_service() -> IntegratedTopicService:
     """Get or create global integrated topic service instance"""
     global _integrated_topic_service
-    if _integrated_topic_service is None:
-        _integrated_topic_service = IntegratedTopicService()
-        await _integrated_topic_service.initialize()
+    
+    if _integrated_topic_service is not None:
+        return _integrated_topic_service
+    
+    async with _service_lock:
+        # Double-check after acquiring lock
+        if _integrated_topic_service is None:
+            _integrated_topic_service = IntegratedTopicService()
+            await _integrated_topic_service.initialize()
+        
     return _integrated_topic_service

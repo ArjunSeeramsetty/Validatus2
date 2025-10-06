@@ -7,7 +7,7 @@ import aiohttp
 import hashlib
 import urllib.parse
 from typing import List, Dict, Any, Optional, Set
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 import json
 import logging
@@ -53,8 +53,12 @@ class GoogleCustomSearchService:
         
     async def initialize(self):
         """Initialize the search service with secure credentials"""
-        self.api_key = await self.settings.get_secure_api_key()
-        self.cse_id = await self.settings.get_secure_cse_id()
+        if self.session is not None:
+            logger.warning("Service already initialized")
+            return
+            
+        self.api_key = self.settings.get_secure_api_key()
+        self.cse_id = self.settings.get_secure_cse_id()
         
         if not self.api_key or not self.cse_id:
             raise ValueError("Google Custom Search API key and CSE ID are required")
@@ -170,11 +174,12 @@ class GoogleCustomSearchService:
             site_restrict = " OR ".join([f"site:{domain}" for domain in site_filters])
             params["q"] = f"{query} ({site_restrict})"
         
-        start_time = datetime.now()
+        search_time_ms = 0
+        start_time = datetime.now(timezone.utc)
         
         try:
             async with self.session.get(self.base_url, params=params) as response:
-                search_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+                search_time_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
                 
                 if response.status != 200:
                     error_text = await response.text()
@@ -207,7 +212,7 @@ class GoogleCustomSearchService:
                         metadata={
                             "session_id": session_id,
                             "search_rank": len(search_results) + 1,
-                            "search_timestamp": datetime.utcnow().isoformat(),
+                            "search_timestamp": datetime.now(timezone.utc).isoformat(),
                             "api_response_item": item
                         }
                     )
@@ -252,7 +257,10 @@ class GoogleCustomSearchService:
         
         for result in results:
             # Skip excluded domains
-            if excluded_domains and any(excluded in result.domain for excluded in excluded_domains):
+            if excluded_domains and any(
+                result.domain == excluded or result.domain.endswith(f".{excluded}")
+                for excluded in excluded_domains
+            ):
                 logger.debug(f"Excluded URL from domain {result.domain}: {result.url}")
                 continue
             
@@ -290,14 +298,18 @@ class GoogleCustomSearchService:
         """Generate hash for URL deduplication"""
         # Normalize URL for consistent hashing
         parsed = urllib.parse.urlparse(url.lower())
-        normalized = f"{parsed.netloc}{parsed.path}"
-        return hashlib.sha256(normalized.encode()).hexdigest()[:16]
+        # Include query params for more precise deduplication
+        normalized = f"{parsed.netloc}{parsed.path}{parsed.query}"
+        return hashlib.sha256(normalized.encode()).hexdigest()
     
     def _calculate_relevance_score(self, result: SearchResult, query: str) -> float:
         """Calculate basic relevance score for search result"""
         score = 0.5  # Base score
         
         query_terms = query.lower().split()
+        if not query_terms:
+            return score
+            
         title_lower = result.title.lower()
         snippet_lower = result.snippet.lower()
         

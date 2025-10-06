@@ -45,6 +45,25 @@ class GCPPersistenceSettings(BaseSettings):
     redis_port: int = Field(default=6379, env="REDIS_PORT")
     redis_password: Optional[str] = Field(default=None, env="REDIS_PASSWORD")
     
+    # Google Custom Search Configuration
+    google_cse_api_key: str = Field(default="", env="GOOGLE_CSE_API_KEY")
+    google_cse_id: str = Field(default="", env="GOOGLE_CSE_ID")
+    search_max_results: int = Field(default=20, env="SEARCH_MAX_RESULTS")
+    search_site_filters: str = Field(default="", env="SEARCH_SITE_FILTERS")  # CSV of domains
+    search_language: str = Field(default="en", env="SEARCH_LANGUAGE")
+    search_safe_search: str = Field(default="medium", env="SEARCH_SAFE_SEARCH")
+    
+    # URL Collection Configuration
+    max_urls_per_query: int = Field(default=10, env="MAX_URLS_PER_QUERY")
+    url_collection_timeout: int = Field(default=30, env="URL_COLLECTION_TIMEOUT")
+    enable_url_deduplication: bool = Field(default=True, env="ENABLE_URL_DEDUPLICATION")
+    excluded_domains: str = Field(default="", env="EXCLUDED_DOMAINS")  # CSV of domains to exclude
+    
+    # Content Processing Configuration
+    enable_content_extraction: bool = Field(default=True, env="ENABLE_CONTENT_EXTRACTION")
+    content_extraction_timeout: int = Field(default=15, env="CONTENT_EXTRACTION_TIMEOUT")
+    max_content_length: int = Field(default=50000, env="MAX_CONTENT_LENGTH")
+    
     # Local Development Configuration
     local_development_mode: bool = Field(default=False, env="LOCAL_DEVELOPMENT_MODE")
     local_postgres_url: str = Field(
@@ -111,6 +130,44 @@ class GCPPersistenceSettings(BaseSettings):
             # Use password authentication with Cloud SQL Proxy (Unix socket)
             # For Cloud Run with --add-cloudsql-instances, use Unix socket
             return f"postgresql://{self.cloud_sql_user}:{password}@/{self.cloud_sql_database}?host=/cloudsql/{self.cloud_sql_connection_name}"
+    
+    async def get_secure_api_key(self) -> str:
+        """Retrieve Google Custom Search API key from Secret Manager"""
+        if self.google_cse_api_key:
+            return self.google_cse_api_key
+            
+        if not self.local_development_mode:
+            try:
+                return self.get_secret("google-cse-api-key")
+            except Exception as e:
+                raise Exception(f"Failed to retrieve Google CSE API key: {e}")
+        
+        return self.google_cse_api_key
+    
+    async def get_secure_cse_id(self) -> str:
+        """Retrieve Google Custom Search Engine ID from Secret Manager"""
+        if self.google_cse_id:
+            return self.google_cse_id
+            
+        if not self.local_development_mode:
+            try:
+                return self.get_secret("google-cse-id")
+            except Exception as e:
+                raise Exception(f"Failed to retrieve Google CSE ID: {e}")
+        
+        return self.google_cse_id
+    
+    def get_site_filters(self) -> List[str]:
+        """Get list of site filters"""
+        if not self.search_site_filters:
+            return []
+        return [domain.strip() for domain in self.search_site_filters.split(",") if domain.strip()]
+    
+    def get_excluded_domains(self) -> List[str]:
+        """Get list of excluded domains"""
+        if not self.excluded_domains:
+            return []
+        return [domain.strip() for domain in self.excluded_domains.split(",") if domain.strip()]
     
     class Config:
         env_file = ".env"

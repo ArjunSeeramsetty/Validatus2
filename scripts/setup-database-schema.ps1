@@ -2,9 +2,7 @@
 param(
     [string]$ProjectId = "validatus-platform",
     [string]$InstanceId = "validatus-sql",
-    [string]$DatabaseName = "validatusdb",
-    [string]$User = "postgres",
-    [string]$Password = "Validatus2024!"
+    [string]$DatabaseName = "validatusdb"
 )
 
 Write-Host "Setting up database schema for Cloud SQL instance..." -ForegroundColor Green

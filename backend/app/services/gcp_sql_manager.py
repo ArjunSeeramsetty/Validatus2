@@ -85,7 +85,6 @@ class GCPSQLManager:
                     RETURNING session_id, created_at, updated_at
                 """
                 
-                import json
                 result = await conn.fetchrow(
                     query,
                     session_id,

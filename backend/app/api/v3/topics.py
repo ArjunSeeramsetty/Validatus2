@@ -37,11 +37,14 @@ async def get_current_user_id() -> str:
 @router.post("/", response_model=TopicResponse, status_code=201)
 @router.post("/create", response_model=TopicResponse, status_code=201)
 async def create_topic(
-    request: TopicCreateRequest
+    request: TopicCreateRequest,
+    user_id: str = Depends(get_current_user_id)
 ):
     """Create a new topic"""
     try:
-        logger.info(f"Creating topic: {request.topic} for user: {request.user_id}")
+        # Override user_id with authenticated user to prevent impersonation
+        request.user_id = user_id
+        logger.info(f"Creating topic: {request.topic} for user: {user_id}")
         
         # Create topic
         topic_service = get_simple_topic_service()
@@ -127,162 +130,7 @@ async def delete_topic(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/debug/test-db")
-async def test_database_connection():
-    """Test database connection"""
-    try:
-        import asyncpg
-        import os
-        
-        # Get password from environment
-        password = os.getenv('CLOUD_SQL_PASSWORD', 'Validatus2024!')
-        
-        # Test connection string - use validatus_app user
-        connection_string = f"postgresql://validatus_app:{password}@/validatusdb?host=/cloudsql/validatus-platform:us-central1:validatus-sql"
-        
-        conn = await asyncpg.connect(connection_string)
-        
-        # Test basic query
-        version = await conn.fetchval("SELECT version()")
-        
-        # Check if topics table exists
-        table_exists = await conn.fetchval("""
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND table_name = 'topics'
-            )
-        """)
-        
-        await conn.close()
-        
-        return {
-            "status": "success",
-            "postgresql_version": version,
-            "topics_table_exists": table_exists,
-            "connection_string_used": f"postgresql://postgres:***@/validatusdb?host=/cloudsql/validatus-platform:us-central1:validatus-sql"
-        }
-        
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e),
-            "error_type": type(e).__name__
-        }
-
-
-@router.post("/debug/create-schema")
-async def create_database_schema():
-    """Create database schema"""
-    try:
-        import asyncpg
-        import os
-        
-        # Get password from environment
-        password = os.getenv('CLOUD_SQL_PASSWORD', 'Validatus2024!')
-        
-        # Connection string - try with validatus_app user first
-        connection_string = f"postgresql://validatus_app:{password}@/validatusdb?host=/cloudsql/validatus-platform:us-central1:validatus-sql"
-        
-        conn = await asyncpg.connect(connection_string)
-        
-        # Read and execute schema
-        schema_sql = """
-        -- Create topics table
-        CREATE TABLE IF NOT EXISTS topics (
-            session_id VARCHAR(50) PRIMARY KEY,
-            topic VARCHAR(255) NOT NULL,
-            description TEXT,
-            user_id VARCHAR(100) NOT NULL,
-            status VARCHAR(50) NOT NULL DEFAULT 'CREATED',
-            analysis_type VARCHAR(50) NOT NULL DEFAULT 'COMPREHENSIVE',
-            search_queries TEXT[] DEFAULT '{}',
-            initial_urls TEXT[] DEFAULT '{}',
-            metadata JSONB DEFAULT '{}'::jsonb,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            
-            CONSTRAINT chk_status CHECK (status IN ('CREATED', 'URL_COLLECTION', 'URL_SCRAPING', 'CONTENT_PROCESSING', 'VECTOR_CREATION', 'ANALYSIS', 'COMPLETED', 'FAILED')),
-            CONSTRAINT chk_analysis_type CHECK (analysis_type IN ('STANDARD', 'COMPREHENSIVE'))
-        );
-        
-        -- Create workflow_status table
-        CREATE TABLE IF NOT EXISTS workflow_status (
-            session_id VARCHAR(50) PRIMARY KEY REFERENCES topics(session_id) ON DELETE CASCADE,
-            current_stage VARCHAR(50) NOT NULL,
-            stages_completed TEXT[] DEFAULT '{}',
-            stage_progress JSONB DEFAULT '{}'::jsonb,
-            started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            error_message TEXT,
-            retry_count INTEGER DEFAULT 0,
-            
-            CONSTRAINT chk_current_stage CHECK (current_stage IN (
-                'CREATED', 'URL_COLLECTION', 'URL_SCRAPING', 'CONTENT_PROCESSING', 
-                'VECTOR_CREATION', 'ANALYSIS', 'COMPLETED', 'FAILED'
-            ))
-        );
-        
-        -- Create indexes
-        CREATE INDEX IF NOT EXISTS idx_topics_user_id ON topics(user_id);
-        CREATE INDEX IF NOT EXISTS idx_topics_created_at ON topics(created_at DESC);
-        CREATE INDEX IF NOT EXISTS idx_topics_status ON topics(status);
-        CREATE INDEX IF NOT EXISTS idx_workflow_status_stage ON workflow_status(current_stage);
-        CREATE INDEX IF NOT EXISTS idx_workflow_status_updated ON workflow_status(updated_at DESC);
-        
-        -- Create trigger function for updated_at
-        CREATE OR REPLACE FUNCTION update_updated_at_column()
-        RETURNS TRIGGER AS $$
-        BEGIN
-            NEW.updated_at = NOW();
-            RETURN NEW;
-        END;
-        $$ language 'plpgsql';
-        
-        -- Create triggers
-        DROP TRIGGER IF EXISTS update_topics_updated_at ON topics;
-        CREATE TRIGGER update_topics_updated_at BEFORE UPDATE ON topics
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-            
-        DROP TRIGGER IF EXISTS update_workflow_status_updated_at ON workflow_status;
-        CREATE TRIGGER update_workflow_status_updated_at BEFORE UPDATE ON workflow_status
-            FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-        """
-        
-        await conn.execute(schema_sql)
-        
-        # Verify tables were created
-        topics_exists = await conn.fetchval("""
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND table_name = 'topics'
-            )
-        """)
-        
-        workflow_exists = await conn.fetchval("""
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_schema = 'public' 
-                AND table_name = 'workflow_status'
-            )
-        """)
-        
-        await conn.close()
-        
-        return {
-            "status": "success",
-            "message": "Database schema created successfully",
-            "topics_table_exists": topics_exists,
-            "workflow_status_table_exists": workflow_exists
-        }
-        
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e),
-            "error_type": type(e).__name__
-        }
+# Debug endpoints removed for security - use proper database migration tools instead
 
 @router.get("", response_model=TopicListResponse)
 @router.get("/", response_model=TopicListResponse)
@@ -291,7 +139,7 @@ async def list_topics(
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     sort_by: str = Query("created_at", description="Sort field"),
     sort_order: str = Query("desc", regex="^(asc|desc)$", description="Sort order"),
-    user_id: str = Query(..., description="User ID")
+    user_id: str = Depends(get_current_user_id)
 ):
     """List topics for the current user with pagination"""
     try:

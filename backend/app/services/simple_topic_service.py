@@ -22,7 +22,9 @@ class SimpleTopicService:
     
     def __init__(self):
         # Use GCP Cloud SQL in production, SQLite for local development
-        if os.getenv("ENVIRONMENT") == "production" or os.getenv("LOCAL_DEVELOPMENT_MODE") != "true":
+        # Be explicit about environment to avoid accidental GCP usage in development
+        use_gcp = os.getenv("ENVIRONMENT") == "production" and os.getenv("LOCAL_DEVELOPMENT_MODE", "false") != "true"
+        if use_gcp:
             self.db_manager = GCPSQLManager()
             logger.info("SimpleTopicService initialized with GCP Cloud SQL")
         else:
@@ -60,7 +62,7 @@ class SimpleTopicService:
                 logger.info(f"✅ Topic created successfully via GCP SQL: {session_id}")
                 return result
             else:
-                # SQLite Manager (sync)
+                # SQLite Manager (sync) - convert request to dict format
                 success = self.db_manager.create_topic(topic_data)
                 if success:
                     logger.info(f"✅ Topic created successfully via SQLite: {session_id}")
@@ -128,6 +130,11 @@ class SimpleTopicService:
         try:
             # Use page_size if provided, otherwise use limit
             actual_limit = page_size if page_size is not None else limit
+            
+            # Validate offset alignment with page size
+            if offset % actual_limit != 0 and actual_limit > 0:
+                logger.warning(f"Offset {offset} not aligned with page_size {actual_limit}")
+            
             # Handle both sync and async database managers
             if hasattr(self.db_manager, 'initialize'):
                 # GCP SQL Manager (async) - returns TopicListResponse

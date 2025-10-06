@@ -1,461 +1,214 @@
 """
-Topic Management API Endpoints
-REST API for topic CRUD operations with Google Cloud Firestore persistence
+Topics API v3 - Fixed with proper database integration
 """
-from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import List, Optional, Dict, Any
-import logging
+import uuid
+import hashlib
+from typing import List, Optional
 from datetime import datetime
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
 
-from app.models.topic_models import (
-    TopicConfig,
-    TopicCreateRequest,
-    TopicUpdateRequest,
-    TopicResponse,
-    TopicListResponse,
-    TopicSearchRequest,
-    AnalysisType,
-    TopicStatus
-)
-from app.services.simple_topic_service import get_simple_topic_service
+from ...core.database_config import db_manager
 
-logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/v3/topics", tags=["topics"])
+router = APIRouter()
 
+class TopicCreateRequest(BaseModel):
+    topic: str
+    description: Optional[str] = ""
+    search_queries: List[str] = []
+    initial_urls: List[str] = []
+    analysis_type: str = "comprehensive"
+    user_id: str = "default_user"
 
-# Dependency to get current user ID (placeholder for authentication)
-async def get_current_user_id() -> str:
-    """
-    Get current user ID from authentication
-    For now, returns a demo user ID
-    In production, this would extract from JWT token or session
-    """
-    # TODO: Implement proper authentication
-    return "demo_user_123"
+class TopicResponse(BaseModel):
+    session_id: str
+    topic: str
+    description: str
+    user_id: str
+    status: str
+    analysis_type: str
+    created_at: datetime
+    url_count: int = 0
 
-
-@router.post("/", response_model=TopicResponse, status_code=201)
-@router.post("/create", response_model=TopicResponse, status_code=201)
-async def create_topic(
-    request: TopicCreateRequest,
-    user_id: str = Depends(get_current_user_id)
+@router.get("", response_model=List[TopicResponse])
+async def list_topics(
+    user_id: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0
 ):
+    """List all topics with URL counts"""
+    try:
+        connection = await db_manager.get_connection()
+        
+        # Build query based on user_id filter
+        if user_id:
+            query = """
+            SELECT t.session_id, t.topic, t.description, t.user_id, t.status, 
+                   t.analysis_type, t.created_at, COUNT(tu.id) as url_count
+            FROM topics t
+            LEFT JOIN topic_urls tu ON t.session_id = tu.session_id
+            WHERE t.user_id = $1
+            GROUP BY t.session_id, t.topic, t.description, t.user_id, t.status, t.analysis_type, t.created_at
+            ORDER BY t.created_at DESC
+            LIMIT $2 OFFSET $3
+            """
+            params = [user_id, limit, offset]
+        else:
+            query = """
+            SELECT t.session_id, t.topic, t.description, t.user_id, t.status, 
+                   t.analysis_type, t.created_at, COUNT(tu.id) as url_count
+            FROM topics t
+            LEFT JOIN topic_urls tu ON t.session_id = tu.session_id
+            GROUP BY t.session_id, t.topic, t.description, t.user_id, t.status, t.analysis_type, t.created_at
+            ORDER BY t.created_at DESC
+            LIMIT $1 OFFSET $2
+            """
+            params = [limit, offset]
+        
+        rows = await connection.fetch(query, *params)
+        
+        topics = []
+        for row in rows:
+            topics.append(TopicResponse(
+                session_id=row['session_id'],
+                topic=row['topic'],
+                description=row['description'] or "",
+                user_id=row['user_id'],
+                status=row['status'],
+                analysis_type=row['analysis_type'],
+                created_at=row['created_at'],
+                url_count=row['url_count']
+            ))
+        
+        return topics
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+@router.post("/create", response_model=TopicResponse)
+async def create_topic(request: TopicCreateRequest):
     """Create a new topic"""
     try:
-        # Override user_id with authenticated user to prevent impersonation
-        request.user_id = user_id
-        logger.info(f"Creating topic: {request.topic} for user: {user_id}")
+        connection = await db_manager.get_connection()
         
-        # Create topic
-        topic_service = get_simple_topic_service()
-        topic = await topic_service.create_topic(request)
+        # Generate session ID
+        session_id = f"topic-{uuid.uuid4().hex[:12]}"
         
-        return topic
+        async with connection.transaction():
+            # Insert topic
+            topic_query = """
+            INSERT INTO topics (session_id, topic, description, user_id, analysis_type, status, search_queries, initial_urls)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING session_id, topic, description, user_id, analysis_type, status, created_at
+            """
+            
+            topic_row = await connection.fetchrow(
+                topic_query,
+                session_id,
+                request.topic,
+                request.description,
+                request.user_id,
+                request.analysis_type,
+                "CREATED",
+                request.search_queries,
+                request.initial_urls
+            )
+            
+            # Insert initial URLs if provided
+            url_count = 0
+            if request.initial_urls:
+                for url in request.initial_urls:
+                    url_hash = hashlib.sha256(url.encode()).hexdigest()[:16]
+                    
+                    url_query = """
+                    INSERT INTO topic_urls (session_id, url, url_hash, source, status)
+                    VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (session_id, url_hash) DO NOTHING
+                    """
+                    
+                    await connection.execute(url_query, session_id, url, url_hash, "initial", "pending")
+                
+                url_count = len(request.initial_urls)
+            
+            # Create workflow status
+            workflow_query = """
+            INSERT INTO workflow_status (session_id, stage, status)
+            VALUES ($1, $2, $3)
+            """
+            
+            await connection.execute(workflow_query, session_id, "CREATED", "completed")
+        
+        return TopicResponse(
+            session_id=topic_row['session_id'],
+            topic=topic_row['topic'],
+            description=topic_row['description'],
+            user_id=topic_row['user_id'],
+            status=topic_row['status'],
+            analysis_type=topic_row['analysis_type'],
+            created_at=topic_row['created_at'],
+            url_count=url_count
+        )
         
     except Exception as e:
-        logger.error(f"Failed to create topic: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
+        raise HTTPException(status_code=500, detail=f"Topic creation failed: {str(e)}")
 
 @router.get("/{session_id}", response_model=TopicResponse)
-async def get_topic(
-    session_id: str,
-    user_id: str = Depends(get_current_user_id)
-):
-    """Get a topic by session ID"""
+async def get_topic(session_id: str):
+    """Get a specific topic by session_id"""
     try:
-        logger.info(f"Getting topic: {session_id} for user: {user_id}")
+        connection = await db_manager.get_connection()
         
-        topic_service = get_simple_topic_service()
-        topic = await topic_service.get_topic(session_id, user_id)
+        query = """
+        SELECT t.session_id, t.topic, t.description, t.user_id, t.status, 
+               t.analysis_type, t.created_at, COUNT(tu.id) as url_count
+        FROM topics t
+        LEFT JOIN topic_urls tu ON t.session_id = tu.session_id
+        WHERE t.session_id = $1
+        GROUP BY t.session_id, t.topic, t.description, t.user_id, t.status, t.analysis_type, t.created_at
+        """
         
-        if not topic:
+        row = await connection.fetchrow(query, session_id)
+        
+        if not row:
             raise HTTPException(status_code=404, detail="Topic not found")
         
-        return topic
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to get topic {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.put("/{session_id}", response_model=TopicResponse)
-async def update_topic(
-    session_id: str,
-    request: TopicUpdateRequest,
-    user_id: str = Depends(get_current_user_id)
-):
-    """Update an existing topic"""
-    try:
-        logger.info(f"Updating topic: {session_id} for user: {user_id}")
-        
-        topic_service = get_simple_topic_service()
-        topic = await topic_service.update_topic(session_id, request, user_id)
-        
-        if not topic:
-            raise HTTPException(status_code=404, detail="Topic not found")
-        
-        return topic
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to update topic {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.delete("/{session_id}", status_code=204)
-async def delete_topic(
-    session_id: str,
-    user_id: str = Depends(get_current_user_id)
-):
-    """Delete a topic"""
-    try:
-        logger.info(f"Deleting topic: {session_id} for user: {user_id}")
-        
-        topic_service = get_simple_topic_service()
-        success = await topic_service.delete_topic(session_id, user_id)
-        
-        if not success:
-            raise HTTPException(status_code=404, detail="Topic not found")
-        
-        return None
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to delete topic {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# Debug endpoints removed for security - use proper database migration tools instead
-
-@router.get("", response_model=TopicListResponse)
-@router.get("/", response_model=TopicListResponse)
-async def list_topics(
-    page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    sort_by: str = Query("created_at", description="Sort field"),
-    sort_order: str = Query("desc", regex="^(asc|desc)$", description="Sort order"),
-    user_id: str = Depends(get_current_user_id)
-):
-    """List topics for the current user with pagination"""
-    try:
-        logger.info(f"Listing topics for user: {user_id}, page: {page}")
-        
-        topic_service = get_simple_topic_service()
-        topics = await topic_service.list_topics(
-            user_id=user_id,
-            page=page,
-            page_size=page_size,
-            sort_by=sort_by,
-            sort_order=sort_order
+        return TopicResponse(
+            session_id=row['session_id'],
+            topic=row['topic'],
+            description=row['description'] or "",
+            user_id=row['user_id'],
+            status=row['status'],
+            analysis_type=row['analysis_type'],
+            created_at=row['created_at'],
+            url_count=row['url_count']
         )
         
-        return topics
-        
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Failed to list topics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
-
-@router.post("/search", response_model=TopicListResponse)
-async def search_topics(
-    request: TopicSearchRequest,
-    user_id: str = Depends(get_current_user_id)
-):
-    """Search topics with filters and text search"""
+@router.delete("/{session_id}")
+async def delete_topic(session_id: str):
+    """Delete a topic and all associated data"""
     try:
-        logger.info(f"Searching topics for user: {user_id}")
+        connection = await db_manager.get_connection()
         
-        # Set user_id in request if not provided
-        if not request.user_id:
-            request.user_id = user_id
+        async with connection.transaction():
+            # Check if topic exists
+            check_query = "SELECT session_id FROM topics WHERE session_id = $1"
+            exists = await connection.fetchval(check_query, session_id)
+            
+            if not exists:
+                raise HTTPException(status_code=404, detail="Topic not found")
+            
+            # Delete topic (cascades to related tables)
+            delete_query = "DELETE FROM topics WHERE session_id = $1"
+            await connection.execute(delete_query, session_id)
         
-        topic_service = get_simple_topic_service()
-        results = await topic_service.search_topics(request)
-        
-        return results
-        
-    except Exception as e:
-        logger.error(f"Failed to search topics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/stats/overview", response_model=Dict[str, Any])
-async def get_topic_stats(
-    user_id: str = Depends(get_current_user_id)
-):
-    """Get topic statistics for the current user"""
-    try:
-        logger.info(f"Getting topic stats for user: {user_id}")
-        
-        topic_service = get_simple_topic_service()
-        stats = await topic_service.get_topic_stats(user_id)
-        
-        return stats
-        
-    except Exception as e:
-        logger.error(f"Failed to get topic stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/analysis-types/", response_model=List[str])
-async def get_analysis_types():
-    """Get available analysis types"""
-    return [analysis_type.value for analysis_type in AnalysisType]
-
-
-@router.get("/statuses/", response_model=List[str])
-async def get_topic_statuses():
-    """Get available topic statuses"""
-    return [status.value for status in TopicStatus]
-
-
-# Migration endpoint to help transition from localStorage
-@router.post("/migrate-from-localstorage", response_model=Dict[str, Any])
-async def migrate_from_localstorage(
-    topics: List[Dict[str, Any]],
-    user_id: str = Depends(get_current_user_id)
-):
-    """Migrate topics from localStorage to Firestore"""
-    try:
-        logger.info(f"Migrating {len(topics)} topics from localStorage for user: {user_id}")
-        
-        migrated_count = 0
-        errors = []
-        
-        for topic_data in topics:
-            try:
-                # Convert localStorage topic to TopicCreateRequest
-                request = TopicCreateRequest(
-                    topic=topic_data.get("topic", ""),
-                    description=topic_data.get("description", ""),
-                    search_queries=topic_data.get("search_queries", []),
-                    initial_urls=topic_data.get("initial_urls", []),
-                    analysis_type=AnalysisType(topic_data.get("analysis_type", "comprehensive")),
-                    user_id=user_id,
-                    metadata={
-                        "migrated_from_localstorage": True,
-                        "original_session_id": topic_data.get("session_id"),
-                        "original_created_at": topic_data.get("created_at")
-                    }
-                )
-                
-                # Create topic
-                topic_service = get_simple_topic_service()
-                await topic_service.create_topic(request)
-                migrated_count += 1
-                
-            except Exception as e:
-                errors.append({
-                    "session_id": topic_data.get("session_id"),
-                    "error": str(e)
-                })
-        
-        return {
-            "migrated_count": migrated_count,
-            "total_topics": len(topics),
-            "errors": errors,
-            "message": f"Successfully migrated {migrated_count} out of {len(topics)} topics"
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to migrate topics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.put("/{session_id}/status", response_model=TopicResponse)
-async def update_topic_status(
-    session_id: str,
-    status: TopicStatus,
-    progress_data: Optional[Dict[str, Any]] = None,
-    user_id: str = Depends(get_current_user_id)
-):
-    """Update topic status (CREATED -> IN_PROGRESS -> COMPLETED)"""
-    try:
-        logger.info(f"Updating topic status: {session_id} -> {status.value} for user: {user_id}")
-        
-        topic_service = get_simple_topic_service()
-        success = await topic_service.update_topic_status(session_id, status, user_id, progress_data)
-        
-        if not success:
-            raise HTTPException(status_code=404, detail="Topic not found")
-        
-        # Return updated topic
-        updated_topic = await topic_service.get_topic(session_id, user_id)
-        return updated_topic
+        return {"message": "Topic deleted successfully", "session_id": session_id}
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to update topic status {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/status/{status}", response_model=List[TopicResponse])
-async def get_topics_by_status(
-    status: TopicStatus,
-    user_id: str = Depends(get_current_user_id)
-):
-    """Get topics filtered by specific status"""
-    try:
-        logger.info(f"Getting topics by status: {status.value} for user: {user_id}")
-        
-        topic_service = get_simple_topic_service()
-        topics = await topic_service.get_topics_by_status(user_id, status)
-        
-        return topics
-        
-    except Exception as e:
-        logger.error(f"Failed to get topics by status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/{session_id}/start-workflow")
-async def start_topic_workflow(
-    session_id: str,
-    user_id: str = Depends(get_current_user_id)
-):
-    """Start the complete topic workflow (URLs -> SCRAPING -> SCORING)"""
-    try:
-        logger.info(f"Starting workflow for topic: {session_id}")
-        
-        # Import workflow manager
-        from app.services.workflow_manager import get_workflow_manager_instance
-        
-        workflow_manager = get_workflow_manager_instance()
-        
-        # Execute the complete workflow
-        workflow_results = await workflow_manager.execute_workflow(session_id, user_id)
-        
-        return {
-            "session_id": session_id,
-            "status": "workflow_completed",
-            "results": workflow_results,
-            "message": "Topic workflow completed successfully"
-        }
-        
-    except Exception as e:
-        logger.error(f"Failed to start workflow for topic {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/{session_id}/collect-urls")
-async def collect_urls_for_topic(
-    session_id: str,
-    user_id: str = Depends(get_current_user_id)
-):
-    """Collect URLs for a topic using web search"""
-    try:
-        logger.info(f"Collecting URLs for topic: {session_id}")
-        
-        topic_service = get_simple_topic_service()
-        
-        # Get topic details
-        topic = await topic_service.get_topic(session_id, user_id)
-        if not topic:
-            raise HTTPException(status_code=404, detail="Topic not found")
-        
-        # Update status to IN_PROGRESS
-        await topic_service.update_topic_status(
-            session_id, 
-            TopicStatus.IN_PROGRESS, 
-            user_id,
-            {"stage": "url_collection", "started_at": datetime.utcnow().isoformat()}
-        )
-        
-        # Import URL orchestrator
-        from app.services.gcp_url_orchestrator import GCPURLOrchestrator
-        from app.core.gcp_config import get_gcp_settings
-        
-        settings = get_gcp_settings()
-        url_orchestrator = GCPURLOrchestrator(project_id=settings.project_id)
-        
-        # Collect URLs
-        urls_result = await url_orchestrator.collect_urls_for_topic(
-            topic.topic,
-            topic.search_queries,
-            max_urls=50
-        )
-        
-        # Update topic with collected URLs (urls_result is a List[str])
-        updated_urls = list(set(topic.initial_urls + urls_result))
-        
-        # Create update request
-        update_request = TopicUpdateRequest(
-            initial_urls=updated_urls,
-            metadata={
-                **topic.metadata,
-                "url_collection": {
-                    "completed_at": datetime.utcnow().isoformat(),
-                    "urls_collected": len(urls_result),
-                    "total_urls": len(updated_urls)
-                }
-            }
-        )
-        
-        # Update topic
-        updated_topic = await topic_service.update_topic(session_id, update_request, user_id)
-        
-        # Update status to COMPLETED
-        await topic_service.update_topic_status(
-            session_id, 
-            TopicStatus.COMPLETED, 
-            user_id,
-            {
-                "stage": "url_collection_completed",
-                "urls_collected": len(urls_result),
-                "total_urls": len(updated_urls)
-            }
-        )
-        
-        return {
-            "session_id": session_id,
-            "status": "urls_collected",
-            "urls_collected": len(urls_result),
-            "total_urls": len(updated_urls),
-            "new_urls": urls_result,
-            "updated_topic": updated_topic,
-            "message": f"Successfully collected {len(urls_result)} new URLs"
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to collect URLs for topic {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/{session_id}/urls")
-async def get_topic_urls(
-    session_id: str,
-    user_id: str = Depends(get_current_user_id)
-):
-    """Get URLs for a specific topic"""
-    try:
-        logger.info(f"Getting URLs for topic: {session_id}")
-        
-        topic_service = get_simple_topic_service()
-        
-        # Get topic details
-        topic = await topic_service.get_topic(session_id, user_id)
-        if not topic:
-            raise HTTPException(status_code=404, detail="Topic not found")
-        
-        return {
-            "session_id": session_id,
-            "topic": topic.topic,
-            "urls": topic.initial_urls,
-            "url_count": len(topic.initial_urls),
-            "last_updated": topic.updated_at,
-            "metadata": topic.metadata
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to get URLs for topic {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Deletion failed: {str(e)}")

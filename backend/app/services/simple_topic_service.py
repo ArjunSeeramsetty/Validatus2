@@ -93,7 +93,7 @@ class SimpleTopicService:
             if hasattr(self.db_manager, 'initialize'):
                 # GCP SQL Manager (async)
                 await self.db_manager.initialize()
-                topic_data = await self.db_manager.get_topic(session_id)
+                topic_data = await self.db_manager.get_topic(session_id, user_id)
             else:
                 # SQLite Manager (sync)
                 topic_data = self.db_manager.get_topic(session_id)

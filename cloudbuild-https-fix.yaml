@@ -6,14 +6,14 @@ steps:
       - '-f'
       - 'frontend/Dockerfile'
       - '-t'
-      - 'gcr.io/$PROJECT_ID/validatus-frontend:https-fixed'
+      - 'gcr.io/$PROJECT_ID/validatus-frontend:https-secure'
       - '--build-arg'
       - 'VITE_API_URL=https://validatus-backend-ssivkqhvhq-uc.a.run.app'
       - 'frontend'
 
   # Push image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/validatus-frontend:https-fixed']
+    args: ['push', 'gcr.io/$PROJECT_ID/validatus-frontend:https-secure']
 
   # Deploy to Cloud Run
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -22,7 +22,7 @@ steps:
       - 'deploy'
       - 'validatus-frontend'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/validatus-frontend:https-fixed'
+      - 'gcr.io/$PROJECT_ID/validatus-frontend:https-secure'
       - '--region'
       - 'us-central1'
       - '--platform'

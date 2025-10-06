@@ -20,8 +20,8 @@ class GCPPersistenceSettings(BaseSettings):
     zone: str = Field(default="us-central1-a", env="GCP_ZONE")
     
     # Cloud SQL Configuration
-    cloud_sql_instance: str = Field(default="validatus-primary", env="CLOUD_SQL_INSTANCE")
-    cloud_sql_database: str = Field(default="validatus", env="CLOUD_SQL_DATABASE")
+    cloud_sql_instance: str = Field(default="validatus-sql", env="CLOUD_SQL_INSTANCE")
+    cloud_sql_database: str = Field(default="validatusdb", env="CLOUD_SQL_DATABASE")
     cloud_sql_user: str = Field(default="validatus_app", env="CLOUD_SQL_USER")
     cloud_sql_password: Optional[str] = Field(default=None, env="CLOUD_SQL_PASSWORD")
     cloud_sql_connection_name: Optional[str] = None
@@ -59,7 +59,7 @@ class GCPPersistenceSettings(BaseSettings):
     query_timeout_seconds: int = Field(default=30, env="QUERY_TIMEOUT_SECONDS")
     
     # Security Settings
-    use_iam_auth: bool = Field(default=True, env="USE_IAM_AUTH")
+    use_iam_auth: bool = Field(default=False, env="USE_IAM_AUTH")
     encryption_key_name: Optional[str] = Field(default=None, env="ENCRYPTION_KEY_NAME")
     
     def __init__(self, **kwargs):
@@ -108,7 +108,8 @@ class GCPPersistenceSettings(BaseSettings):
             # Use Cloud SQL Proxy with IAM authentication
             return f"postgresql://{self.cloud_sql_user}@/{self.cloud_sql_database}?host=/cloudsql/{self.cloud_sql_connection_name}"
         else:
-            # Use password authentication
+            # Use password authentication with Cloud SQL Proxy (Unix socket)
+            # For Cloud Run with --add-cloudsql-instances, use Unix socket
             return f"postgresql://{self.cloud_sql_user}:{password}@/{self.cloud_sql_database}?host=/cloudsql/{self.cloud_sql_connection_name}"
     
     class Config:

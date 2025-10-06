@@ -1,13 +1,15 @@
 """
 Simple Topic Service for immediate database storage
-Uses SQLite for local persistence until GCP services are fully configured
+Uses GCP Cloud SQL in production, SQLite for local development
 """
 import logging
+import os
 from typing import List, Optional
 from datetime import datetime
 import uuid
 
 from .database_manager import DatabaseManager
+from .gcp_sql_manager import GCPSQLManager
 from ..models.topic_models import (
     TopicCreateRequest, TopicResponse, TopicUpdateRequest,
     TopicListResponse, TopicStatus, AnalysisType
@@ -16,11 +18,16 @@ from ..models.topic_models import (
 logger = logging.getLogger(__name__)
 
 class SimpleTopicService:
-    """Simple Topic Service with SQLite database storage"""
+    """Simple Topic Service with configurable database storage"""
     
     def __init__(self):
-        self.db_manager = DatabaseManager()
-        logger.info("SimpleTopicService initialized with SQLite database")
+        # Use GCP Cloud SQL in production, SQLite for local development
+        if os.getenv("ENVIRONMENT") == "production" or os.getenv("LOCAL_DEVELOPMENT_MODE") != "true":
+            self.db_manager = GCPSQLManager()
+            logger.info("SimpleTopicService initialized with GCP Cloud SQL")
+        else:
+            self.db_manager = DatabaseManager()
+            logger.info("SimpleTopicService initialized with SQLite database")
     
     async def create_topic(self, request: TopicCreateRequest) -> TopicResponse:
         """Create topic and store in database"""
@@ -45,26 +52,33 @@ class SimpleTopicService:
                 'metadata': {}
             }
             
-            # Store in database
-            success = self.db_manager.create_topic(topic_data)
-            
-            if success:
-                logger.info(f"✅ Topic created successfully: {session_id}")
-                return TopicResponse(
-                    session_id=session_id,
-                    topic=request.topic,
-                    description=request.description,
-                    search_queries=request.search_queries,
-                    initial_urls=request.initial_urls,
-                    analysis_type=request.analysis_type,
-                    user_id=request.user_id,
-                    created_at=datetime.fromisoformat(topic_data['created_at']),
-                    updated_at=datetime.fromisoformat(topic_data['updated_at']),
-                    status=TopicStatus.CREATED,
-                    metadata={}
-                )
+            # Store in database - handle both sync and async database managers
+            if hasattr(self.db_manager, 'initialize'):
+                # GCP SQL Manager (async) - initialize first, then create topic
+                await self.db_manager.initialize()
+                result = await self.db_manager.create_topic(request)
+                logger.info(f"✅ Topic created successfully via GCP SQL: {session_id}")
+                return result
             else:
-                raise Exception("Failed to store topic in database")
+                # SQLite Manager (sync)
+                success = self.db_manager.create_topic(topic_data)
+                if success:
+                    logger.info(f"✅ Topic created successfully via SQLite: {session_id}")
+                    return TopicResponse(
+                        session_id=session_id,
+                        topic=request.topic,
+                        description=request.description,
+                        search_queries=request.search_queries,
+                        initial_urls=request.initial_urls,
+                        analysis_type=request.analysis_type,
+                        user_id=request.user_id,
+                        created_at=datetime.fromisoformat(topic_data['created_at']),
+                        updated_at=datetime.fromisoformat(topic_data['updated_at']),
+                        status=TopicStatus.CREATED,
+                        metadata={}
+                    )
+                else:
+                    raise Exception("Failed to store topic in SQLite database")
                 
         except Exception as e:
             logger.exception("Failed to create topic")
@@ -73,7 +87,14 @@ class SimpleTopicService:
     async def get_topic(self, session_id: str, user_id: str) -> Optional[TopicResponse]:
         """Get topic by session ID"""
         try:
-            topic_data = self.db_manager.get_topic(session_id)
+            # Handle both sync and async database managers
+            if hasattr(self.db_manager, 'initialize'):
+                # GCP SQL Manager (async)
+                await self.db_manager.initialize()
+                topic_data = await self.db_manager.get_topic(session_id)
+            else:
+                # SQLite Manager (sync)
+                topic_data = self.db_manager.get_topic(session_id)
             
             if not topic_data:
                 return None
@@ -107,34 +128,42 @@ class SimpleTopicService:
         try:
             # Use page_size if provided, otherwise use limit
             actual_limit = page_size if page_size is not None else limit
-            topics_data, total_count = self.db_manager.list_topics(user_id, actual_limit, offset)
-            
-            # Convert to TopicResponse objects
-            topics = []
-            for topic_data in topics_data:
-                topic = TopicResponse(
-                    session_id=topic_data['session_id'],
-                    topic=topic_data['topic'],
-                    description=topic_data['description'],
-                    search_queries=topic_data.get('search_queries', []),
-                    initial_urls=topic_data.get('initial_urls', []),
-                    analysis_type=topic_data['analysis_type'],
-                    user_id=topic_data['user_id'],
-                    created_at=datetime.fromisoformat(topic_data['created_at']),
-                    updated_at=datetime.fromisoformat(topic_data['updated_at']),
-                    status=topic_data['status'],
-                    metadata=topic_data.get('metadata', {})
+            # Handle both sync and async database managers
+            if hasattr(self.db_manager, 'initialize'):
+                # GCP SQL Manager (async) - returns TopicListResponse
+                await self.db_manager.initialize()
+                result = await self.db_manager.list_topics(user_id, page=offset // actual_limit + 1 if actual_limit > 0 else 1, page_size=actual_limit)
+                return result
+            else:
+                # SQLite Manager (sync) - returns tuple
+                topics_data, total_count = self.db_manager.list_topics(user_id, actual_limit, offset)
+                
+                # Convert to TopicResponse objects
+                topics = []
+                for topic_data in topics_data:
+                    topic = TopicResponse(
+                        session_id=topic_data['session_id'],
+                        topic=topic_data['topic'],
+                        description=topic_data['description'],
+                        search_queries=topic_data.get('search_queries', []),
+                        initial_urls=topic_data.get('initial_urls', []),
+                        analysis_type=topic_data['analysis_type'],
+                        user_id=topic_data['user_id'],
+                        created_at=datetime.fromisoformat(topic_data['created_at']),
+                        updated_at=datetime.fromisoformat(topic_data['updated_at']),
+                        status=topic_data['status'],
+                        metadata=topic_data.get('metadata', {})
+                    )
+                    topics.append(topic)
+                
+                return TopicListResponse(
+                    topics=topics,
+                    total=total_count,
+                    page=offset // actual_limit + 1 if actual_limit > 0 else 1,
+                    page_size=actual_limit,
+                    has_next=len(topics) == actual_limit,
+                    has_previous=offset > 0
                 )
-                topics.append(topic)
-            
-            return TopicListResponse(
-                topics=topics,
-                total=total_count,
-                page=offset // actual_limit + 1 if actual_limit > 0 else 1,
-                page_size=actual_limit,
-                has_next=len(topics) == actual_limit,
-                has_previous=offset > 0
-            )
             
         except Exception as e:
             logger.exception("Failed to list topics")

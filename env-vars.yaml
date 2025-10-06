@@ -3,4 +3,4 @@ GCP_PROJECT_ID: validatus-platform
 # Never commit actual credentials to version control
 DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/validatusdb
 ENVIRONMENT: production
-ALLOWED_ORIGINS: https://validatus-frontend-${GCP_PROJECT_ID}.run.app,https://validatus-backend-${GCP_PROJECT_ID}.run.app
+ALLOWED_ORIGINS: https://validatus-frontend-${GCP_PROJECT_ID}.run.app,https://validatus-frontend-1051257819168.us-central1.run.app,https://validatus-backend-${GCP_PROJECT_ID}.run.app

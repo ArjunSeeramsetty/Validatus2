@@ -61,6 +61,7 @@ if not allowed_origins_env:
     # Default origins for production
     allowed_origins = [
         "https://validatus-frontend-ssivkqhvhq-uc.a.run.app",
+        "https://validatus-frontend-1051257819168.us-central1.run.app",
         "https://validatus-backend-ssivkqhvhq-uc.a.run.app",
         "http://localhost:3000",
         "http://localhost:5173"

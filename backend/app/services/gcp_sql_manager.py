@@ -3,6 +3,7 @@ Google Cloud SQL Manager
 Handles all PostgreSQL database operations for structured data
 """
 import asyncio
+import json
 import logging
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any, Tuple
@@ -84,6 +85,7 @@ class GCPSQLManager:
                     RETURNING session_id, created_at, updated_at
                 """
                 
+                import json
                 result = await conn.fetchrow(
                     query,
                     session_id,
@@ -94,7 +96,7 @@ class GCPSQLManager:
                     request.analysis_type.value,
                     request.search_queries,
                     request.initial_urls,
-                    request.metadata
+                    json.dumps(request.metadata) if request.metadata else "{}"
                 )
                 
                 # Initialize workflow status
@@ -152,7 +154,7 @@ class GCPSQLManager:
                     created_at=result['created_at'],
                     updated_at=result['updated_at'],
                     status=TopicStatus(result['status']),
-                    metadata=result['metadata'] or {}
+                    metadata=json.loads(result['metadata']) if result['metadata'] else {}
                 )
                 
         except Exception as e:
@@ -198,7 +200,7 @@ class GCPSQLManager:
                         created_at=result['created_at'],
                         updated_at=result['updated_at'],
                         status=TopicStatus(result['status']),
-                        metadata=result['metadata'] or {}
+                        metadata=json.loads(result['metadata']) if result['metadata'] else {}
                     ))
                 
                 return TopicListResponse(
@@ -350,11 +352,78 @@ class GCPSQLManager:
     
     async def _create_workflow_status(self, conn: Connection, session_id: str):
         """Create initial workflow status"""
-        query = """
-            INSERT INTO workflow_status (session_id, current_stage, stages_completed)
-            VALUES ($1, 'CREATED', ARRAY['CREATED'])
-        """
-        await conn.execute(query, session_id)
+        try:
+            # First, ensure the workflow_status table exists
+            await self._ensure_workflow_status_table(conn)
+            
+            query = """
+                INSERT INTO workflow_status (session_id, current_stage, stages_completed)
+                VALUES ($1, 'CREATED', ARRAY['CREATED'])
+            """
+            await conn.execute(query, session_id)
+        except Exception as e:
+            logger.warning(f"Failed to create workflow status for {session_id}: {e}")
+            # Don't fail the entire topic creation if workflow status fails
+    
+    async def _ensure_workflow_status_table(self, conn: Connection):
+        """Ensure workflow_status table exists"""
+        try:
+            # Check if table exists
+            check_query = """
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name = 'workflow_status'
+                )
+            """
+            exists = await conn.fetchval(check_query)
+            
+            if not exists:
+                logger.info("Creating workflow_status table...")
+                
+                # Create the table
+                create_table_query = """
+                    CREATE TABLE workflow_status (
+                        session_id VARCHAR(50) PRIMARY KEY REFERENCES topics(session_id) ON DELETE CASCADE,
+                        current_stage VARCHAR(50) NOT NULL,
+                        stages_completed TEXT[] DEFAULT '{}',
+                        stage_progress JSONB DEFAULT '{}'::jsonb,
+                        started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        error_message TEXT,
+                        retry_count INTEGER DEFAULT 0,
+                        
+                        CONSTRAINT chk_current_stage CHECK (current_stage IN (
+                            'CREATED', 'URL_COLLECTION', 'URL_SCRAPING', 'CONTENT_PROCESSING', 
+                            'VECTOR_CREATION', 'ANALYSIS', 'COMPLETED', 'FAILED'
+                        ))
+                    )
+                """
+                await conn.execute(create_table_query)
+                
+                # Create indexes
+                await conn.execute("CREATE INDEX idx_workflow_status_stage ON workflow_status(current_stage);")
+                await conn.execute("CREATE INDEX idx_workflow_status_updated ON workflow_status(updated_at DESC);")
+                
+                # Create trigger for updated_at
+                trigger_query = """
+                    CREATE OR REPLACE FUNCTION update_updated_at_column()
+                    RETURNS TRIGGER AS $$
+                    BEGIN
+                        NEW.updated_at = NOW();
+                        RETURN NEW;
+                    END;
+                    $$ language 'plpgsql';
+                    
+                    CREATE TRIGGER update_workflow_status_updated_at BEFORE UPDATE ON workflow_status
+                        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+                """
+                await conn.execute(trigger_query)
+                
+                logger.info("workflow_status table created successfully!")
+        except Exception as e:
+            logger.error(f"Failed to ensure workflow_status table exists: {e}")
+            raise
     
     async def _update_workflow_status(self, conn: Connection, session_id: str, 
                                     stage: str, progress_data: Optional[Dict] = None):

@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 # Import the topics router
 from app.api.v3.topics import router as topics_router
 from app.api.v3.enhanced_topics import router as enhanced_topics_router
-from app.api.v3.migration import router as migration_router
+from app.api.v3.migration_simple import router as migration_router
 
 # Configure logging for Cloud Run
 logging.basicConfig(

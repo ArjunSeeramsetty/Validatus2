@@ -120,6 +120,39 @@ async def create_database_schema():
                 FOREIGN KEY (campaign_id) REFERENCES url_collection_campaigns(id) ON DELETE CASCADE
         );
         
+        -- 🆕 NEW: Create scraped_content table for content management
+        CREATE TABLE IF NOT EXISTS scraped_content (
+            id SERIAL PRIMARY KEY,
+            session_id VARCHAR(50) NOT NULL,
+            url TEXT NOT NULL,
+            title TEXT,
+            content TEXT,
+            scraped_at TIMESTAMP WITH TIME ZONE NOT NULL,
+            processing_status VARCHAR(50) DEFAULT 'pending',
+            metadata JSONB DEFAULT '{}'::jsonb,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            
+            CONSTRAINT fk_scraped_content_session_id 
+                FOREIGN KEY (session_id) REFERENCES topics(session_id) ON DELETE CASCADE,
+            CONSTRAINT unique_session_url UNIQUE (session_id, url),
+            CONSTRAINT chk_scraping_status CHECK (processing_status IN ('pending', 'processing', 'processed', 'failed'))
+        );
+        
+        -- 🆕 NEW: Create analysis_scores table for scoring results  
+        CREATE TABLE IF NOT EXISTS analysis_scores (
+            id SERIAL PRIMARY KEY,
+            session_id VARCHAR(50) NOT NULL,
+            analysis_type VARCHAR(100) NOT NULL,
+            score DECIMAL(5,3),
+            confidence DECIMAL(5,3),
+            analysis_data JSONB,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            metadata JSONB DEFAULT '{}'::jsonb,
+            
+            CONSTRAINT fk_analysis_scores_session_id 
+                FOREIGN KEY (session_id) REFERENCES topics(session_id) ON DELETE CASCADE
+        );
+        
         -- Add missing columns to existing topics table
         ALTER TABLE topics ADD COLUMN IF NOT EXISTS search_queries TEXT[];
         ALTER TABLE topics ADD COLUMN IF NOT EXISTS initial_urls TEXT[];
@@ -224,8 +257,9 @@ async def create_database_schema():
         return {
             "status": "success",
             "message": "Database schema created successfully",
-            "tables_created": 5,  # topics, topic_urls, workflow_status, url_collection_campaigns, search_queries
-            "schema_verified": True
+            "tables_created": 7,  # topics, topic_urls, workflow_status, url_collection_campaigns, search_queries, scraped_content, analysis_scores
+            "schema_verified": True,
+            "new_tables": ["scraped_content", "analysis_scores"]  # 🆕 NEW tables added
         }
         
     except Exception as e:

@@ -42,6 +42,8 @@ import PergolaIntelligenceDashboard from '../components/enhanced/PergolaIntellig
 import PergolaAnalysisPage from './PergolaAnalysisPage';
 import AdvancedAnalysisDashboard from './AdvancedAnalysisDashboard';
 import URLsTab from '../components/URLsTab';
+import ContentTab from '../components/ContentTab';  // 🆕 NEW: Content management tab
+import ScoringTab from '../components/ScoringTab';  // 🆕 NEW: Scoring/analysis tab
 import { topicService, TopicConfig } from '../services/topicService';
 
 
@@ -197,6 +199,18 @@ const HomePage: React.FC = () => {
               <Tab 
                 label="URLs" 
                 icon={<LinkIcon />} 
+                iconPosition="start"
+                sx={{ minHeight: 60 }}
+              />
+              <Tab 
+                label="Content" 
+                icon={<AnalyticsOutlined />} 
+                iconPosition="start"
+                sx={{ minHeight: 60 }}
+              />
+              <Tab 
+                label="Scoring" 
+                icon={<TrendingUp />} 
                 iconPosition="start"
                 sx={{ minHeight: 60 }}
               />
@@ -377,6 +391,28 @@ const HomePage: React.FC = () => {
         )}
 
         {activeTab === 2 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* 🆕 NEW: Content Tab */}
+            <ContentTab />
+          </motion.div>
+        )}
+
+        {activeTab === 3 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* 🆕 NEW: Scoring Tab */}
+            <ScoringTab />
+          </motion.div>
+        )}
+
+        {activeTab === 4 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

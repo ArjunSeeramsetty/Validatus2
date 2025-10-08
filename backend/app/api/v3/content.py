@@ -9,23 +9,40 @@ from datetime import datetime, timezone
 import json
 
 from ...core.database_config import db_manager
-from ...services.scraped_content_manager import ScrapedContentManager
-from ...services.content_quality_analyzer import ContentQualityAnalyzer
-from ...services.enhanced_content_processor import EnhancedContentProcessor
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["content"])
 
-# ✅ REUSING EXISTING SERVICES (not recreating them)
-content_manager = ScrapedContentManager()
-quality_analyzer = ContentQualityAnalyzer()
+# ✅ REUSING EXISTING SERVICES (lazy load to avoid import errors)
+content_manager = None
+quality_analyzer = None
+content_processor = None
 
-try:
-    content_processor = EnhancedContentProcessor()
-except:
-    content_processor = None
-    logger.warning("EnhancedContentProcessor not available, using fallback")
+def _init_services():
+    """Lazy initialize services to handle missing dependencies"""
+    global content_manager, quality_analyzer, content_processor
+    
+    if content_manager is None:
+        try:
+            from ...services.scraped_content_manager import ScrapedContentManager
+            content_manager = ScrapedContentManager()
+        except Exception as e:
+            logger.warning(f"ScrapedContentManager not available: {e}")
+    
+    if quality_analyzer is None:
+        try:
+            from ...services.content_quality_analyzer import ContentQualityAnalyzer
+            quality_analyzer = ContentQualityAnalyzer()
+        except Exception as e:
+            logger.warning(f"ContentQualityAnalyzer not available: {e}")
+    
+    if content_processor is None:
+        try:
+            from ...services.enhanced_content_processor import EnhancedContentProcessor
+            content_processor = EnhancedContentProcessor()
+        except Exception as e:
+            logger.debug(f"EnhancedContentProcessor not available: {e}")
 
 @router.get("/{session_id}")
 async def get_topic_content(session_id: str):
@@ -34,6 +51,7 @@ async def get_topic_content(session_id: str):
     🆕 NEW ENDPOINT: Leverages existing ScrapedContentManager
     """
     try:
+        _init_services()  # Lazy load services
         connection = await db_manager.get_connection()
         
         # Get topic details (✅ EXISTING table structure)
@@ -141,6 +159,7 @@ async def start_scraping(
     🆕 NEW ENDPOINT: Triggers scraping using existing content processor
     """
     try:
+        _init_services()  # Lazy load services
         # Get URLs that need scraping
         connection = await db_manager.get_connection()
         

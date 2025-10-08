@@ -9,21 +9,32 @@ import json
 from typing import Dict, Any, List
 
 from ...core.database_config import db_manager
-from ...services.advanced_strategy_analysis import AdvancedStrategyAnalysisEngine
-from ...services.analysis_session_manager import AnalysisSessionManager
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["scoring"])
 
-# ✅ REUSING EXISTING SERVICES
-analysis_engine = AdvancedStrategyAnalysisEngine()
+# ✅ REUSING EXISTING SERVICES (lazy load to avoid import errors)
+analysis_engine = None
+session_manager = None
 
-try:
-    session_manager = AnalysisSessionManager()
-except:
-    session_manager = None
-    logger.warning("AnalysisSessionManager not available, using direct engine")
+def _init_services():
+    """Lazy initialize services to handle missing dependencies"""
+    global analysis_engine, session_manager
+    
+    if analysis_engine is None:
+        try:
+            from ...services.advanced_strategy_analysis import AdvancedStrategyAnalysisEngine
+            analysis_engine = AdvancedStrategyAnalysisEngine()
+        except Exception as e:
+            logger.warning(f"AdvancedStrategyAnalysisEngine not available: {e}")
+    
+    if session_manager is None:
+        try:
+            from ...services.analysis_session_manager import AnalysisSessionManager
+            session_manager = AnalysisSessionManager()
+        except Exception as e:
+            logger.debug(f"AnalysisSessionManager not available: {e}")
 
 @router.get("/topics")
 async def get_topics_for_scoring(user_id: str = Query("demo_user", description="User ID")):
@@ -32,6 +43,7 @@ async def get_topics_for_scoring(user_id: str = Query("demo_user", description="
     🆕 NEW ENDPOINT: Lists topics ready for strategic analysis
     """
     try:
+        _init_services()  # Lazy load services
         connection = await db_manager.get_connection()
         
         # Get topics with content statistics (✅ Using existing schema)
@@ -175,6 +187,15 @@ async def start_scoring(
         
         # Run strategic analysis (✅ Using EXISTING AdvancedStrategyAnalysisEngine)
         logger.info(f"Starting strategic analysis for {session_id} with {len(url_rows)} content items")
+        
+        _init_services()  # Ensure services are loaded
+        
+        if not analysis_engine:
+            return {
+                "success": False,
+                "error": "Analysis engine not available. Missing dependencies.",
+                "session_id": session_id
+            }
         
         try:
             analysis_results = analysis_engine.analyze_strategy(

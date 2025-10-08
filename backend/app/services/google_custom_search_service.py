@@ -56,18 +56,40 @@ class GoogleCustomSearchService:
         if self.session is not None:
             logger.warning("Service already initialized")
             return
+        
+        try:
+            # Get credentials with detailed logging
+            logger.info("Attempting to retrieve Google Custom Search credentials...")
             
-        self.api_key = self.settings.get_secure_api_key()
-        self.cse_id = self.settings.get_secure_cse_id()
-        
-        if not self.api_key or not self.cse_id:
-            raise ValueError("Google Custom Search API key and CSE ID are required")
-        
-        # Create HTTP session with timeout
-        timeout = aiohttp.ClientTimeout(total=self.settings.url_collection_timeout)
-        self.session = aiohttp.ClientSession(timeout=timeout)
-        
-        logger.info("Google Custom Search Service initialized")
+            self.api_key = self.settings.get_secure_api_key()
+            self.cse_id = self.settings.get_secure_cse_id()
+            
+            if not self.api_key:
+                logger.error("❌ Google Custom Search API Key is empty or None")
+                raise ValueError("Google Custom Search API key not found. Check GOOGLE_CSE_API_KEY environment variable or Secret Manager.")
+            
+            if not self.cse_id:
+                logger.error("❌ Google Custom Search Engine ID is empty or None")
+                raise ValueError("Google Custom Search Engine ID not found. Check GOOGLE_CSE_ID environment variable or Secret Manager.")
+            
+            # Log success (but mask the actual values for security)
+            logger.info(f"✅ Google CSE API Key retrieved (length: {len(self.api_key)})")
+            logger.info(f"✅ Google CSE ID retrieved: {self.cse_id[:10]}...")
+            
+            # Create HTTP session with timeout
+            timeout = aiohttp.ClientTimeout(total=self.settings.url_collection_timeout)
+            self.session = aiohttp.ClientSession(timeout=timeout)
+            
+            logger.info("✅ Google Custom Search Service initialized successfully")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize Google Custom Search Service: {e}")
+            logger.error(f"   Check environment variables: GOOGLE_CSE_API_KEY, GOOGLE_CSE_ID")
+            logger.error(f"   Or ensure secrets exist in Secret Manager: google-cse-api-key, google-cse-id")
+            # Set to None to indicate failure
+            self.session = None
+            self.api_key = None
+            self.cse_id = None
     
     async def close(self):
         """Clean up resources"""
@@ -87,12 +109,33 @@ class GoogleCustomSearchService:
         if not self.session:
             await self.initialize()
         
+        # Verify service is initialized with credentials
+        if not self.session or not self.api_key or not self.cse_id:
+            error_msg = "Google Custom Search Service not properly initialized. Missing credentials."
+            logger.error(f"❌ {error_msg}")
+            logger.error(f"   API Key present: {bool(self.api_key)}")
+            logger.error(f"   CSE ID present: {bool(self.cse_id)}")
+            logger.error(f"   Session present: {bool(self.session)}")
+            
+            return {
+                "session_id": session_id,
+                "queries_processed": 0,
+                "total_api_calls": 0,
+                "urls_discovered": 0,
+                "urls_after_dedup": 0,
+                "error": error_msg,
+                "query_stats": {},
+                "collection_timestamp": datetime.utcnow().isoformat(),
+                "urls": []
+            }
+        
         max_results = max_results_per_query or self.settings.max_urls_per_query
         all_results = []
         query_stats = {}
         total_api_calls = 0
         
-        logger.info(f"Starting URL collection for session {session_id} with {len(search_queries)} queries")
+        logger.info(f"🔍 Starting URL collection for session {session_id} with {len(search_queries)} queries")
+        logger.info(f"   Using Google Custom Search API (API Key: {len(self.api_key)} chars, CSE ID: {self.cse_id[:10]}...)")
         
         for query in search_queries:
             try:

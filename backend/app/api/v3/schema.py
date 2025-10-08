@@ -272,3 +272,64 @@ async def list_database_tables():
     except Exception as e:
         logger.error(f"Failed to list tables: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to list tables: {str(e)}")
+
+@router.get("/check-google-credentials")
+async def check_google_credentials():
+    """Check if Google Custom Search credentials are configured (for debugging)"""
+    try:
+        import os
+        from ...core.gcp_persistence_config import get_gcp_persistence_settings
+        
+        settings = get_gcp_persistence_settings()
+        
+        # Check environment variables
+        env_api_key = os.getenv("GOOGLE_CSE_API_KEY")
+        env_cse_id = os.getenv("GOOGLE_CSE_ID")
+        
+        # Check Pydantic settings
+        pydantic_api_key = settings.google_cse_api_key
+        pydantic_cse_id = settings.google_cse_id
+        
+        # Try to get via the secure methods
+        try:
+            secure_api_key = settings.get_secure_api_key()
+            api_key_status = "✅ Retrieved" if secure_api_key else "❌ Empty"
+            api_key_length = len(secure_api_key) if secure_api_key else 0
+        except Exception as e:
+            api_key_status = f"❌ Error: {str(e)}"
+            api_key_length = 0
+        
+        try:
+            secure_cse_id = settings.get_secure_cse_id()
+            cse_id_status = "✅ Retrieved" if secure_cse_id else "❌ Empty"
+            cse_id_value = secure_cse_id[:20] + "..." if secure_cse_id and len(secure_cse_id) > 20 else secure_cse_id
+        except Exception as e:
+            cse_id_status = f"❌ Error: {str(e)}"
+            cse_id_value = None
+        
+        return {
+            "status": "success",
+            "environment_variables": {
+                "GOOGLE_CSE_API_KEY": "Present" if env_api_key else "Missing",
+                "GOOGLE_CSE_API_KEY_length": len(env_api_key) if env_api_key else 0,
+                "GOOGLE_CSE_ID": "Present" if env_cse_id else "Missing",
+                "GOOGLE_CSE_ID_value": env_cse_id[:20] + "..." if env_cse_id and len(env_cse_id) > 20 else env_cse_id
+            },
+            "pydantic_settings": {
+                "google_cse_api_key": "Present" if pydantic_api_key else "Missing",
+                "google_cse_api_key_length": len(pydantic_api_key) if pydantic_api_key else 0,
+                "google_cse_id": "Present" if pydantic_cse_id else "Missing",
+                "google_cse_id_value": pydantic_cse_id[:20] + "..." if pydantic_cse_id and len(pydantic_cse_id) > 20 else pydantic_cse_id
+            },
+            "secure_retrieval": {
+                "api_key_status": api_key_status,
+                "api_key_length": api_key_length,
+                "cse_id_status": cse_id_status,
+                "cse_id_value": cse_id_value
+            },
+            "local_development_mode": settings.local_development_mode
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to check Google credentials: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to check credentials: {str(e)}")

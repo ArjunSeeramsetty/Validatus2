@@ -132,30 +132,50 @@ class GCPPersistenceSettings(BaseSettings):
             return f"postgresql://{self.cloud_sql_user}:{password}@/{self.cloud_sql_database}?host=/cloudsql/{self.cloud_sql_connection_name}"
     
     def get_secure_api_key(self) -> str:
-        """Retrieve Google Custom Search API key from Secret Manager"""
-        if self.google_cse_api_key:
-            return self.google_cse_api_key
+        """Retrieve Google Custom Search API key from environment or Secret Manager"""
+        # Check if already loaded from environment variable (Cloud Run --update-secrets)
+        if self.google_cse_api_key and len(self.google_cse_api_key.strip()) > 0:
+            return self.google_cse_api_key.strip()
+        
+        # Check raw environment variable (sometimes Pydantic doesn't pick it up immediately)
+        env_key = os.getenv("GOOGLE_CSE_API_KEY")
+        if env_key and len(env_key.strip()) > 0:
+            logger.info("✅ Google CSE API Key loaded from environment variable")
+            return env_key.strip()
             
+        # For production without env var, try Secret Manager API
         if not self.local_development_mode:
             try:
+                logger.info("Attempting to load Google CSE API Key from Secret Manager...")
                 return self.get_secret("google-cse-api-key")
             except Exception as e:
+                logger.error(f"Failed to retrieve Google CSE API key from Secret Manager: {e}")
                 raise RuntimeError(f"Failed to retrieve Google CSE API key: {e}") from e
         
-        raise ValueError("Google CSE API key not configured for local development mode. Set GOOGLE_CSE_API_KEY environment variable.")
+        raise ValueError("Google CSE API key not configured. Set GOOGLE_CSE_API_KEY environment variable or configure Secret Manager.")
     
     def get_secure_cse_id(self) -> str:
-        """Retrieve Google Custom Search Engine ID from Secret Manager"""
-        if self.google_cse_id:
-            return self.google_cse_id
+        """Retrieve Google Custom Search Engine ID from environment or Secret Manager"""
+        # Check if already loaded from environment variable (Cloud Run --update-secrets)
+        if self.google_cse_id and len(self.google_cse_id.strip()) > 0:
+            return self.google_cse_id.strip()
+        
+        # Check raw environment variable (sometimes Pydantic doesn't pick it up immediately)
+        env_id = os.getenv("GOOGLE_CSE_ID")
+        if env_id and len(env_id.strip()) > 0:
+            logger.info("✅ Google CSE ID loaded from environment variable")
+            return env_id.strip()
             
+        # For production without env var, try Secret Manager API
         if not self.local_development_mode:
             try:
+                logger.info("Attempting to load Google CSE ID from Secret Manager...")
                 return self.get_secret("google-cse-id")
             except Exception as e:
+                logger.error(f"Failed to retrieve Google CSE ID from Secret Manager: {e}")
                 raise RuntimeError(f"Failed to retrieve Google CSE ID: {e}") from e
         
-        raise ValueError("Google CSE ID not configured for local development mode. Set GOOGLE_CSE_ID environment variable.")
+        raise ValueError("Google CSE ID not configured. Set GOOGLE_CSE_ID environment variable or configure Secret Manager.")
     
     def get_site_filters(self) -> List[str]:
         """Get list of site filters"""

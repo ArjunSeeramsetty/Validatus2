@@ -21,7 +21,7 @@ class GCPPersistenceSettings(BaseSettings):
     
     # Cloud SQL Configuration
     cloud_sql_instance: str = Field(default="validatus-sql", env="CLOUD_SQL_INSTANCE")
-    cloud_sql_database: str = Field(default="validatusdb", env="CLOUD_SQL_DATABASE")
+    cloud_sql_database: str = Field(default="validatus", env="CLOUD_SQL_DATABASE")
     cloud_sql_user: str = Field(default="validatus_app", env="CLOUD_SQL_USER")
     cloud_sql_password: Optional[str] = Field(default=None, env="CLOUD_SQL_PASSWORD")
     cloud_sql_connection_name: Optional[str] = None

@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 from .api.v3.topics import router as topics_router
 from .api.v3.enhanced_topics import router as enhanced_topics_router
 from .api.v3.migration_simple import router as migration_router
+from .api.v3.schema import router as schema_router
 
 # Import database manager
 from .core.database_config import db_manager
@@ -111,6 +112,7 @@ async def run_migration():
 app.include_router(topics_router, prefix="/api/v3/topics", tags=["Topics"])
 app.include_router(enhanced_topics_router, prefix="/api/v3/enhanced-topics", tags=["Enhanced Topics"])
 app.include_router(migration_router, prefix="/api/v3/migration", tags=["Migration"])
+app.include_router(schema_router, prefix="/api/v3/schema", tags=["Schema"])
 
 # Global exception handler
 @app.exception_handler(Exception)

@@ -49,17 +49,33 @@ interface Topic {
   topic: string;
   description: string;
   status: string;
-  initial_urls: string[];
+  initial_urls?: string[];
+  search_queries?: string[];
+  created_at?: string;
   updated_at: string;
   metadata?: any;
 }
 
+interface URLData {
+  url: string;
+  title?: string;
+  description?: string;
+  source?: string;
+  collection_method?: string;
+  domain?: string;
+  relevance_score?: number;
+  quality_score?: number;
+  priority_level?: number;
+  status?: string;
+  created_at?: string;
+}
+
 interface TopicURLs {
   session_id: string;
-  topic: string;
-  urls: string[];
+  topic?: string;
+  urls: (string | URLData)[];
   url_count: number;
-  last_updated: string;
+  last_updated?: string;
   metadata?: any;
 }
 
@@ -107,7 +123,7 @@ const URLsTab: React.FC<URLsTabProps> = ({ refreshTrigger }) => {
     try {
       setUrlLoading(true);
       setError(null);
-      const response = await apiClient.get(`/api/v3/topics/${topic.session_id}/urls`);
+      const response = await apiClient.get(`/api/v3/enhanced-topics/${topic.session_id}/urls`);
       setTopicURLs(response.data);
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Failed to load URLs');
@@ -121,7 +137,21 @@ const URLsTab: React.FC<URLsTabProps> = ({ refreshTrigger }) => {
       setCollecting(true);
       setError(null);
       
-      const response = await apiClient.post(`/api/v3/topics/${topic.session_id}/collect-urls`);
+      // Get search queries from topic or use topic name as query
+      // Ensure search_queries exists and has elements, otherwise use topic name
+      const searchQueries = (topic.search_queries && Array.isArray(topic.search_queries) && topic.search_queries.length > 0)
+        ? topic.search_queries 
+        : [topic.topic];
+      
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      searchQueries.forEach(query => queryParams.append('search_queries', query));
+      queryParams.append('max_urls_per_query', '20');
+      queryParams.append('force_refresh', 'true');  // Force refresh to bypass cache
+      
+      const response = await apiClient.post(
+        `/api/v3/enhanced-topics/${topic.session_id}/collect-urls?${queryParams.toString()}`
+      );
       
       // Reload topic URLs after collection
       await loadTopicURLs(topic);
@@ -308,7 +338,7 @@ const URLsTab: React.FC<URLsTabProps> = ({ refreshTrigger }) => {
                               {topic.description}
                             </Typography>
                             <Typography variant="caption" sx={{ color: '#888' }}>
-                              {topic.initial_urls.length} URLs • Updated: {new Date(topic.updated_at).toLocaleDateString()}
+                              {(topic.initial_urls || []).length} URLs • Updated: {new Date(topic.updated_at || topic.created_at).toLocaleDateString()}
                             </Typography>
                           </Box>
                         }
@@ -387,43 +417,70 @@ const URLsTab: React.FC<URLsTabProps> = ({ refreshTrigger }) => {
                         overflow: 'auto'
                       }}>
                         <List>
-                          {topicURLs.urls.map((url, index) => (
-                            <ListItem
-                              key={index}
-                              sx={{
-                                borderBottom: '1px solid #2d2d44',
-                                '&:last-child': { borderBottom: 'none' }
-                              }}
-                            >
-                              <ListItemText
-                                primary={
-                                  <Link
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    sx={{
-                                      color: '#1890ff',
-                                      textDecoration: 'none',
-                                      '&:hover': { textDecoration: 'underline' }
-                                    }}
-                                  >
-                                    {url}
-                                  </Link>
-                                }
-                              />
-                              <ListItemSecondaryAction>
-                                <Tooltip title="Open URL">
-                                  <IconButton
-                                    edge="end"
-                                    onClick={() => window.open(url, '_blank')}
-                                    sx={{ color: '#1890ff' }}
-                                  >
-                                    <VisibilityIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              </ListItemSecondaryAction>
-                            </ListItem>
-                          ))}
+                          {topicURLs.urls.map((urlData, index) => {
+                            // Handle both string URLs and URL objects with proper type safety
+                            const urlString = typeof urlData === 'string' ? urlData : urlData.url || '';
+                            const urlTitle = (typeof urlData === 'object' && urlData.title) ? urlData.title : '';
+                            const urlQuality = (typeof urlData === 'object' && urlData.quality_score) ? urlData.quality_score : 0;
+                            const urlSource = (typeof urlData === 'object' && urlData.source) ? urlData.source : 'unknown';
+                            
+                            return (
+                              <ListItem
+                                key={index}
+                                sx={{
+                                  borderBottom: '1px solid #2d2d44',
+                                  '&:last-child': { borderBottom: 'none' }
+                                }}
+                              >
+                                <ListItemText
+                                  primary={
+                                    <Box>
+                                      <Link
+                                        href={urlString}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        sx={{
+                                          color: '#1890ff',
+                                          textDecoration: 'none',
+                                          '&:hover': { textDecoration: 'underline' }
+                                        }}
+                                      >
+                                        {urlTitle || urlString}
+                                      </Link>
+                                      {urlQuality > 0 && (
+                                        <Chip
+                                          label={`Quality: ${(urlQuality * 100).toFixed(0)}%`}
+                                          size="small"
+                                          sx={{ ml: 1, fontSize: '0.7rem' }}
+                                          color={urlQuality >= 0.7 ? 'success' : urlQuality >= 0.5 ? 'warning' : 'default'}
+                                        />
+                                      )}
+                                      {urlSource && (
+                                        <Chip
+                                          label={urlSource}
+                                          size="small"
+                                          sx={{ ml: 0.5, fontSize: '0.7rem' }}
+                                          variant="outlined"
+                                        />
+                                      )}
+                                    </Box>
+                                  }
+                                  secondary={urlString !== (urlTitle || urlString) ? urlString : null}
+                                />
+                                <ListItemSecondaryAction>
+                                  <Tooltip title="Open URL">
+                                    <IconButton
+                                      edge="end"
+                                      onClick={() => window.open(urlString, '_blank')}
+                                      sx={{ color: '#1890ff' }}
+                                    >
+                                      <VisibilityIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                </ListItemSecondaryAction>
+                              </ListItem>
+                            );
+                          })}
                           {topicURLs.urls.length === 0 && (
                             <Box sx={{ p: 3, textAlign: 'center' }}>
                               <Typography variant="body2" sx={{ color: '#888' }}>
@@ -434,9 +491,11 @@ const URLsTab: React.FC<URLsTabProps> = ({ refreshTrigger }) => {
                         </List>
                       </Paper>
 
-                      <Typography variant="caption" sx={{ color: '#888', mt: 2, display: 'block' }}>
-                        Last updated: {new Date(topicURLs.last_updated).toLocaleString()}
-                      </Typography>
+                      {topicURLs.last_updated && (
+                        <Typography variant="caption" sx={{ color: '#888', mt: 2, display: 'block' }}>
+                          Last updated: {new Date(topicURLs.last_updated).toLocaleString()}
+                        </Typography>
+                      )}
                     </Box>
                   ) : (
                     <Alert severity="info">

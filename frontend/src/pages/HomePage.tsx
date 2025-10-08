@@ -302,13 +302,13 @@ const HomePage: React.FC = () => {
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                   <SearchIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                                   <Typography variant="caption" color="text.secondary">
-                                    {topic.search_queries.length} queries
+                                    {(topic.search_queries || []).length} queries
                                   </Typography>
                                 </Box>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                   <LinkIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                                   <Typography variant="caption" color="text.secondary">
-                                    {topic.initial_urls.length} URLs
+                                    {(topic.initial_urls || []).length} URLs
                                   </Typography>
                                 </Box>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

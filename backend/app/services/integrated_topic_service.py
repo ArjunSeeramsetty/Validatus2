@@ -109,13 +109,23 @@ class IntegratedTopicService(SimpleTopicService):
                 }
             }
     
-    async def _update_topic_with_url_collection(self, session_id: str, url_collection_result):
+    async def _update_topic_with_url_collection(self, session_id: str, url_collection_result, user_id: str = None):
         """Update topic metadata with URL collection results"""
         try:
-            # Get current topic
-            topic = await self.get_topic(session_id, "demo_user_123")  # TODO: Get actual user_id
-            if not topic:
-                return
+            # Get current topic (user_id not required for metadata update)
+            if not user_id:
+                # Get topic without user validation for internal operations
+                async with self.db_manager.pool.acquire() as connection:
+                    topic_row = await connection.fetchrow(
+                        "SELECT * FROM topics WHERE session_id = $1", session_id
+                    )
+                    if not topic_row:
+                        return
+                    topic = dict(topic_row)
+            else:
+                topic = await self.get_topic(session_id, user_id)
+                if not topic:
+                    return
             
             # Update metadata
             current_metadata = topic.get("metadata", {})
@@ -137,13 +147,24 @@ class IntegratedTopicService(SimpleTopicService):
         except Exception as e:
             logger.error(f"Failed to update topic with URL collection results: {e}")
     
-    async def get_topic_with_urls(self, session_id: str) -> Dict[str, Any]:
+    async def get_topic_with_urls(self, session_id: str, user_id: str = None) -> Dict[str, Any]:
         """
         Get topic with collected URLs
         Enhanced version of get_topic that includes URL collection data
         """
         # Get basic topic data
-        topic_data = await self.get_topic(session_id, "demo_user_123")  # TODO: Get actual user_id
+        if user_id:
+            topic_data = await self.get_topic(session_id, user_id)
+        else:
+            # Fetch without user validation for internal operations
+            async with self.db_manager.pool.acquire() as connection:
+                topic_row = await connection.fetchrow(
+                    "SELECT * FROM topics WHERE session_id = $1", session_id
+                )
+                if not topic_row:
+                    return None
+                topic_data = dict(topic_row)
+        
         if not topic_data:
             return None
         

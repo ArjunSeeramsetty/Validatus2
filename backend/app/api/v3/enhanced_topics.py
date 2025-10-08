@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from ...services.integrated_topic_service import get_integrated_topic_service
 from ...models.topic_models import TopicCreateRequest, TopicResponse, AnalysisType
 
-router = APIRouter(prefix="/api/v3/enhanced-topics", tags=["enhanced-topics"])
+router = APIRouter(tags=["enhanced-topics"])
 
 class EnhancedTopicCreateRequest(TopicCreateRequest):
     """Enhanced topic creation request with URL collection options"""
@@ -73,11 +73,14 @@ async def start_stage_1_background_processing(service, session_id: str):
         logging.error(f"Background Stage 1 processing failed for {session_id}: {e}")
 
 @router.get("/{session_id}", response_model=TopicWithURLsResponse)
-async def get_topic_with_urls(session_id: str):
+async def get_topic_with_urls(
+    session_id: str,
+    user_id: str = Query(default=None, description="User ID for authorization")
+):
     """Get topic with collected URLs and processing status"""
     try:
         service = await get_integrated_topic_service()
-        result = await service.get_topic_with_urls(session_id)
+        result = await service.get_topic_with_urls(session_id, user_id=user_id)
         
         if not result:
             raise HTTPException(status_code=404, detail="Topic not found")
@@ -152,17 +155,47 @@ async def collect_urls_for_existing_topic(
 async def get_collected_urls(session_id: str):
     """Get all collected URLs for a topic"""
     try:
-        service = await get_integrated_topic_service()
+        # Query database directly for URLs
+        from ...core.database_config import db_manager
         
-        if not service.url_collection_service:
-            await service.initialize()
+        connection = await db_manager.get_connection()
         
-        result = await service.url_collection_service.get_collected_urls(session_id)
-        return result
+        query = """
+        SELECT url, title, description, source, collection_method, 
+               domain, relevance_score, quality_score, priority_level,
+               status, metadata, created_at
+        FROM topic_urls
+        WHERE session_id = $1
+        ORDER BY priority_level ASC, quality_score DESC, created_at DESC
+        """
+        
+        rows = await connection.fetch(query, session_id)
+        
+        urls = []
+        for row in rows:
+            urls.append({
+                "url": row['url'],
+                "title": row['title'] or "",
+                "description": row['description'] or "",
+                "source": row['source'],
+                "collection_method": row['collection_method'] or "unknown",
+                "domain": row['domain'] or "",
+                "relevance_score": float(row['relevance_score']) if row['relevance_score'] else 0.0,
+                "quality_score": float(row['quality_score']) if row['quality_score'] else 0.0,
+                "priority_level": row['priority_level'] or 5,
+                "status": row['status'],
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None
+            })
+        
+        return {
+            "session_id": session_id,
+            "url_count": len(urls),
+            "urls": urls
+        }
         
     except Exception as e:
         import logging
-        logging.error(f"Failed to get collected URLs: {str(e)}")
+        logging.exception(f"Failed to get collected URLs for session {session_id}")
         raise HTTPException(status_code=500, detail="Failed to get collected URLs")
 
 @router.post("/{session_id}/start-stage-1")

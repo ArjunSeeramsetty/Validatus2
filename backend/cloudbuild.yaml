@@ -3,10 +3,10 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'build', 
-      '-f', 'backend/Dockerfile.gcp',
+      '-f', 'Dockerfile',
       '-t', 'gcr.io/$PROJECT_ID/validatus-backend:$BUILD_ID',
       '-t', 'gcr.io/$PROJECT_ID/validatus-backend:latest',
-      'backend'
+      '.'
     ]
     timeout: '1200s'
 
@@ -33,9 +33,9 @@ steps:
     - 'managed'
     - '--allow-unauthenticated'
     - '--service-account'
-    - 'validatus-backend@$PROJECT_ID.iam.gserviceaccount.com'
+    - 'validatus-run@$PROJECT_ID.iam.gserviceaccount.com'
     - '--set-env-vars'
-    - 'GCP_PROJECT_ID=$PROJECT_ID,ENVIRONMENT=production,CLOUD_SQL_CONNECTION_NAME=$PROJECT_ID:us-central1:validatus-sql,CLOUD_SQL_DATABASE=validatus,CLOUD_SQL_USER=validatus_app'
+    - 'GCP_PROJECT_ID=$PROJECT_ID,ENVIRONMENT=production,CLOUD_SQL_CONNECTION_NAME=$PROJECT_ID:us-central1:validatus-sql,CLOUD_SQL_DATABASE=validatus,CLOUD_SQL_USER=validatus_app,CLOUD_SQL_PASSWORD=Validatus2024!'
     - '--add-cloudsql-instances'
     - '$PROJECT_ID:us-central1:validatus-sql'
     - '--memory'

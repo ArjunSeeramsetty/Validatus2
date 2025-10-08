@@ -251,7 +251,14 @@ class GoogleCustomSearchService:
             )
     
     def _filter_and_dedupe_results(self, results: List[SearchResult], query: str) -> List[SearchResult]:
-        """Apply domain filtering and initial deduplication"""
+        """
+        Apply domain filtering and initial deduplication
+        
+        DEDUPLICATION STEP 1: Per-query deduplication using in-memory cache
+        - Generates normalized URL hash (domain + path + query params)
+        - Checks against _url_cache to prevent duplicate URLs within same search session
+        - This ensures URLs are unique across all queries in the current search operation
+        """
         excluded_domains = self.settings.get_excluded_domains()
         filtered_results = []
         
@@ -264,7 +271,7 @@ class GoogleCustomSearchService:
                 logger.debug(f"Excluded URL from domain {result.domain}: {result.url}")
                 continue
             
-            # Skip if already seen (basic deduplication)
+            # DEDUPLICATION: Skip if already seen in current search session (in-memory cache)
             url_hash = self._generate_url_hash(result.url)
             if url_hash in self._url_cache:
                 logger.debug(f"Duplicate URL skipped: {result.url}")
@@ -274,23 +281,28 @@ class GoogleCustomSearchService:
             result.relevance_score = self._calculate_relevance_score(result, query)
             
             filtered_results.append(result)
-            self._url_cache.add(url_hash)
+            self._url_cache.add(url_hash)  # Add to cache to prevent future duplicates
         
         return filtered_results
     
     def _final_deduplication(self, results: List[SearchResult]) -> List[SearchResult]:
-        """Final deduplication and sorting"""
+        """
+        DEDUPLICATION STEP 2: Final deduplication across all search results
+        - Performs a final pass to ensure no duplicates across all queries
+        - Sorts by relevance score to keep the most relevant version of duplicate URLs
+        - Returns only unique URLs with highest relevance scores
+        """
         seen_urls = set()
         unique_results = []
         
-        # Sort by relevance score (descending)
+        # Sort by relevance score (descending) to keep best matches
         sorted_results = sorted(results, key=lambda x: x.relevance_score, reverse=True)
         
         for result in sorted_results:
             url_hash = self._generate_url_hash(result.url)
             if url_hash not in seen_urls:
                 unique_results.append(result)
-                seen_urls.add(url_hash)
+                seen_urls.add(url_hash)  # Mark as seen for deduplication
         
         return unique_results
     

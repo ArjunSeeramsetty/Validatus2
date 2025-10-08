@@ -141,7 +141,23 @@ class TopicService {
           sort_order: sortOrder
         }
       });
-      return response.data;
+      
+      // Handle both array response and object response
+      const data = response.data;
+      if (Array.isArray(data)) {
+        // Backend returns array directly
+        return {
+          topics: data,
+          total: data.length,
+          page: page,
+          page_size: pageSize,
+          has_next: false,
+          has_previous: false
+        };
+      }
+      
+      // Backend returns object with pagination
+      return data;
     } catch (error: any) {
       console.error('Failed to list topics:', error);
       throw new Error(error.response?.data?.detail || 'Failed to list topics');

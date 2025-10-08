@@ -3,7 +3,6 @@ Unified Database Configuration for Validatus2
 Handles Cloud SQL connections with proper Cloud Run integration
 """
 import os
-import asyncio
 import asyncpg
 import logging
 from typing import Optional
@@ -39,11 +38,18 @@ class DatabaseManager:
                 "port": None  # Unix socket doesn't use port
             }
         else:
-            # Local development
+            # Local development - require explicit password
+            password = os.getenv("DB_PASSWORD")
+            if not password:
+                raise ValueError(
+                    "DB_PASSWORD environment variable is required for local development. "
+                    "Never use hardcoded passwords."
+                )
+            
             return {
                 "database": os.getenv("DB_NAME", "validatus"),
                 "user": os.getenv("DB_USER", "postgres"),
-                "password": os.getenv("DB_PASSWORD", "password"),
+                "password": password,
                 "host": os.getenv("DB_HOST", "localhost"),
                 "port": int(os.getenv("DB_PORT", "5432"))
             }
@@ -55,16 +61,29 @@ class DatabaseManager:
         if password:
             return password
         
-        # Try Secret Manager
+        # Only attempt Secret Manager in Cloud Run environment
+        if not os.getenv("CLOUD_SQL_CONNECTION_NAME"):
+            # Local development: require explicit password in environment
+            password = os.getenv("DB_PASSWORD")
+            if not password:
+                raise ValueError(
+                    "CLOUD_SQL_PASSWORD or DB_PASSWORD must be set for database connection. "
+                    "Never use hardcoded passwords in production."
+                )
+            return password
+        
+        # Try Secret Manager for Cloud Run deployment
         try:
             client = secretmanager.SecretManagerServiceClient()
             secret_name = f"projects/{self.project_id}/secrets/cloud-sql-password/versions/latest"
             response = client.access_secret_version(request={"name": secret_name})
             return response.payload.data.decode("UTF-8")
         except Exception as e:
-            logger.warning(f"Could not retrieve password from Secret Manager: {e}")
-            # Fallback for development
-            return os.getenv("DB_PASSWORD", "password")
+            logger.error(f"Failed to get password from Secret Manager: {e}")
+            raise RuntimeError(
+                f"Failed to retrieve database password from Secret Manager: {e}. "
+                "Ensure the secret 'cloud-sql-password' exists in Secret Manager."
+            ) from e
     
     async def get_connection(self):
         """Get database connection"""

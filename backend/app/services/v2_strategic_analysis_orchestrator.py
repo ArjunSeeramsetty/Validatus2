@@ -185,6 +185,7 @@ class V2StrategicAnalysisOrchestrator:
     async def _store_layer_scores_batch(self, layer_scores: List[LayerScore]):
         """Store batch of layer scores to database"""
         try:
+            import json
             connection = await db_manager.get_connection()
             
             for layer_score in layer_scores:
@@ -207,7 +208,7 @@ class V2StrategicAnalysisOrchestrator:
                     layer_score.llm_analysis_raw,
                     layer_score.expert_persona,
                     layer_score.processing_time_ms,
-                    layer_score.metadata,
+                    json.dumps(layer_score.metadata) if isinstance(layer_score.metadata, dict) else layer_score.metadata,
                     layer_score.created_at
                 )
                 
@@ -233,8 +234,11 @@ class V2StrategicAnalysisOrchestrator:
                     ON CONFLICT DO NOTHING
                     """,
                     fc.session_id, fc.factor_id, fc.calculated_value, fc.confidence_score,
-                    fc.input_layer_count, fc.calculation_method, fc.layer_contributions,
-                    fc.validation_metrics, fc.metadata, fc.created_at
+                    fc.input_layer_count, fc.calculation_method, 
+                    json.dumps(fc.layer_contributions) if isinstance(fc.layer_contributions, dict) else fc.layer_contributions,
+                    json.dumps(fc.validation_metrics) if isinstance(fc.validation_metrics, dict) else fc.validation_metrics,
+                    json.dumps(fc.metadata) if isinstance(fc.metadata, dict) else fc.metadata,
+                    fc.created_at
                 )
             
             # Store segment analyses
@@ -252,7 +256,9 @@ class V2StrategicAnalysisOrchestrator:
                     sa.session_id, sa.segment_id, sa.attractiveness_score, sa.competitive_intensity,
                     sa.market_size_score, sa.growth_potential, sa.overall_segment_score,
                     sa.key_insights, sa.risk_factors, sa.opportunities, sa.recommendations,
-                    sa.factor_contributions, sa.metadata, sa.created_at
+                    json.dumps(sa.factor_contributions) if isinstance(sa.factor_contributions, dict) else sa.factor_contributions,
+                    json.dumps(sa.metadata) if isinstance(sa.metadata, dict) else sa.metadata,
+                    sa.created_at
                 )
             
             # Store comprehensive results
@@ -274,8 +280,11 @@ class V2StrategicAnalysisOrchestrator:
                 results['overall_confidence'], results['summary']['layers_analyzed'],
                 results['summary']['factors_calculated'], results['summary']['segments_evaluated'],
                 results['summary']['scenarios_generated'], results['processing_time_seconds'],
-                results['summary']['content_items_processed'], results['summary'],
-                results, results.get('configuration', {}), datetime.now(timezone.utc)
+                results['summary']['content_items_processed'], 
+                json.dumps(results['summary']) if isinstance(results['summary'], dict) else results['summary'],
+                json.dumps(results) if isinstance(results, dict) else results,
+                json.dumps(results.get('configuration', {})) if isinstance(results.get('configuration'), dict) else results.get('configuration', {}),
+                datetime.now(timezone.utc)
             )
             
             logger.info(f"✅ Complete analysis stored for {session_id}")

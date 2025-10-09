@@ -36,6 +36,37 @@ def _init_services():
         except Exception as e:
             logger.debug(f"AnalysisSessionManager not available: {e}")
 
+async def _execute_v2_analysis_background(session_id: str, topic_data: Dict, content_rows: List):
+    """Execute v2.0 analysis in background without blocking HTTP response"""
+    try:
+        from ...services.v2_strategic_analysis_orchestrator import v2_orchestrator
+        
+        if not v2_orchestrator:
+            logger.error(f"V2 orchestrator not available for background task {session_id}")
+            return
+        
+        logger.info(f"🚀 Background v2.0 analysis starting for {session_id}")
+        
+        # Execute complete analysis
+        analysis_results = await v2_orchestrator.execute_complete_analysis(
+            session_id=session_id,
+            topic_knowledge=topic_data
+        )
+        
+        logger.info(f"✅ Background v2.0 analysis completed for {session_id}")
+        logger.info(f"   Layers: {analysis_results.get('summary', {}).get('layers_analyzed', 0)}")
+        logger.info(f"   Factors: {analysis_results.get('summary', {}).get('factors_calculated', 0)}")
+        logger.info(f"   Segments: {analysis_results.get('summary', {}).get('segments_evaluated', 0)}")
+        
+    except Exception as e:
+        logger.error(f"Background v2.0 analysis failed for {session_id}: {e}")
+        # Fall back to saving mock results
+        try:
+            mock_results = await _create_mock_scoring(session_id, topic_data, content_rows)
+            await _save_scoring_results(session_id, mock_results)
+        except Exception as fallback_error:
+            logger.error(f"Fallback mock scoring also failed: {fallback_error}")
+
 async def _create_mock_scoring(session_id: str, topic_data: Dict, content_rows: List) -> Dict:
     """Create mock scoring results for demonstration purposes"""
     import random
@@ -310,65 +341,51 @@ async def start_scoring(
         except Exception as e:
             logger.warning(f"V2 orchestrator not available: {e}")
         
-        # Use v2.0 real scoring if available, otherwise fall back to mock
+        # Use v2.0 real scoring if available - RUN IN BACKGROUND
         if v2_orchestrator:
-            try:
-                logger.info("🚀 Executing v2.0 real LLM-based analysis...")
-                analysis_results = await v2_orchestrator.execute_complete_analysis(
-                    session_id=session_id,
-                    topic_knowledge=topic_data
-                )
-                logger.info("✅ v2.0 analysis completed successfully")
-            except Exception as e:
-                logger.error(f"V2 analysis failed, falling back to mock scoring: {e}")
-                analysis_results = await _create_mock_scoring(session_id, topic_data, content_rows)
+            logger.info("🚀 Starting v2.0 real LLM-based analysis in background...")
+            
+            # Run v2.0 analysis in background task (don't wait for completion)
+            background_tasks.add_task(
+                _execute_v2_analysis_background,
+                session_id, topic_data, content_rows
+            )
+            
+            # Return immediately so frontend doesn't timeout
+            return {
+                "success": True,
+                "session_id": session_id,
+                "scoring_started": True,
+                "analysis_type": "v2.0_real_llm",
+                "status": "in_progress",
+                "message": "v2.0 Real LLM Analysis started in background (210 layers). Check results in 15-20 minutes.",
+                "estimated_time_minutes": 15,
+                "layers_to_analyze": 210,
+                "factors_to_calculate": 28,
+                "segments_to_evaluate": 5,
+                "recommendation": "Come back in 15-20 minutes and click 'View Results' to see completed analysis"
+            }
         else:
+            # Fall back to mock scoring (synchronous)
             logger.warning(f"V2 orchestrator not available, using mock scoring for {session_id}")
             analysis_results = await _create_mock_scoring(session_id, topic_data, content_rows)
-        
-        try:
             
-            # Save scoring results to database
+            # Save mock results
             await _save_scoring_results(session_id, analysis_results)
             
-            logger.info(f"✅ Strategic analysis completed for {session_id}")
-            
-            # Format response based on analysis type
-            analysis_type = analysis_results.get('analysis_type', 'unknown')
-            
-            if analysis_type == 'validatus_v2_complete':
-                # v2.0 real LLM-based analysis
-                return {
-                    "success": True,
-                    "session_id": session_id,
-                    "scoring_completed": True,
-                    "analysis_type": "v2.0_real_llm",
-                    "results_summary": {
-                        "overall_score": analysis_results.get('overall_business_case_score', 0.0),
-                        "layers_analyzed": analysis_results.get('summary', {}).get('layers_analyzed', 210),
-                        "factors_calculated": analysis_results.get('summary', {}).get('factors_calculated', 28),
-                        "segments_evaluated": analysis_results.get('summary', {}).get('segments_evaluated', 5),
-                        "scenarios_generated": len(analysis_results.get('scenarios', [])),
-                        "content_items_analyzed": len(content_rows),
-                        "processing_time": analysis_results.get('processing_time_seconds', 0)
-                    },
-                    "message": f"v2.0 Real LLM Analysis: {analysis_results.get('summary', {}).get('layers_analyzed', 210)} layers analyzed with Gemini 2.5 Pro"
-                }
-            else:
-                # Mock scoring fallback
-                return {
-                    "success": True,
-                    "session_id": session_id,
-                    "scoring_completed": True,
-                    "analysis_type": "mock",
-                    "results_summary": {
-                        "business_case_score": analysis_results.get('business_case_score', 0.0),
-                        "scenarios_generated": len(analysis_results.get('scenarios', [])),
-                        "content_items_analyzed": len(content_rows),
-                        "analysis_type": analysis_results.get('simulation_metadata', {}).get('analysis_type', 'mock')
-                    },
-                    "message": f"Mock analysis completed with {len(analysis_results.get('scenarios', []))} scenarios"
-                }
+            return {
+                "success": True,
+                "session_id": session_id,
+                "scoring_completed": True,
+                "analysis_type": "mock",
+                "results_summary": {
+                    "business_case_score": analysis_results.get('business_case_score', 0.0),
+                    "scenarios_generated": len(analysis_results.get('scenarios', [])),
+                    "content_items_analyzed": len(content_rows),
+                    "analysis_type": "mock"
+                },
+                "message": "Mock analysis completed (v2.0 orchestrator not available)"
+            }
             
         except Exception as e:
             logger.error(f"Analysis engine failed for {session_id}: {e}")
@@ -383,6 +400,70 @@ async def start_scoring(
     except Exception as e:
         logger.error(f"Failed to start scoring for {session_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{session_id}/status")
+async def get_scoring_status(session_id: str):
+    """
+    Get current status of scoring analysis
+    Returns: 'not_started', 'in_progress', 'completed', 'failed'
+    """
+    try:
+        connection = await db_manager.get_connection()
+        
+        # Check for v2.0 results
+        v2_query = "SELECT created_at, layers_analyzed FROM v2_analysis_results WHERE session_id = $1"
+        v2_row = await connection.fetchrow(v2_query, session_id)
+        
+        if v2_row:
+            return {
+                "session_id": session_id,
+                "status": "completed",
+                "analysis_type": "v2.0_real_llm",
+                "layers_analyzed": v2_row['layers_analyzed'],
+                "completed_at": v2_row['created_at'].isoformat(),
+                "message": "v2.0 analysis completed"
+            }
+        
+        # Check for mock results
+        mock_query = "SELECT created_at FROM analysis_scores WHERE session_id = $1 ORDER BY created_at DESC LIMIT 1"
+        mock_row = await connection.fetchrow(mock_query, session_id)
+        
+        if mock_row:
+            return {
+                "session_id": session_id,
+                "status": "completed",
+                "analysis_type": "mock",
+                "completed_at": mock_row['created_at'].isoformat(),
+                "message": "Mock analysis completed"
+            }
+        
+        # Check if analysis is running (check recent logs or topic status)
+        topic_query = "SELECT updated_at FROM topics WHERE session_id = $1"
+        topic_row = await connection.fetchrow(topic_query, session_id)
+        
+        if topic_row:
+            # Check if updated recently (within last 30 minutes - likely running)
+            from datetime import datetime, timezone, timedelta
+            if topic_row['updated_at'] > datetime.now(timezone.utc) - timedelta(minutes=30):
+                return {
+                    "session_id": session_id,
+                    "status": "in_progress",
+                    "message": "Analysis may be in progress. Check logs or wait for results."
+                }
+        
+        return {
+            "session_id": session_id,
+            "status": "not_started",
+            "message": "No analysis has been started for this session"
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get scoring status for {session_id}: {e}")
+        return {
+            "session_id": session_id,
+            "status": "unknown",
+            "error": str(e)
+        }
 
 @router.get("/{session_id}/results")
 async def get_scoring_results(session_id: str):

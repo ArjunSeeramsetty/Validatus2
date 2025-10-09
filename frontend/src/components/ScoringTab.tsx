@@ -82,10 +82,37 @@ const ScoringTab: React.FC = () => {
       const response = await apiClient.post(`/api/v3/scoring/${sessionId}/start`);
 
       if (response.data.success) {
-        // Reload topics
+        // Check if it's v2.0 background analysis or immediate completion
+        if (response.data.scoring_started && response.data.status === 'in_progress') {
+          // v2.0 Real LLM Analysis - runs in background
+          alert(
+            `✅ v2.0 Strategic Analysis Started!\n\n` +
+            `📊 Analyzing:\n` +
+            `  • ${response.data.layers_to_analyze || 210} Strategic Layers\n` +
+            `  • ${response.data.factors_to_calculate || 28} Strategic Factors\n` +
+            `  • ${response.data.segments_to_evaluate || 5} Intelligence Segments\n\n` +
+            `⏰ Estimated Time: ${response.data.estimated_time_minutes || 15}-20 minutes\n\n` +
+            `${response.data.recommendation || 'Check back in 15-20 minutes for results.'}\n\n` +
+            `💡 The analysis is running in the background.\n` +
+            `You can navigate to other tabs and come back later.`
+          );
+          
+          // Start polling for completion (check every 2 minutes)
+          pollForCompletion(sessionId);
+        } else if (response.data.scoring_completed) {
+          // Immediate completion (mock scoring)
+          alert(
+            `✅ Analysis Completed!\n\n` +
+            `Analysis Type: ${response.data.analysis_type || 'Quick Analysis'}\n` +
+            `You can now view the results.`
+          );
+          
+          // Load and show results immediately
+          await loadScoringResults(sessionId);
+        }
+        
+        // Reload topics to update status
         await loadTopics();
-        // Load and show results
-        await loadScoringResults(sessionId);
       } else {
         throw new Error(response.data.error || 'Scoring failed');
       }
@@ -94,6 +121,51 @@ const ScoringTab: React.FC = () => {
     } finally {
       setScoring(null);
     }
+  };
+
+  const pollForCompletion = async (sessionId: string) => {
+    // Poll every 2 minutes for up to 30 minutes
+    const maxAttempts = 15;
+    let attempts = 0;
+
+    const checkStatus = async (): Promise<boolean> => {
+      try {
+        const statusResponse = await apiClient.get(`/api/v3/scoring/${sessionId}/status`);
+        
+        if (statusResponse.data.status === 'completed') {
+          // Analysis completed - show notification
+          alert(
+            `🎉 Strategic Analysis Complete!\n\n` +
+            `Analysis Type: ${statusResponse.data.analysis_type || 'v2.0 Real LLM'}\n` +
+            `Layers Analyzed: ${statusResponse.data.layers_analyzed || 210}\n\n` +
+            `✅ Results are now available.\n` +
+            `Click "View Results" to see your comprehensive analysis.`
+          );
+          
+          // Reload topics to update badges
+          await loadTopics();
+          return true;
+        }
+        
+        return false;
+      } catch (err) {
+        console.error('Status check failed:', err);
+        return false;
+      }
+    };
+
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      
+      const completed = await checkStatus();
+      
+      if (completed || attempts >= maxAttempts) {
+        clearInterval(pollInterval);
+        if (!completed) {
+          console.log('Polling stopped after max attempts. Analysis may still be running.');
+        }
+      }
+    }, 120000); // Check every 2 minutes
   };
 
   const loadScoringResults = async (sessionId: string) => {

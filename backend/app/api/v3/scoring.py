@@ -386,20 +386,16 @@ async def start_scoring(
                 },
                 "message": "Mock analysis completed (v2.0 orchestrator not available)"
             }
-            
-        except Exception as e:
-            logger.error(f"Analysis engine failed for {session_id}: {e}")
-            return {
-                "success": False,
-                "error": f"Analysis failed: {str(e)}",
-                "session_id": session_id
-            }
-        
+    
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Failed to start scoring for {session_id}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "success": False,
+            "error": f"Scoring failed: {str(e)}",
+            "session_id": session_id
+        }
 
 @router.get("/{session_id}/status")
 async def get_scoring_status(session_id: str):

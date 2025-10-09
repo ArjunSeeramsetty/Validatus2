@@ -298,25 +298,33 @@ async def start_scoring(
         
         client_inputs = json.loads(topic_row['metadata']) if topic_row['metadata'] else {}
         
-        # Run strategic analysis (✅ Using EXISTING AdvancedStrategyAnalysisEngine)
-        logger.info(f"Starting strategic analysis for {session_id} with {len(content_rows)} content items")
+        # Run strategic analysis using v2.0 REAL LLM-based scoring
+        logger.info(f"Starting v2.0 LLM-based strategic analysis for {session_id} with {len(content_rows)} content items")
         
-        _init_services()  # Ensure services are loaded
+        # Try to load v2.0 orchestrator
+        v2_orchestrator = None
+        try:
+            from ...services.v2_strategic_analysis_orchestrator import v2_orchestrator as v2_orch
+            v2_orchestrator = v2_orch
+            logger.info("✅ Using v2.0 orchestrator (210 layers, 28 factors, 5 segments)")
+        except Exception as e:
+            logger.warning(f"V2 orchestrator not available: {e}")
         
-        # Use mock scoring if analysis engine not available
-        if not analysis_engine:
-            logger.warning(f"Analysis engine not available, using mock scoring for {session_id}")
-            analysis_results = await _create_mock_scoring(session_id, topic_data, content_rows)
-        else:
+        # Use v2.0 real scoring if available, otherwise fall back to mock
+        if v2_orchestrator:
             try:
-                analysis_results = analysis_engine.analyze_strategy(
+                logger.info("🚀 Executing v2.0 real LLM-based analysis...")
+                analysis_results = await v2_orchestrator.execute_complete_analysis(
                     session_id=session_id,
-                    topic_data=topic_data,
-                    client_inputs=client_inputs
+                    topic_knowledge=topic_data
                 )
+                logger.info("✅ v2.0 analysis completed successfully")
             except Exception as e:
-                logger.error(f"Analysis engine failed, falling back to mock scoring: {e}")
+                logger.error(f"V2 analysis failed, falling back to mock scoring: {e}")
                 analysis_results = await _create_mock_scoring(session_id, topic_data, content_rows)
+        else:
+            logger.warning(f"V2 orchestrator not available, using mock scoring for {session_id}")
+            analysis_results = await _create_mock_scoring(session_id, topic_data, content_rows)
         
         try:
             
@@ -325,18 +333,42 @@ async def start_scoring(
             
             logger.info(f"✅ Strategic analysis completed for {session_id}")
             
-            return {
-                "success": True,
-                "session_id": session_id,
-                "scoring_completed": True,
-                "results_summary": {
-                    "business_case_score": analysis_results.get('business_case_score', 0.0),
-                    "scenarios_generated": len(analysis_results.get('scenarios', [])),
-                    "content_items_analyzed": len(content_rows),
-                    "analysis_type": analysis_results.get('simulation_metadata', {}).get('analysis_type', 'advanced')
-                },
-                "message": f"Analysis completed with {len(analysis_results.get('scenarios', []))} scenarios"
-            }
+            # Format response based on analysis type
+            analysis_type = analysis_results.get('analysis_type', 'unknown')
+            
+            if analysis_type == 'validatus_v2_complete':
+                # v2.0 real LLM-based analysis
+                return {
+                    "success": True,
+                    "session_id": session_id,
+                    "scoring_completed": True,
+                    "analysis_type": "v2.0_real_llm",
+                    "results_summary": {
+                        "overall_score": analysis_results.get('overall_business_case_score', 0.0),
+                        "layers_analyzed": analysis_results.get('summary', {}).get('layers_analyzed', 210),
+                        "factors_calculated": analysis_results.get('summary', {}).get('factors_calculated', 28),
+                        "segments_evaluated": analysis_results.get('summary', {}).get('segments_evaluated', 5),
+                        "scenarios_generated": len(analysis_results.get('scenarios', [])),
+                        "content_items_analyzed": len(content_rows),
+                        "processing_time": analysis_results.get('processing_time_seconds', 0)
+                    },
+                    "message": f"v2.0 Real LLM Analysis: {analysis_results.get('summary', {}).get('layers_analyzed', 210)} layers analyzed with Gemini 2.5 Pro"
+                }
+            else:
+                # Mock scoring fallback
+                return {
+                    "success": True,
+                    "session_id": session_id,
+                    "scoring_completed": True,
+                    "analysis_type": "mock",
+                    "results_summary": {
+                        "business_case_score": analysis_results.get('business_case_score', 0.0),
+                        "scenarios_generated": len(analysis_results.get('scenarios', [])),
+                        "content_items_analyzed": len(content_rows),
+                        "analysis_type": analysis_results.get('simulation_metadata', {}).get('analysis_type', 'mock')
+                    },
+                    "message": f"Mock analysis completed with {len(analysis_results.get('scenarios', []))} scenarios"
+                }
             
         except Exception as e:
             logger.error(f"Analysis engine failed for {session_id}: {e}")
@@ -356,12 +388,56 @@ async def start_scoring(
 async def get_scoring_results(session_id: str):
     """
     Get detailed scoring results for a topic
-    🆕 NEW ENDPOINT: Retrieves stored analysis results
+    Prioritizes v2.0 results if available, falls back to basic scoring
     """
     try:
         connection = await db_manager.get_connection()
         
-        # Get latest comprehensive analysis (✅ Using existing analysis_scores table)
+        # First check for v2.0 results
+        v2_query = """
+        SELECT * FROM v2_analysis_results
+        WHERE session_id = $1
+        ORDER BY created_at DESC
+        LIMIT 1
+        """
+        
+        v2_row = await connection.fetchrow(v2_query, session_id)
+        
+        if v2_row:
+            # Return v2.0 results
+            logger.info(f"Returning v2.0 LLM-based results for {session_id}")
+            full_results = v2_row['full_results']
+            
+            return {
+                "has_results": True,
+                "session_id": session_id,
+                "analysis_type": "v2.0_real_llm",
+                "scored_at": v2_row['created_at'].isoformat(),
+                "results": {
+                    "overall_score": float(v2_row['overall_business_case_score']),
+                    "confidence": float(v2_row['overall_confidence']),
+                    "business_case_score": float(v2_row['overall_business_case_score']),
+                    "scenarios": full_results.get('scenarios', []),
+                    "layer_scores": full_results.get('layer_scores', []),
+                    "factor_scores": full_results.get('factor_calculations', []),
+                    "segment_scores": full_results.get('segment_analyses', []),
+                    "analysis_metadata": {
+                        "layers_analyzed": v2_row['layers_analyzed'],
+                        "factors_calculated": v2_row['factors_calculated'],
+                        "segments_evaluated": v2_row['segments_evaluated'],
+                        "processing_time": float(v2_row['processing_time_seconds']),
+                        "analysis_type": "v2.0_real_llm",
+                        "content_items": v2_row['content_items_analyzed']
+                    }
+                },
+                "metadata": {
+                    "version": "2.0",
+                    "framework": "210 layers, 28 factors, 5 segments",
+                    "llm_model": "Gemini 2.5 Pro"
+                }
+            }
+        
+        # Fall back to basic scoring results
         query = """
         SELECT 
             session_id, analysis_type, score, confidence,
@@ -385,10 +461,12 @@ async def get_scoring_results(session_id: str):
         analysis_data = json.loads(row['analysis_data']) if row['analysis_data'] else {}
         metadata = json.loads(row['metadata']) if row['metadata'] else {}
         
-        # Format results for frontend
+        # Format basic scoring results for frontend
+        logger.info(f"Returning basic/mock scoring results for {session_id}")
         return {
             "has_results": True,
             "session_id": session_id,
+            "analysis_type": "mock",
             "scored_at": row['created_at'].isoformat(),
             "results": {
                 "overall_score": row['score'],

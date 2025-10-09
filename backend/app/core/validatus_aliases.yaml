@@ -1,0 +1,840 @@
+# Validatus v2.0 Aliases Configuration
+# 5 Segments → 28 Factors → 210 Layers Structure
+
+version: "2.0"
+created_at: "2025-10-09"
+
+# Segment Definitions (5 segments)
+aliases:
+  segments:
+    Product_Intelligence: "S1"
+    Consumer_Intelligence: "S2"
+    Market_Intelligence: "S3"
+    Brand_Intelligence: "S4"
+    Experience_Intelligence: "S5"
+  
+  # Factor Definitions (28 factors)
+  factors:
+    # Product Intelligence Factors (F1-F10) - 10 factors
+    Market_Readiness_Timing: "F1"
+    Competitive_Disruption_Incumbent_Resistance: "F2"
+    Dynamic_Disruption_Score_Habit_Formation: "F3"
+    Business_Model_Resilience_Stability: "F4"
+    Hype_Cycle_Engineering_Market_Timing: "F5"
+    Strategic_Timing_Execution: "F6"
+    Product_Market_Fit_Score: "F7"
+    Innovation_Velocity: "F8"
+    Technical_Feasibility: "F9"
+    Product_Differentiation: "F10"
+    
+    # Consumer Intelligence Factors (F11-F15) - 5 factors
+    Consumer_Demand_Need: "F11"
+    Consumer_Behavior_Habits: "F12"
+    Purchase_Intent_Conversion: "F13"
+    Customer_Loyalty_Retention: "F14"
+    Consumer_Sentiment_Satisfaction: "F15"
+    
+    # Market Intelligence Factors (F16-F20) - 5 factors
+    Market_Trends_Dynamics: "F16"
+    Competitive_Landscape_Intensity: "F17"
+    Market_Size_Growth: "F18"
+    Entry_Barriers_Challenges: "F19"
+    Market_Maturity_Evolution: "F20"
+    
+    # Brand Intelligence Factors (F21-F25) - 5 factors
+    Brand_Positioning_Differentiation: "F21"
+    Brand_Equity_Value: "F22"
+    Brand_Awareness_Recognition: "F23"
+    Brand_Loyalty_Advocacy: "F24"
+    Cultural_Relevance_Impact: "F25"
+    
+    # Experience Intelligence Factors (F26-F28) - 3 factors
+    User_Engagement_Interaction: "F26"
+    Customer_Experience_Quality: "F27"
+    Satisfaction_Delight_Metrics: "F28"
+  
+  # Layer Definitions (210 layers: 30+50+50+50+30)
+  layers:
+    # Product Intelligence Layers (L1_1 to L10_3) - 30 layers
+    Market_Readiness_Assessment: "L1_1"
+    Optimal_Timing_Analysis: "L1_2"
+    Launch_Window_Identification: "L1_3"
+    
+    Competitive_Disruption_Potential: "L2_1"
+    Incumbent_Response_Analysis: "L2_2"
+    Market_Entry_Barriers: "L2_3"
+    
+    Habit_Formation_Requirements: "L3_1"
+    Behavioral_Change_Dynamics: "L3_2"
+    Adoption_Curve_Analysis: "L3_3"
+    
+    Business_Model_Resilience: "L4_1"
+    Revenue_Stream_Stability: "L4_2"
+    Scalability_Assessment: "L4_3"
+    
+    Hype_Cycle_Position: "L5_1"
+    Technology_Maturity: "L5_2"
+    Market_Timing_Optimization: "L5_3"
+    
+    Strategic_Alignment: "L6_1"
+    Execution_Capability: "L6_2"
+    Resource_Availability: "L6_3"
+    
+    Problem_Solution_Fit: "L7_1"
+    Value_Proposition_Clarity: "L7_2"
+    Customer_Pain_Point_Match: "L7_3"
+    
+    Innovation_Speed: "L8_1"
+    R_D_Investment_Efficiency: "L8_2"
+    Time_to_Market_Velocity: "L8_3"
+    
+    Technical_Architecture: "L9_1"
+    Implementation_Complexity: "L9_2"
+    Technology_Stack_Maturity: "L9_3"
+    
+    Differentiation_Strength: "L10_1"
+    Unique_Value_Proposition: "L10_2"
+    Competitive_Moat_Depth: "L10_3"
+    
+    # Consumer Intelligence Layers (L11_1 to L15_10) - 50 layers
+    Demand_Strength_Indicators: "L11_1"
+    Need_Urgency_Level: "L11_2"
+    Problem_Severity_Assessment: "L11_3"
+    Solution_Willingness_Pay: "L11_4"
+    Demand_Sustainability: "L11_5"
+    Market_Demand_Volume: "L11_6"
+    Demand_Elasticity: "L11_7"
+    Seasonal_Demand_Patterns: "L11_8"
+    Demand_Growth_Trajectory: "L11_9"
+    Unmet_Need_Analysis: "L11_10"
+    
+    Purchase_Behavior_Patterns: "L12_1"
+    Decision_Making_Process: "L12_2"
+    Consideration_Set_Analysis: "L12_3"
+    Usage_Frequency_Patterns: "L12_4"
+    Switching_Behavior_Tendency: "L12_5"
+    Brand_Interaction_Habits: "L12_6"
+    Channel_Preference_Analysis: "L12_7"
+    Shopping_Journey_Mapping: "L12_8"
+    Behavioral_Segmentation: "L12_9"
+    Habit_Strength_Assessment: "L12_10"
+    
+    Purchase_Intent_Strength: "L13_1"
+    Conversion_Probability: "L13_2"
+    Purchase_Readiness_Stage: "L13_3"
+    Decision_Timeline_Analysis: "L13_4"
+    Budget_Allocation_Intent: "L13_5"
+    Feature_Priority_Analysis: "L13_6"
+    Price_Sensitivity_Level: "L13_7"
+    Alternative_Evaluation_Status: "L13_8"
+    Purchase_Trigger_Identification: "L13_9"
+    Conversion_Barrier_Analysis: "L13_10"
+    
+    Retention_Rate_Analysis: "L14_1"
+    Loyalty_Strength_Metrics: "L14_2"
+    Repeat_Purchase_Probability: "L14_3"
+    Customer_Lifetime_Value: "L14_4"
+    Churn_Risk_Assessment: "L14_5"
+    Advocacy_Propensity: "L14_6"
+    Referral_Likelihood: "L14_7"
+    Engagement_Longevity: "L14_8"
+    Satisfaction_Correlation: "L14_9"
+    Loyalty_Program_Effectiveness: "L14_10"
+    
+    Overall_Sentiment_Score: "L15_1"
+    Satisfaction_Level_Measurement: "L15_2"
+    Net_Promoter_Score_Analysis: "L15_3"
+    Customer_Effort_Score: "L15_4"
+    Emotional_Connection_Strength: "L15_5"
+    Complaint_Resolution_Quality: "L15_6"
+    Service_Quality_Perception: "L15_7"
+    Experience_Satisfaction_Correlation: "L15_8"
+    Expectation_Reality_Gap: "L15_9"
+    Delight_Factor_Measurement: "L15_10"
+    
+    # Market Intelligence Layers (L16_1 to L20_10) - 50 layers
+    Macro_Trend_Analysis: "L16_1"
+    Industry_Evolution_Patterns: "L16_2"
+    Technology_Disruption_Trends: "L16_3"
+    Consumer_Preference_Shifts: "L16_4"
+    Regulatory_Trend_Analysis: "L16_5"
+    Economic_Indicator_Trends: "L16_6"
+    Demographic_Shift_Impact: "L16_7"
+    Market_Momentum_Analysis: "L16_8"
+    Trend_Sustainability_Assessment: "L16_9"
+    Counter_Trend_Identification: "L16_10"
+    
+    Competitor_Count_Analysis: "L17_1"
+    Market_Concentration_Ratio: "L17_2"
+    Competitive_Rivalry_Intensity: "L17_3"
+    New_Entrant_Threat_Level: "L17_4"
+    Substitute_Product_Threat: "L17_5"
+    Supplier_Power_Analysis: "L17_6"
+    Buyer_Power_Assessment: "L17_7"
+    Competitive_Advantage_Sources: "L17_8"
+    Market_Share_Distribution: "L17_9"
+    Competitive_Dynamics_Assessment: "L17_10"
+    
+    Total_Addressable_Market: "L18_1"
+    Serviceable_Available_Market: "L18_2"
+    Serviceable_Obtainable_Market: "L18_3"
+    Market_Growth_Rate_CAGR: "L18_4"
+    Market_Expansion_Potential: "L18_5"
+    Geographic_Market_Distribution: "L18_6"
+    Market_Penetration_Opportunity: "L18_7"
+    Market_Saturation_Analysis: "L18_8"
+    Emerging_Market_Opportunities: "L18_9"
+    Market_Decline_Risk_Assessment: "L18_10"
+    
+    Capital_Requirements_Assessment: "L19_1"
+    Regulatory_Compliance_Barriers: "L19_2"
+    Technology_Entry_Barriers: "L19_3"
+    Brand_Recognition_Barriers: "L19_4"
+    Distribution_Channel_Access: "L19_5"
+    Customer_Switching_Costs: "L19_6"
+    Economies_of_Scale_Requirements: "L19_7"
+    Network_Effect_Barriers: "L19_8"
+    Intellectual_Property_Barriers: "L19_9"
+    Strategic_Partnership_Requirements: "L19_10"
+    
+    Market_Lifecycle_Stage: "L20_1"
+    Adoption_Rate_Maturity: "L20_2"
+    Innovation_Maturity_Level: "L20_3"
+    Competitive_Maturity_Assessment: "L20_4"
+    Customer_Sophistication_Level: "L20_5"
+    Product_Category_Evolution: "L20_6"
+    Market_Consolidation_Stage: "L20_7"
+    Growth_Phase_Identification: "L20_8"
+    Decline_Risk_Indicators: "L20_9"
+    Renewal_Opportunity_Assessment: "L20_10"
+    
+    # Brand Intelligence Layers (L21_1 to L25_10) - 50 layers
+    Positioning_Clarity: "L21_1"
+    Differentiation_Strength: "L21_2"
+    Unique_Selling_Proposition: "L21_3"
+    Positioning_Consistency: "L21_4"
+    Competitive_Positioning_Gap: "L21_5"
+    Positioning_Credibility: "L21_6"
+    Target_Segment_Alignment: "L21_7"
+    Positioning_Sustainability: "L21_8"
+    Message_Differentiation: "L21_9"
+    Positioning_Evolution_Capability: "L21_10"
+    
+    Brand_Value_Assessment: "L22_1"
+    Financial_Brand_Value: "L22_2"
+    Customer_Based_Brand_Equity: "L22_3"
+    Brand_Premium_Pricing_Power: "L22_4"
+    Brand_Extension_Potential: "L22_5"
+    Brand_Resilience_Score: "L22_6"
+    Intangible_Asset_Value: "L22_7"
+    Brand_Portfolio_Synergy: "L22_8"
+    Brand_Monetization_Efficiency: "L22_9"
+    Brand_Investment_ROI: "L22_10"
+    
+    Awareness_Reach_Metrics: "L23_1"
+    Brand_Recall_Strength: "L23_2"
+    Top_of_Mind_Awareness: "L23_3"
+    Aided_Awareness_Level: "L23_4"
+    Unaided_Awareness_Score: "L23_5"
+    Category_Association_Strength: "L23_6"
+    Brand_Salience_Measurement: "L23_7"
+    Recognition_Speed_Analysis: "L23_8"
+    Awareness_Growth_Velocity: "L23_9"
+    Competitor_Awareness_Comparison: "L23_10"
+    
+    Loyalty_Depth_Measurement: "L24_1"
+    Repeat_Purchase_Loyalty: "L24_2"
+    Emotional_Brand_Connection: "L24_3"
+    Advocacy_Behavior_Strength: "L24_4"
+    Word_of_Mouth_Propensity: "L24_5"
+    Brand_Community_Engagement: "L24_6"
+    Loyalty_Program_Effectiveness: "L24_7"
+    Switching_Resistance_Level: "L24_8"
+    Brand_Trust_Score: "L24_9"
+    Forgiveness_Factor_Analysis: "L24_10"
+    
+    Cultural_Fit_Analysis: "L25_1"
+    Trend_Alignment_Score: "L25_2"
+    Social_Conversation_Share: "L25_3"
+    Cultural_Moment_Capitalization: "L25_4"
+    Values_Alignment_Score: "L25_5"
+    Social_Media_Cultural_Impact: "L25_6"
+    Meme_Virality_Potential: "L25_7"
+    Cultural_Authenticity_Score: "L25_8"
+    Gen_Z_Millennial_Relevance: "L25_9"
+    Cultural_Longevity_Prediction: "L25_10"
+    
+    # Experience Intelligence Layers (L26_1 to L28_10) - 30 layers
+    Engagement_Depth_Score: "L26_1"
+    Interaction_Frequency_Analysis: "L26_2"
+    Session_Duration_Quality: "L26_3"
+    Feature_Utilization_Depth: "L26_4"
+    Active_Usage_Metrics: "L26_5"
+    Engagement_Consistency: "L26_6"
+    Multi_Channel_Engagement: "L26_7"
+    Content_Interaction_Quality: "L26_8"
+    Social_Engagement_Activity: "L26_9"
+    Engagement_Growth_Trajectory: "L26_10"
+    
+    User_Journey_Smoothness: "L27_1"
+    Friction_Point_Analysis: "L27_2"
+    Interface_Usability_Score: "L27_3"
+    Onboarding_Effectiveness: "L27_4"
+    Feature_Discoverability: "L27_5"
+    Task_Completion_Success_Rate: "L27_6"
+    Error_Rate_Analysis: "L27_7"
+    Learning_Curve_Assessment: "L27_8"
+    Accessibility_Quality: "L27_9"
+    Mobile_Desktop_Experience_Parity: "L27_10"
+    
+    Overall_Satisfaction_Score: "L28_1"
+    Expectation_vs_Reality_Gap: "L28_2"
+    Problem_Resolution_Quality: "L28_3"
+    Emotional_Response_Analysis: "L28_4"
+    Delight_Moment_Frequency: "L28_5"
+    Frustration_Point_Count: "L28_6"
+    Recommendation_Likelihood: "L28_7"
+    Repeat_Usage_Intent: "L28_8"
+    Quality_Perception_Score: "L28_9"
+    Value_for_Money_Perception: "L28_10"
+
+# Reverse mappings for lookups
+reverse:
+  segments:
+    S1: "Product_Intelligence"
+    S2: "Consumer_Intelligence"
+    S3: "Market_Intelligence"
+    S4: "Brand_Intelligence"
+    S5: "Experience_Intelligence"
+  
+  factors:
+    F1: "Market_Readiness_Timing"
+    F2: "Competitive_Disruption_Incumbent_Resistance"
+    F3: "Dynamic_Disruption_Score_Habit_Formation"
+    F4: "Business_Model_Resilience_Stability"
+    F5: "Hype_Cycle_Engineering_Market_Timing"
+    F6: "Strategic_Timing_Execution"
+    F7: "Product_Market_Fit_Score"
+    F8: "Innovation_Velocity"
+    F9: "Technical_Feasibility"
+    F10: "Product_Differentiation"
+    F11: "Consumer_Demand_Need"
+    F12: "Consumer_Behavior_Habits"
+    F13: "Purchase_Intent_Conversion"
+    F14: "Customer_Loyalty_Retention"
+    F15: "Consumer_Sentiment_Satisfaction"
+    F16: "Market_Trends_Dynamics"
+    F17: "Competitive_Landscape_Intensity"
+    F18: "Market_Size_Growth"
+    F19: "Entry_Barriers_Challenges"
+    F20: "Market_Maturity_Evolution"
+    F21: "Brand_Positioning_Differentiation"
+    F22: "Brand_Equity_Value"
+    F23: "Brand_Awareness_Recognition"
+    F24: "Brand_Loyalty_Advocacy"
+    F25: "Cultural_Relevance_Impact"
+    F26: "User_Engagement_Interaction"
+    F27: "Customer_Experience_Quality"
+    F28: "Satisfaction_Delight_Metrics"
+  
+  layers:
+    L1_1: "Market_Readiness_Assessment"
+    L1_2: "Optimal_Timing_Analysis"
+    L1_3: "Launch_Window_Identification"
+    L2_1: "Competitive_Disruption_Potential"
+    L2_2: "Incumbent_Response_Analysis"
+    L2_3: "Market_Entry_Barriers"
+    L3_1: "Habit_Formation_Requirements"
+    L3_2: "Behavioral_Change_Dynamics"
+    L3_3: "Adoption_Curve_Analysis"
+    L4_1: "Business_Model_Resilience"
+    L4_2: "Revenue_Stream_Stability"
+    L4_3: "Scalability_Assessment"
+    L5_1: "Hype_Cycle_Position"
+    L5_2: "Technology_Maturity"
+    L5_3: "Market_Timing_Optimization"
+    L6_1: "Strategic_Alignment"
+    L6_2: "Execution_Capability"
+    L6_3: "Resource_Availability"
+    L7_1: "Problem_Solution_Fit"
+    L7_2: "Value_Proposition_Clarity"
+    L7_3: "Customer_Pain_Point_Match"
+    L8_1: "Innovation_Speed"
+    L8_2: "R_D_Investment_Efficiency"
+    L8_3: "Time_to_Market_Velocity"
+    L9_1: "Technical_Architecture"
+    L9_2: "Implementation_Complexity"
+    L9_3: "Technology_Stack_Maturity"
+    L10_1: "Differentiation_Strength"
+    L10_2: "Unique_Value_Proposition"
+    L10_3: "Competitive_Moat_Depth"
+    # Consumer layers L11-L15 (50 layers as defined above)
+    L11_1: "Demand_Strength_Indicators"
+    L11_2: "Need_Urgency_Level"
+    L11_3: "Problem_Severity_Assessment"
+    L11_4: "Solution_Willingness_Pay"
+    L11_5: "Demand_Sustainability"
+    L11_6: "Market_Demand_Volume"
+    L11_7: "Demand_Elasticity"
+    L11_8: "Seasonal_Demand_Patterns"
+    L11_9: "Demand_Growth_Trajectory"
+    L11_10: "Unmet_Need_Analysis"
+    L12_1: "Purchase_Behavior_Patterns"
+    L12_2: "Decision_Making_Process"
+    L12_3: "Consideration_Set_Analysis"
+    L12_4: "Usage_Frequency_Patterns"
+    L12_5: "Switching_Behavior_Tendency"
+    L12_6: "Brand_Interaction_Habits"
+    L12_7: "Channel_Preference_Analysis"
+    L12_8: "Shopping_Journey_Mapping"
+    L12_9: "Behavioral_Segmentation"
+    L12_10: "Habit_Strength_Assessment"
+    L13_1: "Purchase_Intent_Strength"
+    L13_2: "Conversion_Probability"
+    L13_3: "Purchase_Readiness_Stage"
+    L13_4: "Decision_Timeline_Analysis"
+    L13_5: "Budget_Allocation_Intent"
+    L13_6: "Feature_Priority_Analysis"
+    L13_7: "Price_Sensitivity_Level"
+    L13_8: "Alternative_Evaluation_Status"
+    L13_9: "Purchase_Trigger_Identification"
+    L13_10: "Conversion_Barrier_Analysis"
+    L14_1: "Retention_Rate_Analysis"
+    L14_2: "Loyalty_Strength_Metrics"
+    L14_3: "Repeat_Purchase_Probability"
+    L14_4: "Customer_Lifetime_Value"
+    L14_5: "Churn_Risk_Assessment"
+    L14_6: "Advocacy_Propensity"
+    L14_7: "Referral_Likelihood"
+    L14_8: "Engagement_Longevity"
+    L14_9: "Satisfaction_Correlation"
+    L14_10: "Loyalty_Program_Effectiveness"
+    L15_1: "Overall_Sentiment_Score"
+    L15_2: "Satisfaction_Level_Measurement"
+    L15_3: "Net_Promoter_Score_Analysis"
+    L15_4: "Customer_Effort_Score"
+    L15_5: "Emotional_Connection_Strength"
+    L15_6: "Complaint_Resolution_Quality"
+    L15_7: "Service_Quality_Perception"
+    L15_8: "Experience_Satisfaction_Correlation"
+    L15_9: "Expectation_Reality_Gap"
+    L15_10: "Delight_Factor_Measurement"
+    # Market layers L16-L20 (50 layers as defined above)
+    L16_1: "Macro_Trend_Analysis"
+    L16_2: "Industry_Evolution_Patterns"
+    L16_3: "Technology_Disruption_Trends"
+    L16_4: "Consumer_Preference_Shifts"
+    L16_5: "Regulatory_Trend_Analysis"
+    L16_6: "Economic_Indicator_Trends"
+    L16_7: "Demographic_Shift_Impact"
+    L16_8: "Market_Momentum_Analysis"
+    L16_9: "Trend_Sustainability_Assessment"
+    L16_10: "Counter_Trend_Identification"
+    L17_1: "Competitor_Count_Analysis"
+    L17_2: "Market_Concentration_Ratio"
+    L17_3: "Competitive_Rivalry_Intensity"
+    L17_4: "New_Entrant_Threat_Level"
+    L17_5: "Substitute_Product_Threat"
+    L17_6: "Supplier_Power_Analysis"
+    L17_7: "Buyer_Power_Assessment"
+    L17_8: "Competitive_Advantage_Sources"
+    L17_9: "Market_Share_Distribution"
+    L17_10: "Competitive_Dynamics_Assessment"
+    L18_1: "Total_Addressable_Market"
+    L18_2: "Serviceable_Available_Market"
+    L18_3: "Serviceable_Obtainable_Market"
+    L18_4: "Market_Growth_Rate_CAGR"
+    L18_5: "Market_Expansion_Potential"
+    L18_6: "Geographic_Market_Distribution"
+    L18_7: "Market_Penetration_Opportunity"
+    L18_8: "Market_Saturation_Analysis"
+    L18_9: "Emerging_Market_Opportunities"
+    L18_10: "Market_Decline_Risk_Assessment"
+    L19_1: "Capital_Requirements_Assessment"
+    L19_2: "Regulatory_Compliance_Barriers"
+    L19_3: "Technology_Entry_Barriers"
+    L19_4: "Brand_Recognition_Barriers"
+    L19_5: "Distribution_Channel_Access"
+    L19_6: "Customer_Switching_Costs"
+    L19_7: "Economies_of_Scale_Requirements"
+    L19_8: "Network_Effect_Barriers"
+    L19_9: "Intellectual_Property_Barriers"
+    L19_10: "Strategic_Partnership_Requirements"
+    L20_1: "Market_Lifecycle_Stage"
+    L20_2: "Adoption_Rate_Maturity"
+    L20_3: "Innovation_Maturity_Level"
+    L20_4: "Competitive_Maturity_Assessment"
+    L20_5: "Customer_Sophistication_Level"
+    L20_6: "Product_Category_Evolution"
+    L20_7: "Market_Consolidation_Stage"
+    L20_8: "Growth_Phase_Identification"
+    L20_9: "Decline_Risk_Indicators"
+    L20_10: "Renewal_Opportunity_Assessment"
+    # Brand layers L21-L25 (50 layers as defined above)
+    L21_1: "Positioning_Clarity"
+    L21_2: "Differentiation_Strength"
+    L21_3: "Unique_Selling_Proposition"
+    L21_4: "Positioning_Consistency"
+    L21_5: "Competitive_Positioning_Gap"
+    L21_6: "Positioning_Credibility"
+    L21_7: "Target_Segment_Alignment"
+    L21_8: "Positioning_Sustainability"
+    L21_9: "Message_Differentiation"
+    L21_10: "Positioning_Evolution_Capability"
+    L22_1: "Brand_Value_Assessment"
+    L22_2: "Financial_Brand_Value"
+    L22_3: "Customer_Based_Brand_Equity"
+    L22_4: "Brand_Premium_Pricing_Power"
+    L22_5: "Brand_Extension_Potential"
+    L22_6: "Brand_Resilience_Score"
+    L22_7: "Intangible_Asset_Value"
+    L22_8: "Brand_Portfolio_Synergy"
+    L22_9: "Brand_Monetization_Efficiency"
+    L22_10: "Brand_Investment_ROI"
+    L23_1: "Awareness_Reach_Metrics"
+    L23_2: "Brand_Recall_Strength"
+    L23_3: "Top_of_Mind_Awareness"
+    L23_4: "Aided_Awareness_Level"
+    L23_5: "Unaided_Awareness_Score"
+    L23_6: "Category_Association_Strength"
+    L23_7: "Brand_Salience_Measurement"
+    L23_8: "Recognition_Speed_Analysis"
+    L23_9: "Awareness_Growth_Velocity"
+    L23_10: "Competitor_Awareness_Comparison"
+    L24_1: "Loyalty_Depth_Measurement"
+    L24_2: "Repeat_Purchase_Loyalty"
+    L24_3: "Emotional_Brand_Connection"
+    L24_4: "Advocacy_Behavior_Strength"
+    L24_5: "Word_of_Mouth_Propensity"
+    L24_6: "Brand_Community_Engagement"
+    L24_7: "Loyalty_Program_Effectiveness"
+    L24_8: "Switching_Resistance_Level"
+    L24_9: "Brand_Trust_Score"
+    L24_10: "Forgiveness_Factor_Analysis"
+    L25_1: "Cultural_Fit_Analysis"
+    L25_2: "Trend_Alignment_Score"
+    L25_3: "Social_Conversation_Share"
+    L25_4: "Cultural_Moment_Capitalization"
+    L25_5: "Values_Alignment_Score"
+    L25_6: "Social_Media_Cultural_Impact"
+    L25_7: "Meme_Virality_Potential"
+    L25_8: "Cultural_Authenticity_Score"
+    L25_9: "Gen_Z_Millennial_Relevance"
+    L25_10: "Cultural_Longevity_Prediction"
+    L26_1: "Engagement_Depth_Score"
+    L26_2: "Interaction_Frequency_Analysis"
+    L26_3: "Session_Duration_Quality"
+    L26_4: "Feature_Utilization_Depth"
+    L26_5: "Active_Usage_Metrics"
+    L26_6: "Engagement_Consistency"
+    L26_7: "Multi_Channel_Engagement"
+    L26_8: "Content_Interaction_Quality"
+    L26_9: "Social_Engagement_Activity"
+    L26_10: "Engagement_Growth_Trajectory"
+    L27_1: "User_Journey_Smoothness"
+    L27_2: "Friction_Point_Analysis"
+    L27_3: "Interface_Usability_Score"
+    L27_4: "Onboarding_Effectiveness"
+    L27_5: "Feature_Discoverability"
+    L27_6: "Task_Completion_Success_Rate"
+    L27_7: "Error_Rate_Analysis"
+    L27_8: "Learning_Curve_Assessment"
+    L27_9: "Accessibility_Quality"
+    L27_10: "Mobile_Desktop_Experience_Parity"
+    L28_1: "Overall_Satisfaction_Score"
+    L28_2: "Expectation_vs_Reality_Gap"
+    L28_3: "Problem_Resolution_Quality"
+    L28_4: "Emotional_Response_Analysis"
+    L28_5: "Delight_Moment_Frequency"
+    L28_6: "Frustration_Point_Count"
+    L28_7: "Recommendation_Likelihood"
+    L28_8: "Repeat_Usage_Intent"
+    L28_9: "Quality_Perception_Score"
+    L28_10: "Value_for_Money_Perception"
+
+# Factor → Segment groupings
+factor_groups:
+  S1:  # Product Intelligence (10 factors)
+    - F1
+    - F2
+    - F3
+    - F4
+    - F5
+    - F6
+    - F7
+    - F8
+    - F9
+    - F10
+  S2:  # Consumer Intelligence (5 factors)
+    - F11
+    - F12
+    - F13
+    - F14
+    - F15
+  S3:  # Market Intelligence (5 factors)
+    - F16
+    - F17
+    - F18
+    - F19
+    - F20
+  S4:  # Brand Intelligence (5 factors)
+    - F21
+    - F22
+    - F23
+    - F24
+    - F25
+  S5:  # Experience Intelligence (3 factors)
+    - F26
+    - F27
+    - F28
+
+# Layer → Factor groupings (showing pattern, expand for all 210)
+layer_groups:
+  F1:  # 3 layers
+    - L1_1
+    - L1_2
+    - L1_3
+  F2:  # 3 layers
+    - L2_1
+    - L2_2
+    - L2_3
+  F3:  # 3 layers
+    - L3_1
+    - L3_2
+    - L3_3
+  F4:  # 3 layers
+    - L4_1
+    - L4_2
+    - L4_3
+  F5:  # 3 layers
+    - L5_1
+    - L5_2
+    - L5_3
+  F6:  # 3 layers
+    - L6_1
+    - L6_2
+    - L6_3
+  F7:  # 3 layers
+    - L7_1
+    - L7_2
+    - L7_3
+  F8:  # 3 layers
+    - L8_1
+    - L8_2
+    - L8_3
+  F9:  # 3 layers
+    - L9_1
+    - L9_2
+    - L9_3
+  F10:  # 3 layers
+    - L10_1
+    - L10_2
+    - L10_3
+  F11:  # 10 layers
+    - L11_1
+    - L11_2
+    - L11_3
+    - L11_4
+    - L11_5
+    - L11_6
+    - L11_7
+    - L11_8
+    - L11_9
+    - L11_10
+  F12:  # 10 layers
+    - L12_1
+    - L12_2
+    - L12_3
+    - L12_4
+    - L12_5
+    - L12_6
+    - L12_7
+    - L12_8
+    - L12_9
+    - L12_10
+  F13:  # 10 layers
+    - L13_1
+    - L13_2
+    - L13_3
+    - L13_4
+    - L13_5
+    - L13_6
+    - L13_7
+    - L13_8
+    - L13_9
+    - L13_10
+  F14:  # 10 layers
+    - L14_1
+    - L14_2
+    - L14_3
+    - L14_4
+    - L14_5
+    - L14_6
+    - L14_7
+    - L14_8
+    - L14_9
+    - L14_10
+  F15:  # 10 layers
+    - L15_1
+    - L15_2
+    - L15_3
+    - L15_4
+    - L15_5
+    - L15_6
+    - L15_7
+    - L15_8
+    - L15_9
+    - L15_10
+  F16:  # 10 layers
+    - L16_1
+    - L16_2
+    - L16_3
+    - L16_4
+    - L16_5
+    - L16_6
+    - L16_7
+    - L16_8
+    - L16_9
+    - L16_10
+  F17:  # 10 layers
+    - L17_1
+    - L17_2
+    - L17_3
+    - L17_4
+    - L17_5
+    - L17_6
+    - L17_7
+    - L17_8
+    - L17_9
+    - L17_10
+  F18:  # 10 layers
+    - L18_1
+    - L18_2
+    - L18_3
+    - L18_4
+    - L18_5
+    - L18_6
+    - L18_7
+    - L18_8
+    - L18_9
+    - L18_10
+  F19:  # 10 layers
+    - L19_1
+    - L19_2
+    - L19_3
+    - L19_4
+    - L19_5
+    - L19_6
+    - L19_7
+    - L19_8
+    - L19_9
+    - L19_10
+  F20:  # 10 layers
+    - L20_1
+    - L20_2
+    - L20_3
+    - L20_4
+    - L20_5
+    - L20_6
+    - L20_7
+    - L20_8
+    - L20_9
+    - L20_10
+  F21:  # 10 layers
+    - L21_1
+    - L21_2
+    - L21_3
+    - L21_4
+    - L21_5
+    - L21_6
+    - L21_7
+    - L21_8
+    - L21_9
+    - L21_10
+  F22:  # 10 layers
+    - L22_1
+    - L22_2
+    - L22_3
+    - L22_4
+    - L22_5
+    - L22_6
+    - L22_7
+    - L22_8
+    - L22_9
+    - L22_10
+  F23:  # 10 layers
+    - L23_1
+    - L23_2
+    - L23_3
+    - L23_4
+    - L23_5
+    - L23_6
+    - L23_7
+    - L23_8
+    - L23_9
+    - L23_10
+  F24:  # 10 layers
+    - L24_1
+    - L24_2
+    - L24_3
+    - L24_4
+    - L24_5
+    - L24_6
+    - L24_7
+    - L24_8
+    - L24_9
+    - L24_10
+  F25:  # 10 layers
+    - L25_1
+    - L25_2
+    - L25_3
+    - L25_4
+    - L25_5
+    - L25_6
+    - L25_7
+    - L25_8
+    - L25_9
+    - L25_10
+  F26:  # 10 layers
+    - L26_1
+    - L26_2
+    - L26_3
+    - L26_4
+    - L26_5
+    - L26_6
+    - L26_7
+    - L26_8
+    - L26_9
+    - L26_10
+  F27:  # 10 layers
+    - L27_1
+    - L27_2
+    - L27_3
+    - L27_4
+    - L27_5
+    - L27_6
+    - L27_7
+    - L27_8
+    - L27_9
+    - L27_10
+  F28:  # 10 layers
+    - L28_1
+    - L28_2
+    - L28_3
+    - L28_4
+    - L28_5
+    - L28_6
+    - L28_7
+    - L28_8
+    - L28_9
+    - L28_10
+
+# Metadata
+metadata:
+  total_segments: 5
+  total_factors: 28
+  total_layers: 210
+  distribution: "30+50+50+50+30"
+  version: "2.0"
+  framework: "Validatus Strategic Intelligence Platform"
+

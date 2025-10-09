@@ -25,6 +25,7 @@ from .api.v3.schema import router as schema_router
 # 🆕 NEW: Content and Scoring APIs (with error handling)
 CONTENT_API_AVAILABLE = False
 SCORING_API_AVAILABLE = False
+V2_SCORING_API_AVAILABLE = False
 
 try:
     from .api.v3.content import router as content_router
@@ -37,6 +38,12 @@ try:
     SCORING_API_AVAILABLE = True
 except Exception as e:
     logger.warning(f"Scoring API not available: {e}")
+
+try:
+    from .api.v3.v2_scoring import router as v2_scoring_router
+    V2_SCORING_API_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"V2 Scoring API not available: {e}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -142,6 +149,12 @@ if SCORING_API_AVAILABLE:
     logger.info("✅ Scoring API registered")
 else:
     logger.warning("⚠️ Scoring API not registered (dependencies missing)")
+
+if V2_SCORING_API_AVAILABLE:
+    app.include_router(v2_scoring_router, prefix="/api/v3/v2", tags=["V2 Scoring"])
+    logger.info("✅ V2 Scoring API registered (5 segments, 28 factors, 210 layers)")
+else:
+    logger.warning("⚠️ V2 Scoring API not registered (dependencies missing)")
 
 # Global exception handler
 @app.exception_handler(Exception)

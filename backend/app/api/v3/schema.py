@@ -367,3 +367,48 @@ async def check_google_credentials():
     except Exception as e:
         logger.error(f"Failed to check Google credentials: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to check credentials: {str(e)}")
+
+@router.post("/create-v2-schema")
+async def create_v2_database_schema():
+    """Create v2.0 database schema for 5-segment, 28-factor, 210-layer analysis"""
+    try:
+        connection = await db_manager.get_connection()
+        
+        # Read and execute v2 schema SQL
+        from pathlib import Path
+        schema_path = Path(__file__).parent.parent.parent / "database" / "v2_scoring_schema.sql"
+        
+        if not schema_path.exists():
+            raise HTTPException(status_code=500, detail="v2 schema file not found")
+        
+        with open(schema_path, 'r') as f:
+            v2_schema_sql = f.read()
+        
+        # Execute as single transaction
+        await connection.execute(v2_schema_sql)
+        
+        # Verify tables created
+        tables_query = """
+        SELECT table_name FROM information_schema.tables
+        WHERE table_schema = 'public' 
+        AND table_name IN ('segments', 'factors', 'layers', 'layer_scores', 
+                          'factor_calculations', 'segment_analysis', 'v2_analysis_results')
+        ORDER BY table_name
+        """
+        created_tables = await connection.fetch(tables_query)
+        
+        return {
+            "status": "success",
+            "message": "v2.0 database schema created successfully",
+            "tables_created": len(created_tables),
+            "v2_tables": [row['table_name'] for row in created_tables],
+            "configuration": {
+                "segments": 5,
+                "factors": 28,
+                "layers": 210
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"v2 schema creation failed: {e}")
+        raise HTTPException(status_code=500, detail=f"v2 schema creation failed: {str(e)}")

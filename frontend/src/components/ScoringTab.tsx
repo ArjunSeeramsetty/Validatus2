@@ -280,6 +280,7 @@ const ScoringTab: React.FC = () => {
         onClose={() => setShowResultsDialog(false)}
         maxWidth="lg"
         fullWidth
+        disableRestoreFocus
         PaperProps={{ sx: { backgroundColor: '#1a1a2e', color: '#e8e8f0' } }}
       >
         <DialogTitle sx={{ borderBottom: '1px solid #2d2d44' }}>

@@ -9,6 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
+# Import database manager
+from .core.database_config import db_manager
+
+# Configure logging FIRST (before any logger usage)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Import routers
 from .api.v3.topics import router as topics_router
 from .api.v3.enhanced_topics import router as enhanced_topics_router
@@ -16,26 +23,20 @@ from .api.v3.migration_simple import router as migration_router
 from .api.v3.schema import router as schema_router
 
 # 🆕 NEW: Content and Scoring APIs (with error handling)
+CONTENT_API_AVAILABLE = False
+SCORING_API_AVAILABLE = False
+
 try:
     from .api.v3.content import router as content_router
     CONTENT_API_AVAILABLE = True
 except Exception as e:
     logger.warning(f"Content API not available: {e}")
-    CONTENT_API_AVAILABLE = False
 
 try:
     from .api.v3.scoring import router as scoring_router
     SCORING_API_AVAILABLE = True
 except Exception as e:
     logger.warning(f"Scoring API not available: {e}")
-    SCORING_API_AVAILABLE = False
-
-# Import database manager
-from .core.database_config import db_manager
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

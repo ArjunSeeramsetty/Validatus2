@@ -483,7 +483,11 @@ async def get_scoring_results(session_id: str):
         if v2_row:
             # Return v2.0 results
             logger.info(f"Returning v2.0 LLM-based results for {session_id}")
+            
+            # Parse full_results if it's a string (JSONB from database)
             full_results = v2_row['full_results']
+            if isinstance(full_results, str):
+                full_results = json.loads(full_results)
             
             return {
                 "has_results": True,

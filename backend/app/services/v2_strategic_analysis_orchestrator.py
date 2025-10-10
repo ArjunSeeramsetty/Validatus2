@@ -198,6 +198,28 @@ class V2StrategicAnalysisOrchestrator:
         else:
             return 'S1'  # Default fallback
     
+    async def _ensure_factor_exists(self, connection, factor_id: str):
+        """Ensure factor exists in factors table, create if not"""
+        try:
+            # Get segment for this factor
+            segment_id = self._get_segment_for_factor(factor_id)
+            factor_name = self.aliases.get_factor_name(factor_id) or f"Factor {factor_id}"
+            
+            # Insert factor if doesn't exist
+            await connection.execute(
+                """
+                INSERT INTO factors (id, segment_id, name, friendly_name, weight_in_segment)
+                VALUES ($1, $2, $3, $4, 0.1000)
+                ON CONFLICT (id) DO NOTHING
+                """,
+                factor_id,
+                segment_id,
+                factor_name.replace(' ', '_').replace('&', 'and'),
+                factor_name
+            )
+        except Exception as e:
+            logger.warning(f"Could not ensure factor {factor_id} exists: {e}")
+    
     async def _ensure_layer_exists(self, connection, layer_id: str, layer_name: str):
         """Ensure layer exists in layers table, create if not"""
         try:
@@ -205,7 +227,10 @@ class V2StrategicAnalysisOrchestrator:
             factor_num = layer_id.split('_')[0][1:]  # Remove 'L' and get number
             factor_id = f"F{factor_num}"
             
-            # Insert layer if doesn't exist
+            # First ensure the parent factor exists
+            await self._ensure_factor_exists(connection, factor_id)
+            
+            # Now insert layer if doesn't exist
             await connection.execute(
                 """
                 INSERT INTO layers (id, factor_id, name, friendly_name, weight_in_factor)
@@ -214,7 +239,7 @@ class V2StrategicAnalysisOrchestrator:
                 """,
                 layer_id,
                 factor_id,
-                layer_name.replace(' ', '_'),
+                layer_name.replace(' ', '_').replace('&', 'and'),
                 layer_name,
             )
         except Exception as e:

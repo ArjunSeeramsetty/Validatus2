@@ -19,13 +19,12 @@ class GeminiClient:
         self._initialized = False
         
         # Multi-model configuration for rate limit mitigation
-        # Using Google AI Studio API models (google.generativeai SDK)
-        # Layer distribution: 1-70 → gemini-1.5-pro, 71-140 → gemini-1.5-flash, 141-210 → gemini-2.0-flash-exp
-        # Note: Gemini 2.5 requires Vertex AI SDK, not Google AI Studio API
+        # ✅ Confirmed available: gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite
+        # Layer distribution: 1-70 → gemini-2.5-pro, 71-140 → gemini-2.5-flash, 141-210 → gemini-2.5-flash-lite
         self.model_configs = [
-            {"name": "gemini-1.5-pro", "priority": 1, "max_tokens": 8192},           # Layers 1-70: Most capable
-            {"name": "gemini-1.5-flash", "priority": 2, "max_tokens": 8192},         # Layers 71-140: Fast, balanced
-            {"name": "gemini-2.0-flash-exp", "priority": 3, "max_tokens": 8192},     # Layers 141-210: Fastest (experimental)
+            {"name": "gemini-2.5-pro", "priority": 1, "max_tokens": 8192},           # Layers 1-70: Most capable
+            {"name": "gemini-2.5-flash", "priority": 2, "max_tokens": 8192},         # Layers 71-140: Fast, balanced
+            {"name": "gemini-2.5-flash-lite", "priority": 3, "max_tokens": 8192},    # Layers 141-210: Fastest
         ]
         
         self.current_model_index = 0  # For round-robin rotation
@@ -82,12 +81,13 @@ class GeminiClient:
                 except Exception as e:
                     logger.warning(f"⚠️ Failed to initialize {config['name']}: {e}")
             
-            # Fallback to alternative models if primary models aren't available
+            # Fallback to alternative models if primary 2.5 models aren't available
             if initialized_count == 0:
-                logger.warning("⚠️ Primary Gemini models not available, trying fallback models...")
+                logger.warning("⚠️ Primary Gemini 2.5 models not available, trying fallback models...")
                 fallback_configs = [
-                    {"name": "gemini-1.0-pro", "priority": 1, "max_tokens": 4096},      # Fallback 1
-                    {"name": "gemini-pro", "priority": 2, "max_tokens": 4096},          # Fallback 2
+                    {"name": "gemini-2.0-flash", "priority": 1, "max_tokens": 8192},        # Gemini 2.0 stable
+                    {"name": "gemini-2.0-flash-lite", "priority": 2, "max_tokens": 8192},   # Gemini 2.0 lite
+                    {"name": "gemini-2.0-flash-exp", "priority": 3, "max_tokens": 8192},    # Gemini 2.0 experimental
                 ]
                 
                 for config in fallback_configs:

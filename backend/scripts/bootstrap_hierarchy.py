@@ -102,6 +102,125 @@ FACTORS = [
 ]
 
 
+def generate_all_layers():
+    """
+    Generate all 210 layers across 28 factors
+    Distribution: Variable layers per factor (3-10 each) totaling 210
+    """
+    layers = []
+    
+    # Define layer count per factor for 210 total
+    # S1 (F1-F10): 30 layers = 3 per factor
+    # S2 (F11-F15): 50 layers = 10 per factor
+    # S3 (F16-F20): 50 layers = 10 per factor  
+    # S4 (F21-F25): 50 layers = 10 per factor
+    # S5 (F26-F28): 30 layers = 10 per factor
+    
+    layers_per_factor = {
+        'F1': 3, 'F2': 3, 'F3': 3, 'F4': 3, 'F5': 3,
+        'F6': 3, 'F7': 3, 'F8': 3, 'F9': 3, 'F10': 3,
+        'F11': 10, 'F12': 10, 'F13': 10, 'F14': 10, 'F15': 10,
+        'F16': 10, 'F17': 10, 'F18': 10, 'F19': 10, 'F20': 10,
+        'F21': 10, 'F22': 10, 'F23': 10, 'F24': 10, 'F25': 10,
+        'F26': 10, 'F27': 10, 'F28': 10
+    }
+    
+    layer_templates = {
+        # Product Intelligence (F1-F10) - 3 layers each
+        'F1': ['Market Entry Barriers', 'Regulatory Approval Timeline', 'Technological Maturity'],
+        'F2': ['Incumbent Market Share', 'Switching Costs', 'Competitive Response Speed'],
+        'F3': ['Behavioral Change Required', 'Habit Formation Potential', 'Network Effects Potential'],
+        'F4': ['Revenue Model Diversity', 'Cost Structure Efficiency', 'Scalability of Operations'],
+        'F5': ['Innovation Adoption Rate', 'Market Timing Opportunity', 'Early Adopter Identification'],
+        'F6': ['Problem Solution Fit', 'Target Market Size Fit', 'Product Differentiation'],
+        'F7': ['Technology Maturity Curve', 'Innovation Cycle Speed', 'Disruptive Potential'],
+        'F8': ['Infrastructure Scalability', 'Operational Efficiency', 'Supply Chain Robustness'],
+        'F9': ['Patent Portfolio Strength', 'Freedom to Operate', 'Trade Secret Protection'],
+        'F10': ['Partnership Opportunities', 'Ecosystem Integration', 'Channel Leverage'],
+        
+        # Consumer Intelligence (F11-F15) - 10 layers each
+        'F11': ['Problem Severity', 'Unmet Needs', 'Purchase Intent', 'Willingness to Pay', 
+                'Consumer Awareness', 'Need Urgency', 'Alternative Solutions', 'Pain Point Depth',
+                'Demand Elasticity', 'Market Pull Strength'],
+        'F12': ['Current Habits', 'Usage Frequency', 'Behavior Triggers', 'Decision Drivers',
+                'Purchase Patterns', 'Loyalty Indicators', 'Switching Behavior', 'Adoption Barriers',
+                'Habit Strength', 'Routine Integration'],
+        'F13': ['Awareness Stage', 'Consideration Stage', 'Decision Stage', 'Purchase Touchpoints',
+                'Post-Purchase Experience', 'Retention Touchpoints', 'Advocacy Drivers', 'Channel Preference',
+                'Journey Complexity', 'Friction Points'],
+        'F14': ['Brand Sentiment', 'Product Perception', 'Competitor Sentiment', 'Category Perception',
+                'Trust Indicators', 'Satisfaction Levels', 'NPS Scores', 'Review Sentiment',
+                'Social Buzz', 'Perception Trends'],
+        'F15': ['Value Clarity', 'Benefit Recognition', 'Price Sensitivity', 'Feature Importance',
+                'Competitive Advantage', 'Unique Benefits', 'Value Communication', 'ROI Perception',
+                'Emotional Connection', 'Rational Benefits'],
+        
+        # Market Intelligence (F16-F20) - 10 layers each
+        'F16': ['Total Addressable Market', 'Serviceable Market', 'Obtainable Market', 'Market Growth Rate',
+                'Market Maturity', 'Geographic Reach', 'Demographic Size', 'Market Concentration',
+                'Revenue Potential', 'Market Trends'],
+        'F17': ['Direct Competition', 'Indirect Competition', 'Substitute Products', 'Market Leaders',
+                'Competitive Intensity', 'Entry Barriers', 'Exit Barriers', 'Rivalry Dynamics',
+                'Competitive Advantages', 'Market Position'],
+        'F18': ['Compliance Requirements', 'Regulatory Risks', 'Policy Changes', 'Legal Framework',
+                'Industry Standards', 'Certification Needs', 'Licensing Requirements', 'Trade Regulations',
+                'Data Privacy Rules', 'Environmental Laws'],
+        'F19': ['GDP Indicators', 'Economic Growth', 'Inflation Impact', 'Employment Trends',
+                'Consumer Spending', 'Cultural Shifts', 'Demographic Changes', 'Technology Adoption',
+                'Urbanization Trends', 'Social Values'],
+        'F20': ['Regional Markets', 'Urban vs Rural', 'Age Demographics', 'Income Segments',
+                'Education Levels', 'Cultural Groups', 'Lifestyle Segments', 'Behavioral Segments',
+                'Psychographic Profiles', 'Channel Preferences'],
+        
+        # Brand Intelligence (F21-F25) - 10 layers each
+        'F21': ['Brand Recall', 'Brand Recognition', 'Top-of-Mind Awareness', 'Aided Awareness',
+                'Unaided Awareness', 'Category Association', 'Share of Voice', 'Media Reach',
+                'Search Volume', 'Social Mentions'],
+        'F22': ['Brand Image', 'Quality Perception', 'Trust Level', 'Credibility', 'Brand Personality',
+                'Brand Associations', 'Emotional Resonance', 'Brand Consistency', 'Perceived Value',
+                'Brand Equity'],
+        'F23': ['Unique Selling Proposition', 'Competitive Positioning', 'Brand Voice', 'Visual Identity',
+                'Brand Story', 'Category Differentiation', 'Feature Uniqueness', 'Experience Differentiation',
+                'Value Differentiation', 'Positioning Clarity'],
+        'F24': ['Repeat Purchase Rate', 'Customer Retention', 'Churn Rate', 'Advocacy Rate',
+                'Referral Behavior', 'Community Engagement', 'Emotional Attachment', 'Purchase Frequency',
+                'Lifetime Value', 'Loyalty Program Effectiveness'],
+        'F25': ['Narrative Cohesion', 'Emotional Appeal', 'Cultural Relevance', 'Message Clarity',
+                'Story Authenticity', 'Audience Connection', 'Content Consistency', 'Multi-Channel Messaging',
+                'Campaign Effectiveness', 'Brand Purpose'],
+        
+        # Experience Intelligence (F26-F28) - 10 layers each
+        'F26': ['Ease of Use', 'Learnability', 'Efficiency', 'Error Prevention', 'User Satisfaction',
+                'Accessibility', 'Information Architecture', 'Visual Design', 'Interaction Design',
+                'Mobile Experience'],
+        'F27': ['Customer Support Quality', 'Response Time', 'Problem Resolution', 'Support Channels',
+                'Self-Service Options', 'Proactive Support', 'Customer Success', 'Onboarding Experience',
+                'Training Resources', 'Feedback Integration'],
+        'F28': ['Daily Active Users', 'Session Duration', 'Feature Adoption', 'Engagement Rate',
+                'Retention Cohorts', 'Churn Prediction', 'Stickiness', 'Viral Coefficient',
+                'Time to Value', 'Activation Rate']
+    }
+    
+    for factor_id, layer_count in layers_per_factor.items():
+        factor_num = int(factor_id[1:])
+        layer_names = layer_templates.get(factor_id, [f'Layer {i+1}' for i in range(layer_count)])
+        
+        for i in range(layer_count):
+            layer_name = layer_names[i] if i < len(layer_names) else f'Layer {i+1}'
+            layers.append({
+                'id': f'L{factor_num}_{i+1}',
+                'factor_id': factor_id,
+                'name': layer_name.replace(' ', '_').replace('&', 'and'),
+                'friendly_name': layer_name,
+                'weight': 1.0 / layer_count  # Equal weight within factor
+            })
+    
+    return layers
+
+
+LAYERS = generate_all_layers()
+
+
 async def bootstrap_hierarchy():
     """Bootstrap segments and factors with advisory lock protection"""
     try:
@@ -171,17 +290,41 @@ async def bootstrap_hierarchy():
                         logger.info(f"  ✓ {factor['id']}: {factor['friendly_name']}")
                 
                 logger.info(f"✅ {factor_count}/28 factors initialized")
+                
+                logger.info(f"Bootstrapping 210 layers...")
+                layer_count = 0
+                for layer in LAYERS:
+                    result = await connection.fetchrow("""
+                        INSERT INTO layers (id, factor_id, name, friendly_name, weight_in_factor)
+                        VALUES ($1, $2, $3, $4, $5)
+                        ON CONFLICT (id) DO UPDATE SET
+                            factor_id = EXCLUDED.factor_id,
+                            name = EXCLUDED.name,
+                            friendly_name = EXCLUDED.friendly_name,
+                            weight_in_factor = EXCLUDED.weight_in_factor
+                        RETURNING id
+                    """, layer['id'], layer['factor_id'], layer['name'],
+                        layer['friendly_name'], layer['weight'])
+                    
+                    if result:
+                        layer_count += 1
+                        if layer_count % 50 == 0:
+                            logger.info(f"  ... {layer_count} layers initialized")
+                
+                logger.info(f"✅ {layer_count}/210 layers initialized")
             
             # Verify counts
             seg_count = await connection.fetchval("SELECT COUNT(*) FROM segments")
             fac_count = await connection.fetchval("SELECT COUNT(*) FROM factors")
+            lay_count = await connection.fetchval("SELECT COUNT(*) FROM layers")
             
             logger.info(f"\n🎉 Bootstrap complete!")
             logger.info(f"   Segments: {seg_count}/5")
             logger.info(f"   Factors: {fac_count}/28")
+            logger.info(f"   Layers: {lay_count}/210")
             
-            if seg_count != 5 or fac_count != 28:
-                logger.error(f"⚠️  Expected 5 segments and 28 factors, got {seg_count} and {fac_count}")
+            if seg_count != 5 or fac_count != 28 or lay_count != 210:
+                logger.error(f"⚠️  Expected 5/28/210, got {seg_count}/{fac_count}/{lay_count}")
                 return False
             
             return True

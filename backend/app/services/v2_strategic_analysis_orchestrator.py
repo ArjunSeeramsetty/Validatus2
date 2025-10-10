@@ -198,11 +198,42 @@ class V2StrategicAnalysisOrchestrator:
         else:
             return 'S1'  # Default fallback
     
+    async def _ensure_segment_exists(self, connection, segment_id: str):
+        """Ensure segment exists in segments table, create if not"""
+        try:
+            segment_names = {
+                'S1': 'Product Intelligence',
+                'S2': 'Consumer Intelligence',
+                'S3': 'Market Intelligence',
+                'S4': 'Brand Intelligence',
+                'S5': 'Experience Intelligence'
+            }
+            
+            segment_name = segment_names.get(segment_id, segment_id)
+            
+            # Insert segment if doesn't exist
+            await connection.execute(
+                """
+                INSERT INTO segments (id, name, friendly_name, weight)
+                VALUES ($1, $2, $3, 0.2000)
+                ON CONFLICT (id) DO NOTHING
+                """,
+                segment_id,
+                segment_name.replace(' ', '_'),
+                segment_name
+            )
+        except Exception as e:
+            logger.warning(f"Could not ensure segment {segment_id} exists: {e}")
+    
     async def _ensure_factor_exists(self, connection, factor_id: str):
         """Ensure factor exists in factors table, create if not"""
         try:
             # Get segment for this factor
             segment_id = self._get_segment_for_factor(factor_id)
+            
+            # First ensure the segment exists
+            await self._ensure_segment_exists(connection, segment_id)
+            
             factor_name = self.aliases.get_factor_name(factor_id) or f"Factor {factor_id}"
             
             # Insert factor if doesn't exist

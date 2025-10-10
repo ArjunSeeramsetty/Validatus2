@@ -57,7 +57,11 @@ class GeminiClient:
                 return
             
             # Configure Gemini API
-            genai.configure(api_key=api_key)
+            # Important: Use transport='rest' to avoid metadata service issues in Cloud Run
+            genai.configure(
+                api_key=api_key,
+                transport='rest'  # Force REST transport instead of gRPC to avoid metadata service
+            )
             
             # Initialize all available models for rotation
             initialized_count = 0

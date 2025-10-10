@@ -198,124 +198,183 @@ class V2StrategicAnalysisOrchestrator:
         else:
             return 'S1'  # Default fallback
     
-    async def _ensure_segment_exists(self, connection, segment_id: str):
-        """Ensure segment exists in segments table, create if not"""
-        try:
-            segment_names = {
-                'S1': 'Product Intelligence',
-                'S2': 'Consumer Intelligence',
-                'S3': 'Market Intelligence',
-                'S4': 'Brand Intelligence',
-                'S5': 'Experience Intelligence'
-            }
-            
-            segment_name = segment_names.get(segment_id, segment_id)
-            
-            # Insert segment if doesn't exist
-            await connection.execute(
-                """
-                INSERT INTO segments (id, name, friendly_name, weight)
-                VALUES ($1, $2, $3, 0.2000)
-                ON CONFLICT (id) DO NOTHING
-                """,
-                segment_id,
-                segment_name.replace(' ', '_'),
-                segment_name
-            )
-        except Exception as e:
-            logger.warning(f"Could not ensure segment {segment_id} exists: {e}")
+    async def _upsert_segment(self, connection, segment_id: str) -> str:
+        """
+        Upsert segment with ON CONFLICT DO UPDATE RETURNING
+        Returns segment_id on success, raises on failure
+        """
+        segment_names = {
+            'S1': 'Product Intelligence',
+            'S2': 'Consumer Intelligence',
+            'S3': 'Market Intelligence',
+            'S4': 'Brand Intelligence',
+            'S5': 'Experience Intelligence'
+        }
+        
+        segment_name = segment_names.get(segment_id, segment_id)
+        
+        # Upsert with RETURNING to verify
+        row = await connection.fetchrow(
+            """
+            INSERT INTO segments (id, name, friendly_name, weight)
+            VALUES ($1, $2, $3, 0.2000)
+            ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                friendly_name = EXCLUDED.friendly_name,
+                weight = EXCLUDED.weight,
+                updated_at = NOW()
+            RETURNING id
+            """,
+            segment_id,
+            segment_name.replace(' ', '_'),
+            segment_name
+        )
+        
+        if not row:
+            raise RuntimeError(f"Failed to upsert segment {segment_id}")
+        
+        return row['id']
     
-    async def _ensure_factor_exists(self, connection, factor_id: str):
-        """Ensure factor exists in factors table, create if not"""
-        try:
-            # Get segment for this factor
-            segment_id = self._get_segment_for_factor(factor_id)
-            
-            # First ensure the segment exists
-            await self._ensure_segment_exists(connection, segment_id)
-            
-            factor_name = self.aliases.get_factor_name(factor_id) or f"Factor {factor_id}"
-            
-            # Insert factor if doesn't exist
-            await connection.execute(
-                """
-                INSERT INTO factors (id, segment_id, name, friendly_name, weight_in_segment)
-                VALUES ($1, $2, $3, $4, 0.1000)
-                ON CONFLICT (id) DO NOTHING
-                """,
-                factor_id,
-                segment_id,
-                factor_name.replace(' ', '_').replace('&', 'and'),
-                factor_name
-            )
-        except Exception as e:
-            logger.warning(f"Could not ensure factor {factor_id} exists: {e}")
+    async def _upsert_factor(self, connection, factor_id: str) -> str:
+        """
+        Upsert factor with ON CONFLICT DO UPDATE RETURNING
+        Ensures parent segment exists first
+        Returns factor_id on success, raises on failure
+        """
+        # Get segment for this factor
+        segment_id = self._get_segment_for_factor(factor_id)
+        
+        # Ensure parent segment exists (within same transaction)
+        await self._upsert_segment(connection, segment_id)
+        
+        factor_name = self.aliases.get_factor_name(factor_id) or f"Factor {factor_id}"
+        
+        # Upsert with RETURNING to verify
+        row = await connection.fetchrow(
+            """
+            INSERT INTO factors (id, segment_id, name, friendly_name, weight_in_segment)
+            VALUES ($1, $2, $3, $4, 0.1000)
+            ON CONFLICT (id) DO UPDATE SET
+                segment_id = EXCLUDED.segment_id,
+                name = EXCLUDED.name,
+                friendly_name = EXCLUDED.friendly_name,
+                weight_in_segment = EXCLUDED.weight_in_segment
+            RETURNING id
+            """,
+            factor_id,
+            segment_id,
+            factor_name.replace(' ', '_').replace('&', 'and'),
+            factor_name
+        )
+        
+        if not row:
+            raise RuntimeError(f"Failed to upsert factor {factor_id}")
+        
+        return row['id']
     
-    async def _ensure_layer_exists(self, connection, layer_id: str, layer_name: str):
-        """Ensure layer exists in layers table, create if not"""
-        try:
-            # Get factor_id from layer_id (e.g., L1_1 → F1)
-            factor_num = layer_id.split('_')[0][1:]  # Remove 'L' and get number
-            factor_id = f"F{factor_num}"
-            
-            # First ensure the parent factor exists
-            await self._ensure_factor_exists(connection, factor_id)
-            
-            # Now insert layer if doesn't exist
-            await connection.execute(
-                """
-                INSERT INTO layers (id, factor_id, name, friendly_name, weight_in_factor)
-                VALUES ($1, $2, $3, $4, 0.3333)
-                ON CONFLICT (id) DO NOTHING
-                """,
-                layer_id,
-                factor_id,
-                layer_name.replace(' ', '_').replace('&', 'and'),
-                layer_name,
-            )
-        except Exception as e:
-            logger.warning(f"Could not ensure layer {layer_id} exists: {e}")
+    async def _upsert_layer(self, connection, layer_id: str, layer_name: str) -> str:
+        """
+        Upsert layer with ON CONFLICT DO UPDATE RETURNING
+        Ensures parent factor (and segment) exist first
+        Returns layer_id on success, raises on failure
+        """
+        # Get factor_id from layer_id (e.g., L1_1 → F1)
+        factor_num = layer_id.split('_')[0][1:]  # Remove 'L' and get number
+        factor_id = f"F{factor_num}"
+        
+        # Ensure parent factor exists (which ensures segment too)
+        await self._upsert_factor(connection, factor_id)
+        
+        # Upsert with RETURNING to verify
+        row = await connection.fetchrow(
+            """
+            INSERT INTO layers (id, factor_id, name, friendly_name, weight_in_factor)
+            VALUES ($1, $2, $3, $4, 0.3333)
+            ON CONFLICT (id) DO UPDATE SET
+                factor_id = EXCLUDED.factor_id,
+                name = EXCLUDED.name,
+                friendly_name = EXCLUDED.friendly_name,
+                weight_in_factor = EXCLUDED.weight_in_factor
+            RETURNING id
+            """,
+            layer_id,
+            factor_id,
+            layer_name.replace(' ', '_').replace('&', 'and'),
+            layer_name
+        )
+        
+        if not row:
+            raise RuntimeError(f"Failed to upsert layer {layer_id}")
+        
+        return row['id']
     
     async def _store_layer_scores_batch(self, layer_scores: List[LayerScore]):
-        """Store batch of layer scores to database"""
+        """
+        Store batch of layer scores to database using transactions with deferred FK checks
+        This ensures parent hierarchy (segment→factor→layer) exists before inserting scores
+        """
         try:
             import json
             connection = await db_manager.get_connection()
             
-            for layer_score in layer_scores:
-                # Ensure layer exists first to avoid foreign key constraint violation
-                await self._ensure_layer_exists(
-                    connection, 
-                    layer_score.layer_id, 
-                    layer_score.layer_name
-                )
+            # Use transaction with deferred FK constraints
+            async with connection.transaction():
+                # Defer all FK checks until transaction commit
+                await connection.execute("SET CONSTRAINTS ALL DEFERRED")
                 
-                # Now insert the layer score
-                await connection.execute(
-                    """
-                    INSERT INTO layer_scores 
-                    (session_id, layer_id, score, confidence, evidence_count, 
-                     key_insights, evidence_summary, llm_analysis_raw, expert_persona, 
-                     processing_time_ms, metadata, created_at)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                    ON CONFLICT DO NOTHING
-                    """,
-                    layer_score.session_id,
-                    layer_score.layer_id,
-                    layer_score.score,
-                    layer_score.confidence,
-                    layer_score.evidence_count,
-                    layer_score.key_insights,
-                    layer_score.evidence_summary,
-                    layer_score.llm_analysis_raw,
-                    layer_score.expert_persona,
-                    layer_score.processing_time_ms,
-                    json.dumps(layer_score.metadata) if isinstance(layer_score.metadata, dict) else layer_score.metadata,
-                    layer_score.created_at
-                )
+                for layer_score in layer_scores:
+                    try:
+                        # Upsert layer (which upserts factor and segment if needed)
+                        # This uses ON CONFLICT DO UPDATE RETURNING for verification
+                        layer_id = await self._upsert_layer(
+                            connection,
+                            layer_score.layer_id,
+                            layer_score.layer_name
+                        )
+                        
+                        # Now insert the layer score (FK will be checked at commit)
+                        await connection.execute(
+                            """
+                            INSERT INTO layer_scores 
+                            (session_id, layer_id, score, confidence, evidence_count, 
+                             key_insights, evidence_summary, llm_analysis_raw, expert_persona, 
+                             processing_time_ms, metadata, created_at)
+                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                            ON CONFLICT (session_id, layer_id) DO UPDATE SET
+                                score = EXCLUDED.score,
+                                confidence = EXCLUDED.confidence,
+                                evidence_count = EXCLUDED.evidence_count,
+                                key_insights = EXCLUDED.key_insights,
+                                evidence_summary = EXCLUDED.evidence_summary,
+                                llm_analysis_raw = EXCLUDED.llm_analysis_raw,
+                                expert_persona = EXCLUDED.expert_persona,
+                                processing_time_ms = EXCLUDED.processing_time_ms,
+                                metadata = EXCLUDED.metadata
+                            """,
+                            layer_score.session_id,
+                            layer_id,  # Use returned/verified layer_id
+                            layer_score.score,
+                            layer_score.confidence,
+                            layer_score.evidence_count,
+                            layer_score.key_insights,
+                            layer_score.evidence_summary,
+                            layer_score.llm_analysis_raw,
+                            layer_score.expert_persona,
+                            layer_score.processing_time_ms,
+                            json.dumps(layer_score.metadata) if isinstance(layer_score.metadata, dict) else layer_score.metadata,
+                            layer_score.created_at
+                        )
+                        
+                    except Exception as layer_error:
+                        logger.error(f"Failed to store layer score {layer_score.layer_id}: {layer_error}")
+                        # Continue with other layers in batch
+                
+                # Transaction commits here - all FK constraints checked at once
+                logger.debug(f"Successfully stored {len(layer_scores)} layer scores in transaction")
                 
         except Exception as e:
-            logger.error(f"Failed to store layer scores batch: {e}")
+            logger.error(f"Failed to store layer scores batch: {e}", exc_info=True)
+            raise  # Re-raise to signal failure
     
     async def _store_complete_analysis(self, session_id: str, results: Dict,
                                      layer_scores: List, factor_calculations: List,

@@ -26,6 +26,7 @@ from .api.v3.schema import router as schema_router
 CONTENT_API_AVAILABLE = False
 SCORING_API_AVAILABLE = False
 V2_SCORING_API_AVAILABLE = False
+BOOTSTRAP_API_AVAILABLE = False
 
 try:
     from .api.v3.content import router as content_router
@@ -44,6 +45,12 @@ try:
     V2_SCORING_API_AVAILABLE = True
 except Exception as e:
     logger.warning(f"V2 Scoring API not available: {e}")
+
+try:
+    from .api.v3.bootstrap import router as bootstrap_router
+    BOOTSTRAP_API_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"Bootstrap API not available: {e}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -155,6 +162,12 @@ if V2_SCORING_API_AVAILABLE:
     logger.info("✅ V2 Scoring API registered (5 segments, 28 factors, 210 layers)")
 else:
     logger.warning("⚠️ V2 Scoring API not registered (dependencies missing)")
+
+if BOOTSTRAP_API_AVAILABLE:
+    app.include_router(bootstrap_router, prefix="/api/v3/bootstrap", tags=["Bootstrap"])
+    logger.info("✅ Bootstrap API registered (hierarchy initialization & migrations)")
+else:
+    logger.warning("⚠️ Bootstrap API not registered (dependencies missing)")
 
 # Global exception handler
 @app.exception_handler(Exception)

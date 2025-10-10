@@ -36,8 +36,11 @@ class GeminiClient:
             return
         
         try:
-            # Try environment variable first
+            # Try environment variable first  
             api_key = os.getenv("GEMINI_API_KEY")
+            if api_key:
+                # Strip ALL whitespace including \r\n\t
+                api_key = api_key.strip().replace('\r', '').replace('\n', '').replace('\t', '').strip()
             
             # If not in environment, try Secret Manager (production)
             if not api_key and os.getenv("CLOUD_RUN_SERVICE"):
@@ -47,8 +50,9 @@ class GeminiClient:
                     project_id = os.getenv("GCP_PROJECT_ID", "validatus-platform")
                     secret_name = f"projects/{project_id}/secrets/gemini-api-key/versions/latest"
                     response = client.access_secret_version(request={"name": secret_name})
-                    api_key = response.payload.data.decode("UTF-8").strip()
-                    logger.info("✅ Gemini API key loaded from Secret Manager")
+                    # Strip ALL whitespace including \r\n\t and spaces
+                    api_key = response.payload.data.decode("UTF-8").strip().replace('\r', '').replace('\n', '').replace('\t', '').strip()
+                    logger.info(f"✅ Gemini API key loaded from Secret Manager (length: {len(api_key)})")
                 except Exception as e:
                     logger.error(f"Failed to load Gemini API key from Secret Manager: {e}")
             

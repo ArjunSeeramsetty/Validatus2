@@ -182,6 +182,44 @@ class V2StrategicAnalysisOrchestrator:
         
         return all_layer_scores
     
+    def _get_segment_for_factor(self, factor_id: str) -> str:
+        """Get segment ID for a factor"""
+        factor_num = int(factor_id[1:])  # Remove 'F' prefix
+        if 1 <= factor_num <= 10:
+            return 'S1'  # Product Intelligence
+        elif 11 <= factor_num <= 15:
+            return 'S2'  # Consumer Intelligence
+        elif 16 <= factor_num <= 20:
+            return 'S3'  # Market Intelligence
+        elif 21 <= factor_num <= 25:
+            return 'S4'  # Brand Intelligence
+        elif 26 <= factor_num <= 28:
+            return 'S5'  # Experience Intelligence
+        else:
+            return 'S1'  # Default fallback
+    
+    async def _ensure_layer_exists(self, connection, layer_id: str, layer_name: str):
+        """Ensure layer exists in layers table, create if not"""
+        try:
+            # Get factor_id from layer_id (e.g., L1_1 → F1)
+            factor_num = layer_id.split('_')[0][1:]  # Remove 'L' and get number
+            factor_id = f"F{factor_num}"
+            
+            # Insert layer if doesn't exist
+            await connection.execute(
+                """
+                INSERT INTO layers (id, factor_id, name, friendly_name, weight_in_factor)
+                VALUES ($1, $2, $3, $4, 0.3333)
+                ON CONFLICT (id) DO NOTHING
+                """,
+                layer_id,
+                factor_id,
+                layer_name.replace(' ', '_'),
+                layer_name,
+            )
+        except Exception as e:
+            logger.warning(f"Could not ensure layer {layer_id} exists: {e}")
+    
     async def _store_layer_scores_batch(self, layer_scores: List[LayerScore]):
         """Store batch of layer scores to database"""
         try:
@@ -189,6 +227,14 @@ class V2StrategicAnalysisOrchestrator:
             connection = await db_manager.get_connection()
             
             for layer_score in layer_scores:
+                # Ensure layer exists first to avoid foreign key constraint violation
+                await self._ensure_layer_exists(
+                    connection, 
+                    layer_score.layer_id, 
+                    layer_score.layer_name
+                )
+                
+                # Now insert the layer score
                 await connection.execute(
                     """
                     INSERT INTO layer_scores 
@@ -224,6 +270,22 @@ class V2StrategicAnalysisOrchestrator:
             
             # Store factor calculations
             for fc in factor_calculations:
+                # Ensure factor exists
+                factor_name = self.aliases.get_factor_name(fc.factor_id)
+                segment_id = self._get_segment_for_factor(fc.factor_id)
+                
+                await connection.execute(
+                    """
+                    INSERT INTO factors (id, segment_id, name, friendly_name, weight_in_segment)
+                    VALUES ($1, $2, $3, $4, 0.1000)
+                    ON CONFLICT (id) DO NOTHING
+                    """,
+                    fc.factor_id,
+                    segment_id,
+                    factor_name.replace(' ', '_'),
+                    factor_name
+                )
+                
                 await connection.execute(
                     """
                     INSERT INTO factor_calculations

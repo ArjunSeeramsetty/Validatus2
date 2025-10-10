@@ -3,6 +3,7 @@ Validatus v2.0 Strategic Analysis Orchestrator
 Coordinates complete 210-layer → 28-factor → 5-segment analysis workflow
 """
 import asyncio
+import json
 import logging
 from typing import Dict, List, Any
 from datetime import datetime, timezone

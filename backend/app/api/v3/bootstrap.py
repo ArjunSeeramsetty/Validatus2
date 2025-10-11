@@ -16,8 +16,8 @@ HIERARCHY_LOCK_APP_ID = 42
 HIERARCHY_LOCK_KEY = 1
 
 
-@router.post("/run-migration")
-async def run_migration():
+@router.post("/run-migration-001")
+async def run_migration_001():
     """Apply DEFERRABLE foreign key migration"""
     try:
         connection = await db_manager.get_connection()
@@ -62,14 +62,72 @@ async def run_migration():
         
         return {
             "status": "success",
-            "message": "Migration applied successfully",
+            "message": "Migration 001 applied successfully",
             "deferrable_foreign_keys": deferrable_fks,
             "total_fks": len(deferrable_fks)
         }
         
     except Exception as e:
-        logger.error(f"Migration failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Migration failed: {str(e)}")
+        logger.error(f"Migration 001 failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Migration 001 failed: {str(e)}")
+
+
+@router.post("/run-migration-002")
+async def run_migration_002():
+    """Apply UNIQUE constraints for ON CONFLICT support"""
+    try:
+        connection = await db_manager.get_connection()
+        
+        migration_path = Path(__file__).parent.parent.parent / "database" / "migrations" / "002_add_unique_constraints_v2_tables.sql"
+        
+        if not migration_path.exists():
+            raise HTTPException(status_code=500, detail=f"Migration file not found: {migration_path}")
+        
+        with open(migration_path, 'r') as f:
+            migration_sql = f.read()
+        
+        # Execute migration
+        logger.info("Applying UNIQUE constraints migration...")
+        await connection.execute(migration_sql)
+        
+        # Verify UNIQUE constraints
+        verification_query = """
+        SELECT 
+            tc.table_name, 
+            tc.constraint_name,
+            tc.constraint_type,
+            kcu.column_name
+        FROM information_schema.table_constraints tc
+        LEFT JOIN information_schema.key_column_usage kcu 
+            ON tc.constraint_name = kcu.constraint_name
+        WHERE tc.constraint_type = 'UNIQUE'
+          AND tc.table_name IN ('layer_scores', 'factor_calculations', 'segment_analysis')
+          AND tc.constraint_name LIKE '%_session_%_unique'
+        ORDER BY tc.table_name, kcu.ordinal_position
+        """
+        
+        results = await connection.fetch(verification_query)
+        
+        unique_constraints = {}
+        for row in results:
+            table = row['table_name']
+            if table not in unique_constraints:
+                unique_constraints[table] = {
+                    "constraint_name": row['constraint_name'],
+                    "columns": []
+                }
+            unique_constraints[table]["columns"].append(row['column_name'])
+        
+        return {
+            "status": "success",
+            "message": "Migration 002 applied successfully - UNIQUE constraints added",
+            "unique_constraints": unique_constraints,
+            "tables_updated": list(unique_constraints.keys())
+        }
+        
+    except Exception as e:
+        logger.error(f"Migration 002 failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Migration 002 failed: {str(e)}")
 
 
 @router.post("/initialize-hierarchy")

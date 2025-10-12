@@ -32,7 +32,8 @@ import {
   Search as SearchIcon,
   Link as LinkIcon,
   Dashboard as DashboardIcon,
-  AnalyticsOutlined
+  AnalyticsOutlined,
+  Assessment as AssessmentIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -44,6 +45,7 @@ import AdvancedAnalysisDashboard from './AdvancedAnalysisDashboard';
 import URLsTab from '../components/URLsTab';
 import ContentTab from '../components/ContentTab';  // 🆕 NEW: Content management tab
 import ScoringTab from '../components/ScoringTab';  // 🆕 NEW: Scoring/analysis tab
+import ResultsTab from '../components/ResultsTab';  // 🆕 NEW: Results analysis tab
 import { topicService, TopicConfig } from '../services/topicService';
 
 
@@ -211,6 +213,12 @@ const HomePage: React.FC = () => {
               <Tab 
                 label="Scoring" 
                 icon={<TrendingUp />} 
+                iconPosition="start"
+                sx={{ minHeight: 60 }}
+              />
+              <Tab 
+                label="Results" 
+                icon={<AssessmentIcon />} 
                 iconPosition="start"
                 sx={{ minHeight: 60 }}
               />
@@ -412,7 +420,18 @@ const HomePage: React.FC = () => {
           </motion.div>
         )}
 
-        {activeTab === 4 && (
+        {activeTab === 4 && topics.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* 🆕 NEW: Results Analysis Tab */}
+            <ResultsTab sessionId={topics[0].session_id} />
+          </motion.div>
+        )}
+
+        {activeTab === 5 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

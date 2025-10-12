@@ -52,6 +52,13 @@ try:
 except Exception as e:
     logger.warning(f"Bootstrap API not available: {e}")
 
+try:
+    from .api.v3.results import router as results_router
+    RESULTS_API_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"Results API not available: {e}")
+    RESULTS_API_AVAILABLE = False
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan management"""
@@ -168,6 +175,12 @@ if BOOTSTRAP_API_AVAILABLE:
     logger.info("✅ Bootstrap API registered (hierarchy initialization & migrations)")
 else:
     logger.warning("⚠️ Bootstrap API not registered (dependencies missing)")
+
+if RESULTS_API_AVAILABLE:
+    app.include_router(results_router, tags=["Results Analysis"])
+    logger.info("✅ Results Analysis API registered (Market, Consumer, Product, Brand, Experience)")
+else:
+    logger.warning("⚠️ Results Analysis API not registered (dependencies missing)")
 
 # Global exception handler
 @app.exception_handler(Exception)

@@ -1,0 +1,346 @@
+"""
+Enhanced Analysis API Endpoints
+Provides scoring breakdown and recalculation capabilities
+"""
+
+import logging
+from fastapi import APIRouter, HTTPException
+from typing import Dict, Any
+from datetime import datetime
+
+from app.services.results_analysis_service import results_analysis_service
+from app.services.enhanced_scoring_engine import enhanced_scoring_engine
+from app.core.database_config import DatabaseManager
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/api/v3/enhanced-analysis", tags=["enhanced_analysis"])
+
+
+@router.get("/results-dashboard/{session_id}")
+async def get_results_dashboard_data(session_id: str) -> Dict[str, Any]:
+    """
+    Get comprehensive results dashboard data with enhanced scoring
+    
+    Returns:
+    - market: Market analysis with scoring components
+    - consumer: Consumer analysis with scoring components
+    - product: Product analysis with scoring components
+    - brand: Brand analysis with scoring components  
+    - experience: Experience analysis with scoring components
+    - scoring_breakdown: Detailed breakdown of all scores
+    - overall_scores: Dimension-level overall scores
+    """
+    try:
+        logger.info(f"Generating enhanced dashboard data for {session_id}")
+        
+        dashboard_data = await results_analysis_service.generate_results_dashboard_data(session_id)
+        
+        return {
+            "session_id": session_id,
+            "dashboard_data": dashboard_data,
+            "timestamp": datetime.utcnow().isoformat(),
+            "version": "2.0_enhanced"
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to generate dashboard data for {session_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate dashboard data: {str(e)}"
+        )
+
+
+@router.get("/scoring-breakdown/{session_id}")
+async def get_detailed_scoring_breakdown(session_id: str) -> Dict[str, Any]:
+    """
+    Get detailed breakdown of all scoring components
+    
+    Returns detailed information about each scoring component including:
+    - Component name and score
+    - Confidence level
+    - Contributing factors
+    - Calculation method
+    - Data sources
+    """
+    try:
+        logger.info(f"Generating scoring breakdown for {session_id}")
+        
+        # Get content data
+        db_manager = DatabaseManager()
+        connection = await db_manager.get_connection()
+        
+        query = """
+        SELECT url, title, content, metadata
+        FROM scraped_content
+        WHERE session_id = $1
+        AND processing_status = 'completed'
+        AND LENGTH(TRIM(COALESCE(content, ''))) > 100
+        ORDER BY scraped_at DESC
+        LIMIT 50
+        """
+        rows = await connection.fetch(query, session_id)
+        
+        if not rows:
+            raise HTTPException(
+                status_code=404,
+                detail="No content data found for this session. Please scrape content first."
+            )
+        
+        content_data = [
+            {
+                'url': row['url'],
+                'title': row['title'],
+                'content': row['content'],
+                'metadata': row['metadata'] if row['metadata'] else {}
+            }
+            for row in rows
+        ]
+        
+        # Calculate comprehensive scores
+        scoring_results = await enhanced_scoring_engine.calculate_comprehensive_scores(content_data)
+        
+        # Format for detailed view
+        breakdown = {}
+        for dimension, results in scoring_results.items():
+            breakdown[dimension] = {
+                "dimension_score": enhanced_scoring_engine.calculate_weighted_dimension_score(results),
+                "components": [
+                    {
+                        "component": result.component_name,
+                        "score": result.score,
+                        "confidence": result.confidence,
+                        "factors": result.contributing_factors,
+                        "sources": result.data_sources,
+                        "method": result.calculation_method,
+                        "timestamp": result.timestamp.isoformat()
+                    }
+                    for result in results
+                ],
+                "component_count": len(results)
+            }
+        
+        return {
+            "session_id": session_id,
+            "breakdown": breakdown,
+            "total_components": sum(len(results) for results in scoring_results.values()),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get scoring breakdown for {session_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get scoring breakdown: {str(e)}"
+        )
+
+
+@router.post("/recalculate-scores/{session_id}")
+async def recalculate_scores(
+    session_id: str,
+    scoring_parameters: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Recalculate scores with updated parameters
+    
+    Request Body:
+    {
+        "weights": {
+            "market_analysis": {
+                "market_size_score": 0.25,
+                "growth_potential_score": 0.20
+            }
+        },
+        "custom_factors": {
+            "market_multiplier": 1.2
+        }
+    }
+    
+    Returns:
+    - Updated scoring results
+    - Parameters used
+    - Comparison with previous scores
+    """
+    try:
+        logger.info(f"Recalculating scores for {session_id} with custom parameters")
+        
+        # Get content data
+        db_manager = DatabaseManager()
+        connection = await db_manager.get_connection()
+        
+        query = """
+        SELECT url, title, content, metadata
+        FROM scraped_content
+        WHERE session_id = $1
+        AND processing_status = 'completed'
+        AND LENGTH(TRIM(COALESCE(content, ''))) > 100
+        ORDER BY scraped_at DESC
+        LIMIT 50
+        """
+        rows = await connection.fetch(query, session_id)
+        
+        if not rows:
+            raise HTTPException(
+                status_code=404,
+                detail="No content data found for this session"
+            )
+        
+        content_data = [
+            {
+                'url': row['url'],
+                'title': row['title'],
+                'content': row['content'],
+                'metadata': row['metadata'] if row['metadata'] else {}
+            }
+            for row in rows
+        ]
+        
+        # Update scoring weights if provided
+        if "weights" in scoring_parameters:
+            original_weights = enhanced_scoring_engine.scoring_weights.copy()
+            
+            for dimension, weights in scoring_parameters["weights"].items():
+                if dimension in enhanced_scoring_engine.scoring_weights:
+                    enhanced_scoring_engine.scoring_weights[dimension].update(weights)
+            
+            logger.info(f"Updated scoring weights: {scoring_parameters['weights']}")
+        else:
+            original_weights = None
+        
+        # Recalculate with new parameters
+        updated_scores = await enhanced_scoring_engine.calculate_comprehensive_scores(content_data)
+        
+        # Format results
+        formatted_results = {}
+        for dimension, results in updated_scores.items():
+            formatted_results[dimension] = {
+                "dimension_score": enhanced_scoring_engine.calculate_weighted_dimension_score(results),
+                "components": [
+                    {
+                        "component": result.component_name,
+                        "score": result.score,
+                        "confidence": result.confidence
+                    }
+                    for result in results
+                ]
+            }
+        
+        # Restore original weights if they were modified
+        if original_weights:
+            enhanced_scoring_engine.scoring_weights = original_weights
+        
+        return {
+            "session_id": session_id,
+            "updated_scores": formatted_results,
+            "parameters_used": scoring_parameters,
+            "timestamp": datetime.utcnow().isoformat(),
+            "note": "Weights were temporarily applied for this calculation. Original weights restored."
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to recalculate scores for {session_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to recalculate scores: {str(e)}"
+        )
+
+
+@router.get("/component-details/{component_name}")
+async def get_component_details(component_name: str) -> Dict[str, Any]:
+    """
+    Get detailed information about a specific scoring component
+    
+    Returns:
+    - Component description
+    - Calculation methodology
+    - Contributing factors
+    - Typical score ranges
+    - Interpretation guidelines
+    """
+    
+    component_details = {
+        "market_size_score": {
+            "name": "Market Size Score",
+            "description": "Measures the total addressable market size and opportunity",
+            "methodology": "Weighted average of market value, segment count, and geographic reach",
+            "factors": ["Market value in millions", "Number of market segments", "Geographic reach score"],
+            "score_ranges": {
+                "excellent": "80-100 (Large, multi-segment global market)",
+                "good": "60-79 (Significant market with regional presence)",
+                "moderate": "40-59 (Niche market or limited geography)",
+                "poor": "0-39 (Small or highly localized market)"
+            },
+            "interpretation": "Higher scores indicate larger market opportunities with multiple segments and broad geographic reach"
+        },
+        "growth_potential_score": {
+            "name": "Growth Potential Score",
+            "description": "Evaluates market growth trajectory and future potential",
+            "methodology": "Weighted calculation of historical CAGR, projected CAGR, and market maturity",
+            "factors": ["Historical growth rate", "Projected growth rate", "Market maturity factor"],
+            "score_ranges": {
+                "excellent": "80-100 (High growth, emerging market)",
+                "good": "60-79 (Solid growth, expanding market)",
+                "moderate": "40-59 (Moderate growth, maturing market)",
+                "poor": "0-39 (Low/negative growth, mature/declining market)"
+            },
+            "interpretation": "Higher scores indicate strong growth potential with favorable market dynamics"
+        },
+        "target_audience_fit_score": {
+            "name": "Target Audience Fit Score",
+            "description": "Measures alignment between product/service and target audience characteristics",
+            "methodology": "Multi-dimensional fit analysis: demographic, psychographic, and behavioral alignment",
+            "factors": ["Demographic match", "Psychographic alignment", "Behavioral patterns"],
+            "score_ranges": {
+                "excellent": "80-100 (Strong fit across all dimensions)",
+                "good": "60-79 (Good fit with minor gaps)",
+                "moderate": "40-59 (Moderate fit, significant optimization needed)",
+                "poor": "0-39 (Poor fit, major realignment required)"
+            },
+            "interpretation": "Higher scores indicate strong product-market-audience alignment"
+        },
+        "product_market_fit_score": {
+            "name": "Product-Market Fit Score",
+            "description": "Evaluates how well the product satisfies market demand (Sean Ellis methodology)",
+            "methodology": "Composite score from user satisfaction, retention, NPS, and 'must-have' percentage",
+            "factors": ["User satisfaction rate", "Retention rate", "Net Promoter Score", "Must-have percentage"],
+            "score_ranges": {
+                "excellent": "80-100 (Strong PMF, must-have >40%)",
+                "good": "60-79 (Good PMF, solid retention)",
+                "moderate": "40-59 (Moderate PMF, improvement needed)",
+                "poor": "0-39 (Poor PMF, product-market mismatch)"
+            },
+            "interpretation": "Score >60 with must-have >40% indicates achieved product-market fit"
+        }
+    }
+    
+    if component_name not in component_details:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Component '{component_name}' not found. Available components: {list(component_details.keys())}"
+        )
+    
+    return {
+        "component": component_name,
+        "details": component_details[component_name],
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@router.get("/weights")
+async def get_current_weights() -> Dict[str, Any]:
+    """
+    Get current scoring weights for all dimensions
+    
+    Returns the weight configuration used for calculating dimension scores
+    """
+    return {
+        "weights": enhanced_scoring_engine.scoring_weights,
+        "description": "Current scoring weights for all dimensions and components",
+        "note": "Weights are used to calculate weighted average scores for each dimension",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+

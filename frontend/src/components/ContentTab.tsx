@@ -295,6 +295,11 @@ const ContentTab: React.FC = () => {
                             <Typography variant="caption" sx={{ color: '#b8b8cc' }}>
                               Total URLs
                             </Typography>
+                            {(contentData.statistics?.total_pending || 0) > 0 && (
+                              <Typography variant="caption" sx={{ color: '#fa8c16', display: 'block', mt: 0.5 }}>
+                                {contentData.statistics.total_pending} pending scrape
+                              </Typography>
+                            )}
                           </Paper>
                         </Grid>
                         <Grid item xs={6} sm={3}>
@@ -343,8 +348,9 @@ const ContentTab: React.FC = () => {
                             </TableRow>
                           </TableHead>
                           <TableBody>
+                            {/* Show scraped content first */}
                             {contentData.content_items?.map((item: ContentItem, index: number) => (
-                              <TableRow key={index} sx={{ '&:hover': { backgroundColor: '#2d2d44' } }}>
+                              <TableRow key={`scraped-${index}`} sx={{ '&:hover': { backgroundColor: '#2d2d44' } }}>
                                 <TableCell>
                                   <Chip
                                     size="small"
@@ -402,14 +408,73 @@ const ContentTab: React.FC = () => {
                                 </TableCell>
                               </TableRow>
                             ))}
+                            {/* Show pending URLs (not yet scraped) */}
+                            {contentData.pending_urls?.map((item: ContentItem, index: number) => (
+                              <TableRow key={`pending-${index}`} sx={{ '&:hover': { backgroundColor: '#2d2d44' } }}>
+                                <TableCell>
+                                  <Chip
+                                    size="small"
+                                    label="pending_scrape"
+                                    color="warning"
+                                    variant="outlined"
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Typography variant="body2" noWrap sx={{ maxWidth: 250, color: '#e8e8f0' }}>
+                                    {item.title}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: '#888' }}>
+                                    {item.source} • {item.collection_method}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>
+                                  <Typography variant="caption" sx={{ color: '#b8b8cc' }}>
+                                    {item.domain}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>
+                                  <Chip
+                                    label={`${(item.quality_score * 100).toFixed(0)}%`}
+                                    size="small"
+                                    color={getQualityColor(item.quality_score) as any}
+                                    variant="filled"
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Typography variant="body2" sx={{ color: '#888' }}>
+                                    -
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => window.open(item.url, '_blank')}
+                                    sx={{ color: '#52c41a' }}
+                                  >
+                                    <LinkIcon fontSize="small" />
+                                  </IconButton>
+                                </TableCell>
+                              </TableRow>
+                            ))}
                           </TableBody>
                         </Table>
                       </TableContainer>
 
-                      {contentData.content_items?.length === 0 && (
+                      {(contentData.content_items?.length === 0 && contentData.pending_urls?.length === 0) && (
                         <Box sx={{ textAlign: 'center', py: 4 }}>
                           <Typography variant="body1" sx={{ color: '#888' }}>
-                            No content items found. Collect some URLs first.
+                            No URLs found. Collect some URLs first.
+                          </Typography>
+                        </Box>
+                      )}
+                      {(contentData.content_items?.length === 0 && (contentData.pending_urls?.length || 0) > 0) && (
+                        <Box sx={{ textAlign: 'center', py: 2, backgroundColor: '#2d2d44', borderRadius: 1 }}>
+                          <Warning sx={{ fontSize: 48, color: '#fa8c16', mb: 1 }} />
+                          <Typography variant="body1" sx={{ color: '#fa8c16', fontWeight: 'bold' }}>
+                            {contentData.pending_urls.length} URLs collected but not yet scraped
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#b8b8cc', mt: 1 }}>
+                            Click "Start Scraping" button above to begin content scraping
                           </Typography>
                         </Box>
                       )}

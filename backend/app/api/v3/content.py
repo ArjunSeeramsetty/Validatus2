@@ -201,7 +201,7 @@ async def _scrape_urls_background(session_id: str, urls: List[Dict[str, Any]], f
 @router.get("/{session_id}")
 async def get_topic_content(session_id: str):
     """
-    Get all scraped content for a topic with quality metrics
+    Get all content for a topic: both scraped content and pending URLs
     """
     try:
         connection = await db_manager.get_connection()
@@ -228,10 +228,24 @@ async def get_topic_content(session_id: str):
         """
         content_rows = await connection.fetch(content_query, session_id)
         
+        # Get URLs that haven't been scraped yet
+        pending_urls_query = """
+        SELECT 
+            tu.url, tu.title, tu.description, tu.quality_score, 
+            tu.priority_level, tu.source, tu.collection_method, tu.created_at
+        FROM topic_urls tu
+        LEFT JOIN scraped_content sc ON tu.url = sc.url AND tu.session_id = sc.session_id
+        WHERE tu.session_id = $1 AND sc.url IS NULL
+        ORDER BY tu.priority_level ASC, tu.quality_score DESC
+        """
+        pending_rows = await connection.fetch(pending_urls_query, session_id)
+        
         content_items = []
+        pending_items = []
         total_words = 0
         quality_scores = []
         
+        # Process scraped content
         for row in content_rows:
             metadata = json.loads(row['metadata']) if row['metadata'] else {}
             quality_score = metadata.get('quality_score', 0.0)
@@ -252,12 +266,32 @@ async def get_topic_content(session_id: str):
             
             total_words += (row['word_count'] or 0)
         
+        # Process pending URLs (not yet scraped)
+        for row in pending_rows:
+            pending_items.append({
+                "url": row['url'],
+                "title": row['title'] or "Untitled",
+                "description": row['description'] or "",
+                "status": "pending_scrape",
+                "quality_score": float(row['quality_score']) if row['quality_score'] else 0.0,
+                "priority_level": row['priority_level'],
+                "source": row['source'] or "unknown",
+                "collection_method": row['collection_method'] or "manual",
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None,
+                "domain": urlparse(row['url']).netloc,
+                "content_length": 0,
+                "word_count": 0
+            })
+        
         # Calculate statistics
         avg_quality = sum(quality_scores) / len(quality_scores) if quality_scores else 0.0
         status_counts = {}
         for item in content_items:
             status = item['status']
             status_counts[status] = status_counts.get(status, 0) + 1
+        
+        if pending_items:
+            status_counts['pending_scrape'] = len(pending_items)
         
         return {
             "session_id": session_id,
@@ -269,8 +303,11 @@ async def get_topic_content(session_id: str):
                 "updated_at": topic_row['updated_at'].isoformat()
             },
             "content_items": content_items,
+            "pending_urls": pending_items,
             "statistics": {
-                "total_items": len(content_items),
+                "total_scraped": len(content_items),
+                "total_pending": len(pending_items),
+                "total_items": len(content_items) + len(pending_items),
                 "total_words": total_words,
                 "average_quality_score": round(avg_quality, 3),
                 "status_breakdown": status_counts,

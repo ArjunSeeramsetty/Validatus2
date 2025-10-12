@@ -409,7 +409,13 @@ class V2StrategicAnalysisOrchestrator:
                      input_layer_count, calculation_method, layer_contributions, 
                      validation_metrics, metadata, created_at)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                    ON CONFLICT DO NOTHING
+                    ON CONFLICT (session_id, factor_id) DO UPDATE SET
+                        calculated_value = EXCLUDED.calculated_value,
+                        confidence_score = EXCLUDED.confidence_score,
+                        input_layer_count = EXCLUDED.input_layer_count,
+                        layer_contributions = EXCLUDED.layer_contributions,
+                        validation_metrics = EXCLUDED.validation_metrics,
+                        metadata = EXCLUDED.metadata
                     """,
                     fc.session_id, fc.factor_id, fc.calculated_value, fc.confidence_score,
                     fc.input_layer_count, fc.calculation_method, 
@@ -429,7 +435,18 @@ class V2StrategicAnalysisOrchestrator:
                      key_insights, risk_factors, opportunities, recommendations,
                      factor_contributions, metadata, created_at)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-                    ON CONFLICT DO NOTHING
+                    ON CONFLICT (session_id, segment_id) DO UPDATE SET
+                        attractiveness_score = EXCLUDED.attractiveness_score,
+                        competitive_intensity = EXCLUDED.competitive_intensity,
+                        market_size_score = EXCLUDED.market_size_score,
+                        growth_potential = EXCLUDED.growth_potential,
+                        overall_segment_score = EXCLUDED.overall_segment_score,
+                        key_insights = EXCLUDED.key_insights,
+                        risk_factors = EXCLUDED.risk_factors,
+                        opportunities = EXCLUDED.opportunities,
+                        recommendations = EXCLUDED.recommendations,
+                        factor_contributions = EXCLUDED.factor_contributions,
+                        metadata = EXCLUDED.metadata
                     """,
                     sa.session_id, sa.segment_id, sa.attractiveness_score, sa.competitive_intensity,
                     sa.market_size_score, sa.growth_potential, sa.overall_segment_score,

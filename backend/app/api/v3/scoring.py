@@ -493,7 +493,7 @@ async def get_scoring_results(session_id: str):
                 "has_results": True,
                 "session_id": session_id,
                 "analysis_type": "v2.0_real_llm",
-                "scored_at": v2_row['created_at'].isoformat(),
+                "scored_at": v2_row['updated_at'].isoformat(),  # Use updated_at for latest analysis timestamp
                 "results": {
                     "overall_score": float(v2_row['overall_business_case_score']),
                     "confidence": float(v2_row['overall_confidence']),

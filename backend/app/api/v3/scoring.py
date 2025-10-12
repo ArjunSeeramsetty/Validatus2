@@ -219,13 +219,25 @@ async def get_topics_for_scoring(user_id: Optional[str] = Query(None, descriptio
             has_content = content_count > 0
             avg_quality = float(row['avg_quality']) if row['avg_quality'] else 0.0
             
-            # Check if already scored
-            score_check_query = """
-            SELECT COUNT(*) as score_count, MAX(created_at) as last_scored
-            FROM analysis_scores
+            # Check if already scored (prioritize v2.0 results)
+            v2_score_query = """
+            SELECT COUNT(*) as score_count, MAX(updated_at) as last_scored
+            FROM v2_analysis_results
             WHERE session_id = $1
             """
-            score_row = await connection.fetchrow(score_check_query, row['session_id'])
+            v2_score_row = await connection.fetchrow(v2_score_query, row['session_id'])
+            
+            # Fall back to basic scoring if no v2.0 results
+            if (v2_score_row['score_count'] or 0) == 0:
+                basic_score_query = """
+                SELECT COUNT(*) as score_count, MAX(created_at) as last_scored
+                FROM analysis_scores
+                WHERE session_id = $1
+                """
+                score_row = await connection.fetchrow(basic_score_query, row['session_id'])
+            else:
+                score_row = v2_score_row
+            
             has_scores = (score_row['score_count'] or 0) > 0
             last_scored = score_row['last_scored']
             

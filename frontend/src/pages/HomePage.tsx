@@ -420,14 +420,14 @@ const HomePage: React.FC = () => {
           </motion.div>
         )}
 
-        {activeTab === 4 && topics.length > 0 && (
+        {activeTab === 4 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {/* 🆕 NEW: Results Analysis Tab */}
-            <ResultsTab sessionId={topics[0].session_id} />
+            {/* 🆕 NEW: Results Analysis Tab with built-in topic selector */}
+            <ResultsTab />
           </motion.div>
         )}
 

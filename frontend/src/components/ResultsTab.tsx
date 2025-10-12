@@ -1,6 +1,7 @@
 /**
  * Results Tab - Main container for comprehensive analysis results
  * Displays Market, Consumer, Product, Brand, and Experience analysis
+ * Now includes topic selector for viewing different topic results
  */
 
 import React, { useState, useEffect } from 'react';
@@ -12,7 +13,19 @@ import {
   Alert, 
   Typography,
   Paper,
-  Button
+  Button,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  SelectChangeEvent
 } from '@mui/material';
 import { 
   Assessment as AssessmentIcon,
@@ -20,10 +33,14 @@ import {
   Category as CategoryIcon,
   Loyalty as LoyaltyIcon,
   Stars as StarsIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  CheckCircle as CheckCircleIcon,
+  Schedule as ScheduleIcon,
+  List as ListIcon
 } from '@mui/icons-material';
 
 import { useAnalysis } from '../hooks/useAnalysis';
+import { apiClient } from '../services/apiClient';
 import MarketResults from './Results/MarketResults';
 import ConsumerResults from './Results/ConsumerResults';
 import ProductResults from './Results/ProductResults';
@@ -31,36 +48,230 @@ import BrandResults from './Results/BrandResults';
 import ExperienceResults from './Results/ExperienceResults';
 
 interface ResultsTabProps {
-  sessionId: string;
+  sessionId?: string;
 }
 
-const ResultsTab: React.FC<ResultsTabProps> = ({ sessionId }) => {
+const ResultsTab: React.FC<ResultsTabProps> = ({ sessionId: initialSessionId }) => {
   const [activeTab, setActiveTab] = useState(0);
+  const [topics, setTopics] = useState<any[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>(initialSessionId || '');
+  const [loadingTopics, setLoadingTopics] = useState(false);
+  const [topicsError, setTopicsError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'details'>('list');
+  
   const { analysisData, loading, error, fetchCompleteAnalysis, resetAnalysis } = useAnalysis();
 
+  // Load available topics on mount
   useEffect(() => {
-    if (sessionId) {
-      console.log('Fetching analysis for session:', sessionId);
-      fetchCompleteAnalysis(sessionId).catch(err => {
+    loadTopics();
+  }, []);
+
+  // Load analysis when a topic is selected
+  useEffect(() => {
+    if (selectedSessionId) {
+      console.log('Fetching analysis for session:', selectedSessionId);
+      setViewMode('details');
+      fetchCompleteAnalysis(selectedSessionId).catch(err => {
         console.error('Failed to fetch analysis:', err);
       });
     }
     
     return () => {
       // Cleanup on unmount
-      resetAnalysis();
+      if (!selectedSessionId) {
+        resetAnalysis();
+      }
     };
-  }, [sessionId]);
+  }, [selectedSessionId]);
+
+  const loadTopics = async () => {
+    setLoadingTopics(true);
+    setTopicsError(null);
+
+    try {
+      const response = await apiClient.get('/api/v3/scoring/topics');
+      if (response.data.success) {
+        setTopics(response.data.topics);
+        
+        // Auto-select first topic if none selected
+        if (!selectedSessionId && response.data.topics.length > 0) {
+          setSelectedSessionId(response.data.topics[0].session_id);
+        }
+      }
+    } catch (err: any) {
+      setTopicsError(err.response?.data?.detail || err.message || 'Failed to load topics');
+    } finally {
+      setLoadingTopics(false);
+    }
+  };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
   const handleRefresh = () => {
-    if (sessionId) {
-      fetchCompleteAnalysis(sessionId);
+    if (selectedSessionId) {
+      fetchCompleteAnalysis(selectedSessionId);
     }
   };
+
+  const handleTopicSelect = (sessionId: string) => {
+    setSelectedSessionId(sessionId);
+    setActiveTab(0); // Reset to first tab when changing topics
+  };
+
+  const handleTopicChange = (event: SelectChangeEvent<string>) => {
+    handleTopicSelect(event.target.value);
+  };
+
+  const handleBackToList = () => {
+    setViewMode('list');
+    resetAnalysis();
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return '#52c41a';
+      case 'in_progress': return '#fa8c16';
+      case 'created': return '#1890ff';
+      default: return '#888';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircleIcon fontSize="small" />;
+      case 'in_progress': return <ScheduleIcon fontSize="small" />;
+      default: return <ScheduleIcon fontSize="small" />;
+    }
+  };
+
+  // Show topics list view
+  if (viewMode === 'list' || !selectedSessionId) {
+    return (
+      <Box sx={{ width: '100%', bgcolor: '#0a0a14', minHeight: '600px', p: 3 }}>
+        <Paper sx={{ bgcolor: '#16162a', p: 3, borderRadius: 2 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+            <Box display="flex" alignItems="center" gap={2}>
+              <ListIcon sx={{ color: '#52c41a', fontSize: 32 }} />
+              <Typography variant="h5" sx={{ color: '#e8e8f0', fontWeight: 'bold' }}>
+                Select a Topic to View Results
+              </Typography>
+            </Box>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={loadTopics}
+              startIcon={<RefreshIcon />}
+              disabled={loadingTopics}
+              sx={{
+                color: '#52c41a',
+                borderColor: '#52c41a',
+                '&:hover': { bgcolor: 'rgba(82, 196, 26, 0.1)', borderColor: '#449413' }
+              }}
+            >
+              Refresh
+            </Button>
+          </Box>
+
+          {loadingTopics && (
+            <Box display="flex" justifyContent="center" alignItems="center" py={8}>
+              <CircularProgress sx={{ color: '#52c41a' }} />
+            </Box>
+          )}
+
+          {topicsError && (
+            <Alert severity="error" sx={{ bgcolor: '#2d1b1b', color: '#ff4d4f', border: '1px solid #ff4d4f', mb: 3 }}>
+              {topicsError}
+            </Alert>
+          )}
+
+          {!loadingTopics && !topicsError && topics.length === 0 && (
+            <Alert severity="info" sx={{ bgcolor: '#1a1a2e', color: '#1890ff', border: '1px solid #1890ff' }}>
+              No topics found. Create a topic and run analysis to see results here.
+            </Alert>
+          )}
+
+          {!loadingTopics && topics.length > 0 && (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ color: '#888', fontWeight: 'bold', borderBottom: '1px solid #2d2d44' }}>
+                      Topic
+                    </TableCell>
+                    <TableCell sx={{ color: '#888', fontWeight: 'bold', borderBottom: '1px solid #2d2d44' }}>
+                      Description
+                    </TableCell>
+                    <TableCell sx={{ color: '#888', fontWeight: 'bold', borderBottom: '1px solid #2d2d44' }}>
+                      Status
+                    </TableCell>
+                    <TableCell sx={{ color: '#888', fontWeight: 'bold', borderBottom: '1px solid #2d2d44' }}>
+                      Last Scored
+                    </TableCell>
+                    <TableCell sx={{ color: '#888', fontWeight: 'bold', borderBottom: '1px solid #2d2d44' }}>
+                      Action
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {topics.map((topic) => (
+                    <TableRow
+                      key={topic.session_id}
+                      sx={{
+                        '&:hover': { bgcolor: 'rgba(82, 196, 26, 0.05)' },
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleTopicSelect(topic.session_id)}
+                    >
+                      <TableCell sx={{ color: '#e8e8f0', borderBottom: '1px solid #2d2d44' }}>
+                        {topic.topic}
+                      </TableCell>
+                      <TableCell sx={{ color: '#888', borderBottom: '1px solid #2d2d44', maxWidth: 300 }}>
+                        {topic.description || 'No description'}
+                      </TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid #2d2d44' }}>
+                        <Chip
+                          icon={getStatusIcon(topic.status)}
+                          label={topic.status}
+                          size="small"
+                          sx={{
+                            bgcolor: 'transparent',
+                            color: getStatusColor(topic.status),
+                            border: `1px solid ${getStatusColor(topic.status)}`,
+                            textTransform: 'capitalize'
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ color: '#888', borderBottom: '1px solid #2d2d44' }}>
+                        {topic.scored_at ? new Date(topic.scored_at).toLocaleDateString() : 'Not scored'}
+                      </TableCell>
+                      <TableCell sx={{ borderBottom: '1px solid #2d2d44' }}>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTopicSelect(topic.session_id);
+                          }}
+                          sx={{
+                            bgcolor: '#52c41a',
+                            '&:hover': { bgcolor: '#449413' }
+                          }}
+                        >
+                          View Results
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Paper>
+      </Box>
+    );
+  }
 
   if (loading) {
     return (
@@ -135,28 +346,66 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ sessionId }) => {
           mb: 2
         }}
       >
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Box>
-            <Typography variant="h5" sx={{ color: '#e8e8f0', fontWeight: 'bold' }}>
-              Analysis Results: {analysisData.topic_name}
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#888' }}>
-              Generated: {new Date(analysisData.analysis_timestamp).toLocaleString()}
-            </Typography>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleBackToList}
+              startIcon={<ListIcon />}
+              sx={{
+                color: '#888',
+                borderColor: '#2d2d44',
+                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.05)', borderColor: '#52c41a', color: '#52c41a' }
+              }}
+            >
+              Back to List
+            </Button>
+            <Box>
+              <Typography variant="h5" sx={{ color: '#e8e8f0', fontWeight: 'bold' }}>
+                Analysis Results: {analysisData.topic_name}
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#888' }}>
+                Generated: {new Date(analysisData.analysis_timestamp).toLocaleString()}
+              </Typography>
+            </Box>
           </Box>
-          <Button 
-            variant="outlined" 
-            size="small"
-            onClick={handleRefresh}
-            startIcon={<RefreshIcon />}
-            sx={{ 
-              color: '#52c41a', 
-              borderColor: '#52c41a',
-              '&:hover': { bgcolor: 'rgba(82, 196, 26, 0.1)', borderColor: '#449413' }
-            }}
-          >
-            Refresh
-          </Button>
+          <Box display="flex" gap={2} alignItems="center">
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel sx={{ color: '#888' }}>Switch Topic</InputLabel>
+              <Select
+                value={selectedSessionId}
+                onChange={handleTopicChange}
+                label="Switch Topic"
+                sx={{
+                  color: '#e8e8f0',
+                  '.MuiOutlinedInput-notchedOutline': { borderColor: '#2d2d44' },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#52c41a' },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#52c41a' },
+                  '.MuiSvgIcon-root': { color: '#888' }
+                }}
+              >
+                {topics.map((topic) => (
+                  <MenuItem key={topic.session_id} value={topic.session_id}>
+                    {topic.topic}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button 
+              variant="outlined" 
+              size="small"
+              onClick={handleRefresh}
+              startIcon={<RefreshIcon />}
+              sx={{ 
+                color: '#52c41a', 
+                borderColor: '#52c41a',
+                '&:hover': { bgcolor: 'rgba(82, 196, 26, 0.1)', borderColor: '#449413' }
+              }}
+            >
+              Refresh
+            </Button>
+          </Box>
         </Box>
 
         {/* Confidence Scores */}

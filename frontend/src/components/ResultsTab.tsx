@@ -24,11 +24,11 @@ import {
 } from '@mui/icons-material';
 
 import { useAnalysis } from '../hooks/useAnalysis';
-import MarketResults from './results/MarketResults';
-import ConsumerResults from './results/ConsumerResults';
-import ProductResults from './results/ProductResults';
-import BrandResults from './results/BrandResults';
-import ExperienceResults from './results/ExperienceResults';
+import MarketResults from './Results/MarketResults';
+import ConsumerResults from './Results/ConsumerResults';
+import ProductResults from './Results/ProductResults';
+import BrandResults from './Results/BrandResults';
+import ExperienceResults from './Results/ExperienceResults';
 
 interface ResultsTabProps {
   sessionId: string;

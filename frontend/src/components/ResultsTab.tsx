@@ -358,6 +358,69 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ sessionId: initialSessionId }) 
     );
   }
 
+  // Check if analysis has actual data or is just empty defaults
+  const hasRealData = analysisData && (
+    (analysisData.market?.opportunities?.length > 0) ||
+    (analysisData.consumer?.challenges?.length > 0) ||
+    (analysisData.product?.product_features?.length > 0) ||
+    (analysisData.brand?.brand_opportunities?.length > 0) ||
+    (analysisData.experience?.pain_points?.length > 0)
+  );
+
+  if (!hasRealData) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert 
+          severity="warning" 
+          sx={{ bgcolor: '#2d2416', color: '#fa8c16', border: '1px solid #fa8c16', mb: 3 }}
+        >
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            📊 No Analysis Results Available
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            This topic hasn't been scored yet. The Results tab displays detailed analysis from scored topics.
+          </Typography>
+          <Typography variant="body2" component="div">
+            <strong>To view results:</strong>
+            <ol style={{ marginTop: '8px', marginBottom: 0 }}>
+              <li>Go to the <strong>Scoring</strong> tab</li>
+              <li>Find this topic in the list</li>
+              <li>Click <strong>"Start Scoring"</strong> to run v2.0 Strategic Analysis</li>
+              <li>Wait for scoring to complete (15-20 minutes for comprehensive analysis)</li>
+              <li>Return to this tab to view the detailed results</li>
+            </ol>
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 2, fontStyle: 'italic' }}>
+            💡 <strong>Note:</strong> Results are generated from the Scoring analysis, not from raw content. 
+            Make sure the topic has been scored before viewing results here.
+          </Typography>
+        </Alert>
+        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+          <Button 
+            variant="outlined"
+            onClick={handleBackToList}
+            startIcon={<ListIcon />}
+            sx={{ 
+              color: '#888', 
+              borderColor: '#2d2d44',
+              '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.05)', borderColor: '#52c41a', color: '#52c41a' }
+            }}
+          >
+            Back to Topics
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleRefresh}
+            startIcon={<RefreshIcon />}
+            sx={{ bgcolor: '#52c41a', '&:hover': { bgcolor: '#449413' } }}
+          >
+            Try Refresh
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ width: '100%', bgcolor: '#0a0a14', minHeight: '600px' }}>
       {/* Header */}

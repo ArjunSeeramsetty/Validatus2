@@ -30,49 +30,53 @@ class ResultsAnalysisEngine:
         self.gemini_client = GeminiClient()
     
     async def generate_complete_analysis(self, session_id: str) -> CompleteAnalysisResult:
-        """Generate comprehensive analysis across all dimensions"""
+        """
+        Fetch and format comprehensive analysis results from v2.0 Scoring
+        NOTE: This fetches EXISTING scored results, not generating new analysis
+        """
         
-        logger.info(f"Starting complete analysis generation for session {session_id}")
+        logger.info(f"Fetching scored analysis results for session {session_id}")
         
         try:
             # Get topic information
             topic_info = await self._get_topic_info(session_id)
             
-            # Get scraped content for analysis
-            content_data = await self._get_content_data(session_id)
+            # Fetch existing v2.0 analysis results from Scoring tab
+            v2_results = await self._get_v2_analysis_results(session_id)
             
-            # Run all analysis dimensions in parallel
-            market_task = self._analyze_market_dimension(session_id, topic_info, content_data)
-            consumer_task = self._analyze_consumer_dimension(session_id, topic_info, content_data)
-            product_task = self._analyze_product_dimension(session_id, topic_info, content_data)
-            brand_task = self._analyze_brand_dimension(session_id, topic_info, content_data)
-            experience_task = self._analyze_experience_dimension(session_id, topic_info, content_data)
+            if not v2_results:
+                logger.warning(f"No v2.0 analysis results found for {session_id}. Topic may not be scored yet.")
+                # Return empty structure - frontend will show "no data" message
+                return CompleteAnalysisResult(
+                    session_id=session_id,
+                    topic_name=topic_info.get('topic', 'Unknown'),
+                    analysis_timestamp=datetime.utcnow(),
+                    business_case={},
+                    market=MarketAnalysisData(),
+                    consumer=ConsumerAnalysisData(),
+                    product=ProductAnalysisData(),
+                    brand=BrandAnalysisData(),
+                    experience=ExperienceAnalysisData(),
+                    confidence_scores={}
+                )
             
-            results = await asyncio.gather(
-                market_task,
-                consumer_task,
-                product_task,
-                brand_task,
-                experience_task,
-                return_exceptions=True
-            )
+            # Transform v2.0 results into Results tab format
+            market_analysis = await self._transform_to_market_analysis(v2_results)
+            consumer_analysis = await self._transform_to_consumer_analysis(v2_results)
+            product_analysis = await self._transform_to_product_analysis(v2_results)
+            brand_analysis = await self._transform_to_brand_analysis(v2_results)
+            experience_analysis = await self._transform_to_experience_analysis(v2_results)
             
-            market_analysis = results[0] if not isinstance(results[0], Exception) else MarketAnalysisData()
-            consumer_analysis = results[1] if not isinstance(results[1], Exception) else ConsumerAnalysisData()
-            product_analysis = results[2] if not isinstance(results[2], Exception) else ProductAnalysisData()
-            brand_analysis = results[3] if not isinstance(results[3], Exception) else BrandAnalysisData()
-            experience_analysis = results[4] if not isinstance(results[4], Exception) else ExperienceAnalysisData()
+            # Extract business case from full results
+            business_case = v2_results.get('full_results', {})
             
-            # Get existing business case if available
-            business_case = await self._get_business_case(session_id)
-            
-            # Calculate confidence scores
-            confidence_scores = self._calculate_confidence_scores(content_data, results)
+            # Extract confidence scores from v2 results
+            confidence_scores = self._extract_confidence_scores(v2_results)
             
             return CompleteAnalysisResult(
                 session_id=session_id,
                 topic_name=topic_info.get('topic', 'Unknown'),
-                analysis_timestamp=datetime.utcnow(),
+                analysis_timestamp=v2_results.get('updated_at', datetime.utcnow()),
                 business_case=business_case,
                 market=market_analysis,
                 consumer=consumer_analysis,
@@ -83,7 +87,7 @@ class ResultsAnalysisEngine:
             )
             
         except Exception as e:
-            logger.error(f"Failed to generate complete analysis for {session_id}: {e}", exc_info=True)
+            logger.error(f"Failed to fetch analysis results for {session_id}: {e}", exc_info=True)
             raise
     
     async def _get_topic_info(self, session_id: str) -> Dict[str, Any]:
@@ -596,6 +600,205 @@ Return ONLY valid JSON without any additional text or markdown formatting.
         }
         
         return confidence
+    
+    # ============================================================================
+    # NEW METHODS: Fetch and transform v2.0 Scoring results
+    # ============================================================================
+    
+    async def _get_v2_analysis_results(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch existing v2.0 analysis results from Scoring tab"""
+        try:
+            connection = await self.db_manager.get_connection()
+            query = """
+            SELECT 
+                session_id,
+                overall_score,
+                segment_scores,
+                factor_scores,
+                layer_scores,
+                full_results,
+                analysis_type,
+                created_at,
+                updated_at
+            FROM v2_analysis_results
+            WHERE session_id = $1
+            ORDER BY updated_at DESC
+            LIMIT 1
+            """
+            row = await connection.fetchrow(query, session_id)
+            
+            if row:
+                result = dict(row)
+                # Parse JSON fields if they're strings
+                for field in ['segment_scores', 'factor_scores', 'layer_scores', 'full_results']:
+                    if result.get(field) and isinstance(result[field], str):
+                        result[field] = json.loads(result[field])
+                
+                logger.info(f"Found v2.0 analysis results for {session_id}")
+                return result
+            
+            logger.warning(f"No v2.0 analysis results found for {session_id}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Failed to fetch v2.0 analysis results for {session_id}: {e}", exc_info=True)
+            return None
+    
+    async def _transform_to_market_analysis(self, v2_results: Dict[str, Any]) -> MarketAnalysisData:
+        """Transform v2.0 scoring results into Market Analysis format"""
+        try:
+            full_results = v2_results.get('full_results', {})
+            segment_scores = v2_results.get('segment_scores', {})
+            factor_scores = v2_results.get('factor_scores', {})
+            
+            # Extract market-related segments and factors
+            market_segment = segment_scores.get('Market Intelligence', {})
+            
+            return MarketAnalysisData(
+                competitor_analysis=full_results.get('competitor_analysis', {}),
+                opportunities=full_results.get('market_opportunities', []),
+                opportunities_rationale=full_results.get('opportunities_rationale', ''),
+                market_share=full_results.get('market_share', {}),
+                pricing_switching=full_results.get('pricing_switching', {}),
+                regulation_tariffs=full_results.get('regulation_tariffs', {}),
+                growth_demand=full_results.get('growth_demand', {}),
+                market_fit={
+                    "overall_score": market_segment.get('score', 0.0),
+                    "adoption_rate": factor_scores.get('Market Size', 0.0),
+                    "market_readiness": factor_scores.get('Growth Potential', 0.0)
+                }
+            )
+        except Exception as e:
+            logger.error(f"Failed to transform market analysis: {e}")
+            return MarketAnalysisData()
+    
+    async def _transform_to_consumer_analysis(self, v2_results: Dict[str, Any]) -> ConsumerAnalysisData:
+        """Transform v2.0 scoring results into Consumer Analysis format"""
+        try:
+            full_results = v2_results.get('full_results', {})
+            segment_scores = v2_results.get('segment_scores', {})
+            factor_scores = v2_results.get('factor_scores', {})
+            
+            # Extract consumer-related data
+            consumer_segment = segment_scores.get('Consumer Insights', {})
+            
+            return ConsumerAnalysisData(
+                recommendations=full_results.get('consumer_recommendations', []),
+                challenges=full_results.get('consumer_challenges', []),
+                top_motivators=full_results.get('top_motivators', []),
+                relevant_personas=full_results.get('relevant_personas', []),
+                target_audience=full_results.get('target_audience', {}),
+                consumer_fit={
+                    "overall_score": consumer_segment.get('score', 0.0),
+                    "price_sensitivity": factor_scores.get('Purchase Behavior', 0.0),
+                    "adoption_likelihood": factor_scores.get('Consumer Motivation', 0.0)
+                },
+                additional_recommendations=full_results.get('additional_consumer_insights', [])
+            )
+        except Exception as e:
+            logger.error(f"Failed to transform consumer analysis: {e}")
+            return ConsumerAnalysisData()
+    
+    async def _transform_to_product_analysis(self, v2_results: Dict[str, Any]) -> ProductAnalysisData:
+        """Transform v2.0 scoring results into Product Analysis format"""
+        try:
+            full_results = v2_results.get('full_results', {})
+            segment_scores = v2_results.get('segment_scores', {})
+            factor_scores = v2_results.get('factor_scores', {})
+            
+            # Extract product-related data
+            product_segment = segment_scores.get('Product Strategy', {})
+            
+            return ProductAnalysisData(
+                product_features=full_results.get('product_features', []),
+                competitive_positioning=full_results.get('competitive_positioning', {}),
+                innovation_opportunities=full_results.get('innovation_opportunities', []),
+                technical_specifications=full_results.get('technical_specifications', {}),
+                product_roadmap=full_results.get('product_roadmap', []),
+                product_fit={
+                    "overall_score": product_segment.get('score', 0.0),
+                    "feature_completeness": factor_scores.get('Product-Market Fit', 0.0),
+                    "market_readiness": factor_scores.get('Feature Differentiation', 0.0)
+                }
+            )
+        except Exception as e:
+            logger.error(f"Failed to transform product analysis: {e}")
+            return ProductAnalysisData()
+    
+    async def _transform_to_brand_analysis(self, v2_results: Dict[str, Any]) -> BrandAnalysisData:
+        """Transform v2.0 scoring results into Brand Analysis format"""
+        try:
+            full_results = v2_results.get('full_results', {})
+            segment_scores = v2_results.get('segment_scores', {})
+            factor_scores = v2_results.get('factor_scores', {})
+            
+            # Extract brand-related data
+            brand_segment = segment_scores.get('Brand Positioning', {})
+            
+            return BrandAnalysisData(
+                brand_positioning=full_results.get('brand_positioning', {}),
+                brand_perception=full_results.get('brand_perception', {}),
+                competitor_brands=full_results.get('competitor_brands', []),
+                brand_opportunities=full_results.get('brand_opportunities', []),
+                messaging_strategy=full_results.get('messaging_strategy', {}),
+                brand_fit={
+                    "overall_score": brand_segment.get('score', 0.0),
+                    "market_perception": factor_scores.get('Brand Strength', 0.0),
+                    "differentiation": factor_scores.get('Brand Perception', 0.0)
+                }
+            )
+        except Exception as e:
+            logger.error(f"Failed to transform brand analysis: {e}")
+            return BrandAnalysisData()
+    
+    async def _transform_to_experience_analysis(self, v2_results: Dict[str, Any]) -> ExperienceAnalysisData:
+        """Transform v2.0 scoring results into Experience Analysis format"""
+        try:
+            full_results = v2_results.get('full_results', {})
+            segment_scores = v2_results.get('segment_scores', {})
+            factor_scores = v2_results.get('factor_scores', {})
+            
+            # Extract experience-related data
+            experience_segment = segment_scores.get('Experience Design', {})
+            
+            return ExperienceAnalysisData(
+                user_journey=full_results.get('user_journey', []),
+                touchpoints=full_results.get('touchpoints', []),
+                pain_points=full_results.get('experience_pain_points', []),
+                experience_metrics=full_results.get('experience_metrics', {}),
+                improvement_recommendations=full_results.get('improvement_recommendations', []),
+                experience_fit={
+                    "overall_score": experience_segment.get('score', 0.0),
+                    "journey_optimization": factor_scores.get('User Experience', 0.0),
+                    "touchpoint_effectiveness": factor_scores.get('Customer Journey', 0.0)
+                }
+            )
+        except Exception as e:
+            logger.error(f"Failed to transform experience analysis: {e}")
+            return ExperienceAnalysisData()
+    
+    def _extract_confidence_scores(self, v2_results: Dict[str, Any]) -> Dict[str, float]:
+        """Extract confidence scores from v2.0 results"""
+        try:
+            segment_scores = v2_results.get('segment_scores', {})
+            
+            # Use segment scores as confidence indicators
+            return {
+                "market": segment_scores.get('Market Intelligence', {}).get('confidence', 0.8),
+                "consumer": segment_scores.get('Consumer Insights', {}).get('confidence', 0.8),
+                "product": segment_scores.get('Product Strategy', {}).get('confidence', 0.8),
+                "brand": segment_scores.get('Brand Positioning', {}).get('confidence', 0.8),
+                "experience": segment_scores.get('Experience Design', {}).get('confidence', 0.8),
+            }
+        except Exception as e:
+            logger.error(f"Failed to extract confidence scores: {e}")
+            return {
+                "market": 0.7,
+                "consumer": 0.7,
+                "product": 0.7,
+                "brand": 0.7,
+                "experience": 0.7,
+            }
 
 
 # Global instance

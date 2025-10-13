@@ -646,10 +646,12 @@ Return ONLY valid JSON without any additional text or markdown formatting.
                     result['segment_scores'] = {}
                     for seg in segment_analyses:
                         seg_name = seg.get('segment_name', seg.get('segment_id', ''))
+                        seg_score = seg.get('overall_score', seg.get('overall_segment_score', 0.0))
                         result['segment_scores'][seg_name] = {
                             # Use 'overall_score' (API field name), fallback to 'overall_segment_score' (database field name)
-                            'score': seg.get('overall_score', seg.get('overall_segment_score', 0.0)),
-                            'confidence': seg.get('confidence', 0.8),
+                            'score': seg_score,
+                            # Use segment score as confidence if confidence field doesn't exist
+                            'confidence': seg.get('confidence', seg_score if seg_score > 0 else 0.75),
                             'insights': seg.get('key_insights', []),
                             'opportunities': seg.get('opportunities', []),
                             'recommendations': seg.get('recommendations', [])
@@ -1484,17 +1486,28 @@ Be specific, evidence-based, and provide actionable strategic insights. Referenc
             }
     
     def _extract_confidence_scores(self, v2_results: Dict[str, Any]) -> Dict[str, float]:
-        """Extract confidence scores from v2.0 results"""
+        """
+        Extract confidence scores from v2.0 results
+        Use segment scores as confidence since they represent the quality of the analysis
+        """
         try:
             segment_scores = v2_results.get('segment_scores', {})
             
-            # Use segment scores as confidence indicators
+            # Get segment scores and use them as confidence indicators
+            # If segment has a score, we're confident in that analysis
+            market_seg = segment_scores.get('Market_Intelligence', segment_scores.get('Market Intelligence', segment_scores.get('S3', {})))
+            consumer_seg = segment_scores.get('Consumer_Intelligence', segment_scores.get('Consumer Insights', segment_scores.get('S2', {})))
+            product_seg = segment_scores.get('Product_Intelligence', segment_scores.get('Product Strategy', segment_scores.get('S1', {})))
+            brand_seg = segment_scores.get('Brand_Intelligence', segment_scores.get('Brand Positioning', segment_scores.get('S4', {})))
+            experience_seg = segment_scores.get('Experience_Intelligence', segment_scores.get('Experience Design', segment_scores.get('S5', {})))
+            
             return {
-                "market": segment_scores.get('Market_Intelligence', segment_scores.get('Market Intelligence', {})).get('confidence', 0.8),
-                "consumer": segment_scores.get('Consumer_Intelligence', segment_scores.get('Consumer Insights', {})).get('confidence', 0.8),
-                "product": segment_scores.get('Product_Intelligence', segment_scores.get('Product Strategy', {})).get('confidence', 0.8),
-                "brand": segment_scores.get('Brand_Intelligence', segment_scores.get('Brand Positioning', {})).get('confidence', 0.8),
-                "experience": segment_scores.get('Experience_Intelligence', segment_scores.get('Experience Design', {})).get('confidence', 0.8),
+                # Use actual segment score as confidence (segment score indicates analysis quality)
+                "market": market_seg.get('confidence', market_seg.get('score', 0.75)),
+                "consumer": consumer_seg.get('confidence', consumer_seg.get('score', 0.75)),
+                "product": product_seg.get('confidence', product_seg.get('score', 0.75)),
+                "brand": brand_seg.get('confidence', brand_seg.get('score', 0.75)),
+                "experience": experience_seg.get('confidence', experience_seg.get('score', 0.75)),
             }
         except Exception as e:
             logger.error(f"Failed to extract confidence scores: {e}")

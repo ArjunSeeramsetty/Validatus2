@@ -593,52 +593,6 @@ const HomePage: React.FC = () => {
             </Box>
           </motion.div>
         )}
-
-
-        {/* Quick Stats */}
-        <Box sx={{ mt: 6, textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ color: '#e8e8f0', mb: 3 }}>
-            Platform Overview
-          </Typography>
-          <Grid container spacing={3} justifyContent="center">
-            <Grid item xs={12} sm={4}>
-              <Card sx={{ backgroundColor: '#1a1a35', border: '1px solid #3d3d56' }}>
-                <CardContent>
-                  <Typography variant="h4" sx={{ color: '#1890ff', fontWeight: 600 }}>
-                    2
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
-                    Main Sections
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Card sx={{ backgroundColor: '#1a1a35', border: '1px solid #3d3d56' }}>
-                <CardContent>
-                  <Typography variant="h4" sx={{ color: '#52c41a', fontWeight: 600 }}>
-                    1
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
-                    Market Analysis
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Card sx={{ backgroundColor: '#1a1a35', border: '1px solid #3d3d56' }}>
-                <CardContent>
-                  <Typography variant="h4" sx={{ color: '#fa8c16', fontWeight: 600 }}>
-                    100%
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#b8b8cc' }}>
-                    Strategic Coverage
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </Box>
       </motion.div>
     </Box>
   );

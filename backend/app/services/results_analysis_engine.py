@@ -612,12 +612,14 @@ Return ONLY valid JSON without any additional text or markdown formatting.
             query = """
             SELECT 
                 session_id,
-                overall_score,
-                segment_scores,
-                factor_scores,
-                layer_scores,
-                full_results,
                 analysis_type,
+                overall_business_case_score,
+                overall_confidence,
+                layers_analyzed,
+                factors_calculated,
+                segments_evaluated,
+                analysis_summary,
+                full_results,
                 created_at,
                 updated_at
             FROM v2_analysis_results
@@ -629,12 +631,27 @@ Return ONLY valid JSON without any additional text or markdown formatting.
             
             if row:
                 result = dict(row)
+                
                 # Parse JSON fields if they're strings
-                for field in ['segment_scores', 'factor_scores', 'layer_scores', 'full_results']:
+                for field in ['analysis_summary', 'full_results']:
                     if result.get(field) and isinstance(result[field], str):
                         result[field] = json.loads(result[field])
                 
+                # Extract segment_scores, factor_scores, layer_scores from full_results
+                full_results = result.get('full_results', {})
+                if full_results:
+                    # These are nested inside full_results
+                    result['segment_scores'] = full_results.get('segments', {})
+                    result['factor_scores'] = full_results.get('factors', {})
+                    result['layer_scores'] = full_results.get('layers', {})
+                    
+                    # Also add overall_score for compatibility
+                    result['overall_score'] = result.get('overall_business_case_score', 0.0)
+                
                 logger.info(f"Found v2.0 analysis results for {session_id}")
+                logger.info(f"  Analysis type: {result.get('analysis_type')}")
+                logger.info(f"  Layers analyzed: {result.get('layers_analyzed')}")
+                logger.info(f"  Overall score: {result.get('overall_business_case_score')}")
                 return result
             
             logger.warning(f"No v2.0 analysis results found for {session_id}")

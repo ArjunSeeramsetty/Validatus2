@@ -723,12 +723,12 @@ Return ONLY valid JSON without any additional text or markdown formatting.
                 }
             )
             
-            # Build competitor analysis from insights
+            # Build competitor analysis from insights (NO hardcoded values)
             competitor_analysis = {}
             for i, insight in enumerate(market_insights.get('competitor_insights', [])[:5]):
                 competitor_analysis[f"Competitor {i+1}"] = {
-                    "description": insight,
-                    "market_share": 0.15 + (i * 0.03)
+                    "description": insight
+                    # Note: market_share removed - only include if extracted from actual content
                 }
             
             # Build market share from factor data (use actual calculated factor values)
@@ -842,13 +842,13 @@ Return ONLY valid JSON without any additional text or markdown formatting.
             product_opportunities = product_segment.get('opportunities', [])
             product_recommendations = product_segment.get('recommendations', [])
             
-            # Build product features from insights
+            # Build product features from insights (NO hardcoded importance values)
             product_features = [
                 {
                     "name": insight[:40],
                     "description": insight,
-                    "importance": 0.8,
                     "category": "Core"
+                    # Note: importance removed - only include if calculated from actual factor scores
                 }
                 for insight in product_insights[:8]
             ]
@@ -892,18 +892,20 @@ Return ONLY valid JSON without any additional text or markdown formatting.
             brand_opportunities = brand_segment.get('opportunities', [])
             brand_recommendations = brand_segment.get('recommendations', [])
             
-            # Build brand positioning metrics from insights
+            # Build brand positioning from insights (NO hardcoded metric values)
+            # Use actual insights as positioning attributes without fake scores
             positioning_metrics = {}
             perception_metrics = {}
             for i, insight in enumerate(brand_insights[:6]):
                 if i < 4:
-                    positioning_metrics[f"Attribute {i+1}"] = 0.7 + (i * 0.05)
+                    positioning_metrics[f"Attribute {i+1}"] = insight[:80]  # Use actual insight text
                 else:
-                    perception_metrics[f"Perception {i-3}"] = 0.75 + ((i-4) * 0.03)
+                    perception_metrics[f"Perception {i-3}"] = insight[:80]  # Use actual insight text
             
-            # Build competitor brands from insights
+            # Build competitor brands from insights (NO hardcoded strength values)
             competitor_brands = [
-                {"name": f"Competitor {i+1}", "positioning": insight, "strength": 0.7}
+                {"name": f"Competitor {i+1}", "positioning": insight}
+                # Note: strength removed - only include if extracted from actual scoring data
                 for i, insight in enumerate(brand_insights[:3])
             ]
             
@@ -954,13 +956,13 @@ Return ONLY valid JSON without any additional text or markdown formatting.
                 for i, insight in enumerate(experience_insights[:4])
             ]
             
-            # Build touchpoints
+            # Build touchpoints (NO hardcoded metric values)
             touchpoints = [
                 {
                     "name": f"Touchpoint {i+1}",
-                    "importance": 0.85,
-                    "current_quality": 0.70,
-                    "improvement_potential": 0.85
+                    "description": experience_insights[i] if i < len(experience_insights) else "Analysis pending"
+                    # Note: importance, current_quality, improvement_potential removed
+                    # Only include metrics if derived from actual data or factor scores
                 }
                 for i in range(min(5, len(experience_insights)))
             ]

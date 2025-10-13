@@ -659,7 +659,8 @@ Return ONLY valid JSON without any additional text or markdown formatting.
                     result['factor_scores'] = {}
                     for factor in factor_calculations:
                         factor_name = factor.get('factor_name', factor.get('factor_id', ''))
-                        result['factor_scores'][factor_name] = factor.get('calculated_value', 0.0)
+                        # Use 'value' field (actual field name in scoring results)
+                        result['factor_scores'][factor_name] = factor.get('value', factor.get('calculated_value', 0.0))
                     
                     # layer_scores is a list, convert to dict by layer ID
                     layer_scores = full_results.get('layer_scores', [])
@@ -679,6 +680,12 @@ Return ONLY valid JSON without any additional text or markdown formatting.
                 logger.info(f"  Analysis type: {result.get('analysis_type')}")
                 logger.info(f"  Layers analyzed: {result.get('layers_analyzed')}")
                 logger.info(f"  Overall score: {result.get('overall_business_case_score')}")
+                logger.info(f"  Factor scores count: {len(result.get('factor_scores', {}))}")
+                logger.info(f"  Segment scores count: {len(result.get('segment_scores', {}))}")
+                if result.get('segment_scores'):
+                    logger.info(f"  Segment names: {list(result['segment_scores'].keys())[:5]}")
+                if result.get('factor_scores'):
+                    logger.info(f"  Sample factors: {list(result['factor_scores'].items())[:3]}")
                 return result
             
             logger.warning(f"No v2.0 analysis results found for {session_id}")
@@ -696,8 +703,8 @@ Return ONLY valid JSON without any additional text or markdown formatting.
             factor_scores = v2_results.get('factor_scores', {})
             session_id = v2_results.get('session_id', '')
             
-            # Extract market-related segment (Market Intelligence = S3)
-            market_segment = segment_scores.get('Market Intelligence', segment_scores.get('S3', {}))
+            # Extract market-related segment (Market_Intelligence = S3)
+            market_segment = segment_scores.get('Market_Intelligence', segment_scores.get('Market Intelligence', segment_scores.get('S3', {})))
             
             # Generate expert insights using LLM with RAG
             market_insights = await self._generate_segment_insights(
@@ -721,12 +728,33 @@ Return ONLY valid JSON without any additional text or markdown formatting.
                     "market_share": 0.15 + (i * 0.03)
                 }
             
-            # Build market share from factor data
-            market_share = {
-                "Current Market": factor_scores.get('Market Size', 0.0),
-                "Addressable Market": factor_scores.get('Growth Potential', 0.0),
-                "Target Segment": factor_scores.get('Target Audience Fit', 0.0)
-            }
+            # Build market share from factor data (use actual calculated factor values)
+            # Map to friendly names, using actual factor scores from database
+            market_share = {}
+            
+            # Try to find relevant market factors from the scored data
+            for factor_name, score in factor_scores.items():
+                if 'market' in factor_name.lower() or 'size' in factor_name.lower():
+                    market_share["Current Market"] = score
+                    break
+            
+            for factor_name, score in factor_scores.items():
+                if 'growth' in factor_name.lower() or 'expansion' in factor_name.lower():
+                    market_share["Addressable Market"] = score
+                    break
+            
+            for factor_name, score in factor_scores.items():
+                if 'target' in factor_name.lower() or 'audience' in factor_name.lower() or 'segment' in factor_name.lower():
+                    market_share["Target Segment"] = score
+                    break
+            
+            # Fallback: use first 3 factors if specific ones not found
+            if not market_share:
+                factor_items = list(factor_scores.items())[:3]
+                for i, (factor_name, score) in enumerate(factor_items):
+                    market_share[f"Factor {i+1}"] = score
+            
+            logger.info(f"Market share factors: {market_share}")
             
             return MarketAnalysisData(
                 competitor_analysis=competitor_analysis,
@@ -745,9 +773,9 @@ Return ONLY valid JSON without any additional text or markdown formatting.
                     "demand_drivers": market_insights.get('growth_drivers', [])[:3]
                 },
                 market_fit={
-                    "overall_score": market_segment.get('score', 0.0),
-                    "adoption_rate": factor_scores.get('Market Size', 0.0),
-                    "market_readiness": factor_scores.get('Growth Potential', 0.0)
+                    "overall_score": market_segment.get('score', 0.0),  # Actual segment score from v2.0 analysis
+                    "adoption_rate": market_share.get("Current Market", market_segment.get('score', 0.0)),
+                    "market_readiness": market_share.get("Addressable Market", market_segment.get('score', 0.0))
                 }
             )
         except Exception as e:
@@ -762,8 +790,8 @@ Return ONLY valid JSON without any additional text or markdown formatting.
             factor_scores = v2_results.get('factor_scores', {})
             session_id = v2_results.get('session_id', '')
             
-            # Extract consumer-related segment (Consumer Insights = S2)
-            consumer_segment = segment_scores.get('Consumer Insights', segment_scores.get('S2', {}))
+            # Extract consumer-related segment (Consumer_Intelligence = S2)
+            consumer_segment = segment_scores.get('Consumer_Intelligence', segment_scores.get('Consumer Insights', segment_scores.get('S2', {})))
             
             # Generate expert insights using LLM with RAG
             consumer_insights = await self._generate_consumer_insights(
@@ -785,9 +813,10 @@ Return ONLY valid JSON without any additional text or markdown formatting.
                 relevant_personas=consumer_insights.get('personas', [])[:3],
                 target_audience=consumer_insights.get('target_audience', {}),
                 consumer_fit={
-                    "overall_score": consumer_segment.get('score', 0.0),
-                    "price_sensitivity": factor_scores.get('Purchase Behavior', 0.0),
-                    "adoption_likelihood": factor_scores.get('Consumer Motivation', 0.0)
+                    "overall_score": consumer_segment.get('score', 0.0),  # Actual segment score from v2.0 analysis
+                    # Use actual factor scores - search for relevant consumer factors
+                    "price_sensitivity": next((score for name, score in factor_scores.items() if 'price' in name.lower() or 'purchase' in name.lower()), consumer_segment.get('score', 0.0)),
+                    "adoption_likelihood": next((score for name, score in factor_scores.items() if 'adoption' in name.lower() or 'motivation' in name.lower()), consumer_segment.get('score', 0.0))
                 },
                 additional_recommendations=consumer_insights.get('additional_recommendations', [])
             )
@@ -802,8 +831,8 @@ Return ONLY valid JSON without any additional text or markdown formatting.
             segment_scores = v2_results.get('segment_scores', {})
             factor_scores = v2_results.get('factor_scores', {})
             
-            # Extract product-related segment (Product Strategy = S1)
-            product_segment = segment_scores.get('Product Strategy', segment_scores.get('S1', {}))
+            # Extract product-related segment (Product_Intelligence = S1)
+            product_segment = segment_scores.get('Product_Intelligence', segment_scores.get('Product Strategy', segment_scores.get('S1', {})))
             
             # Get product-specific data from segment
             product_insights = product_segment.get('insights', [])
@@ -836,9 +865,9 @@ Return ONLY valid JSON without any additional text or markdown formatting.
                     for rec in product_recommendations[:3]
                 ],
                 product_fit={
-                    "overall_score": product_segment.get('score', 0.0),
-                    "feature_completeness": factor_scores.get('Product-Market Fit', 0.0),
-                    "market_readiness": factor_scores.get('Feature Differentiation', 0.0)
+                    "overall_score": product_segment.get('score', 0.0),  # Actual segment score from v2.0 analysis
+                    "feature_completeness": next((score for name, score in factor_scores.items() if 'product' in name.lower() or 'feature' in name.lower()), product_segment.get('score', 0.0)),
+                    "market_readiness": next((score for name, score in factor_scores.items() if 'readiness' in name.lower() or 'timing' in name.lower()), product_segment.get('score', 0.0))
                 }
             )
         except Exception as e:
@@ -852,8 +881,8 @@ Return ONLY valid JSON without any additional text or markdown formatting.
             segment_scores = v2_results.get('segment_scores', {})
             factor_scores = v2_results.get('factor_scores', {})
             
-            # Extract brand-related segment (Brand Positioning = S4)
-            brand_segment = segment_scores.get('Brand Positioning', segment_scores.get('S4', {}))
+            # Extract brand-related segment (Brand_Intelligence = S4)
+            brand_segment = segment_scores.get('Brand_Intelligence', segment_scores.get('Brand Positioning', segment_scores.get('S4', {})))
             
             # Get brand-specific data from segment
             brand_insights = brand_segment.get('insights', [])
@@ -885,9 +914,9 @@ Return ONLY valid JSON without any additional text or markdown formatting.
                     "tone": brand_insights[0] if brand_insights else "Pending analysis"
                 },
                 brand_fit={
-                    "overall_score": brand_segment.get('score', 0.0),
-                    "market_perception": factor_scores.get('Brand Strength', 0.0),
-                    "differentiation": factor_scores.get('Brand Perception', 0.0)
+                    "overall_score": brand_segment.get('score', 0.0),  # Actual segment score from v2.0 analysis
+                    "market_perception": next((score for name, score in factor_scores.items() if 'brand' in name.lower() or 'perception' in name.lower()), brand_segment.get('score', 0.0)),
+                    "differentiation": next((score for name, score in factor_scores.items() if 'differenti' in name.lower() or 'unique' in name.lower()), brand_segment.get('score', 0.0))
                 }
             )
         except Exception as e:
@@ -901,8 +930,8 @@ Return ONLY valid JSON without any additional text or markdown formatting.
             segment_scores = v2_results.get('segment_scores', {})
             factor_scores = v2_results.get('factor_scores', {})
             
-            # Extract experience-related segment (Experience Design = S5)
-            experience_segment = segment_scores.get('Experience Design', segment_scores.get('S5', {}))
+            # Extract experience-related segment (Experience_Intelligence = S5)
+            experience_segment = segment_scores.get('Experience_Intelligence', segment_scores.get('Experience Design', segment_scores.get('S5', {})))
             
             # Get experience-specific data from segment
             experience_insights = experience_segment.get('insights', [])
@@ -933,13 +962,21 @@ Return ONLY valid JSON without any additional text or markdown formatting.
                 for i in range(min(5, len(experience_insights)))
             ]
             
-            # Build experience metrics
+            # Build experience metrics from actual factor scores
             experience_metrics = {
-                "Ease of Use": factor_scores.get('User Experience', 0.0),
-                "Customer Journey": factor_scores.get('Customer Journey', 0.0),
-                "Overall Satisfaction": experience_segment.get('score', 0.0),
-                "Engagement": 0.75
+                "Overall Satisfaction": experience_segment.get('score', 0.0),  # Actual segment score
             }
+            
+            # Add relevant factor scores dynamically
+            for factor_name, score in factor_scores.items():
+                if 'experience' in factor_name.lower():
+                    experience_metrics["User Experience"] = score
+                elif 'journey' in factor_name.lower():
+                    experience_metrics["Customer Journey"] = score
+                elif 'engagement' in factor_name.lower():
+                    experience_metrics["Engagement"] = score
+                elif 'satisfaction' in factor_name.lower():
+                    experience_metrics["Satisfaction"] = score
             
             return ExperienceAnalysisData(
                 user_journey=user_journey,
@@ -948,9 +985,9 @@ Return ONLY valid JSON without any additional text or markdown formatting.
                 experience_metrics=experience_metrics,
                 improvement_recommendations=experience_recommendations,
                 experience_fit={
-                    "overall_score": experience_segment.get('score', 0.0),
-                    "journey_optimization": factor_scores.get('User Experience', 0.0),
-                    "touchpoint_effectiveness": factor_scores.get('Customer Journey', 0.0)
+                    "overall_score": experience_segment.get('score', 0.0),  # Actual segment score from v2.0 analysis
+                    "journey_optimization": next((score for name, score in factor_scores.items() if 'experience' in name.lower() or 'journey' in name.lower()), experience_segment.get('score', 0.0)),
+                    "touchpoint_effectiveness": next((score for name, score in factor_scores.items() if 'touchpoint' in name.lower() or 'engagement' in name.lower()), experience_segment.get('score', 0.0))
                 }
             )
         except Exception as e:
@@ -1452,11 +1489,11 @@ Be specific, evidence-based, and provide actionable strategic insights. Referenc
             
             # Use segment scores as confidence indicators
             return {
-                "market": segment_scores.get('Market Intelligence', {}).get('confidence', 0.8),
-                "consumer": segment_scores.get('Consumer Insights', {}).get('confidence', 0.8),
-                "product": segment_scores.get('Product Strategy', {}).get('confidence', 0.8),
-                "brand": segment_scores.get('Brand Positioning', {}).get('confidence', 0.8),
-                "experience": segment_scores.get('Experience Design', {}).get('confidence', 0.8),
+                "market": segment_scores.get('Market_Intelligence', segment_scores.get('Market Intelligence', {})).get('confidence', 0.8),
+                "consumer": segment_scores.get('Consumer_Intelligence', segment_scores.get('Consumer Insights', {})).get('confidence', 0.8),
+                "product": segment_scores.get('Product_Intelligence', segment_scores.get('Product Strategy', {})).get('confidence', 0.8),
+                "brand": segment_scores.get('Brand_Intelligence', segment_scores.get('Brand Positioning', {})).get('confidence', 0.8),
+                "experience": segment_scores.get('Experience_Intelligence', segment_scores.get('Experience Design', {})).get('confidence', 0.8),
             }
         except Exception as e:
             logger.error(f"Failed to extract confidence scores: {e}")

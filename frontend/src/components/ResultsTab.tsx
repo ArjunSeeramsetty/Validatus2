@@ -61,9 +61,13 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ sessionId: initialSessionId }) 
   
   const { analysisData, loading, error, fetchCompleteAnalysis, resetAnalysis } = useAnalysis();
 
-  // Load available topics on mount
+  // Load available topics on mount with slight delay to avoid concurrent DB operations
   useEffect(() => {
-    loadTopics();
+    const timer = setTimeout(() => {
+      loadTopics();
+    }, 300); // 300ms delay to let other initial loads complete
+    
+    return () => clearTimeout(timer);
   }, []);
 
   // Load analysis when a topic is selected
@@ -71,9 +75,15 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ sessionId: initialSessionId }) 
     if (selectedSessionId) {
       console.log('Fetching analysis for session:', selectedSessionId);
       setViewMode('details');
-      fetchCompleteAnalysis(selectedSessionId).catch(err => {
-        console.error('Failed to fetch analysis:', err);
-      });
+      
+      // Add delay before fetching to avoid concurrent DB operations
+      const timer = setTimeout(() => {
+        fetchCompleteAnalysis(selectedSessionId).catch(err => {
+          console.error('Failed to fetch analysis:', err);
+        });
+      }, 200);
+      
+      return () => clearTimeout(timer);
     }
     
     return () => {
@@ -84,7 +94,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ sessionId: initialSessionId }) 
     };
   }, [selectedSessionId]);
 
-  const loadTopics = async () => {
+  const loadTopics = async (retryCount = 0) => {
     setLoadingTopics(true);
     setTopicsError(null);
 
@@ -99,9 +109,22 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ sessionId: initialSessionId }) 
         }
       }
     } catch (err: any) {
-      setTopicsError(err.response?.data?.detail || err.message || 'Failed to load topics');
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to load topics';
+      
+      // Check for transient database error and retry
+      if (errorMessage.includes('another operation is in progress') && retryCount < 3) {
+        console.log(`Database busy, retrying in ${(retryCount + 1) * 500}ms... (attempt ${retryCount + 1}/3)`);
+        setTimeout(() => {
+          loadTopics(retryCount + 1);
+        }, (retryCount + 1) * 500); // Exponential backoff: 500ms, 1000ms, 1500ms
+        return;
+      }
+      
+      setTopicsError(errorMessage);
     } finally {
-      setLoadingTopics(false);
+      if (retryCount === 0 || !topicsError) {
+        setLoadingTopics(false);
+      }
     }
   };
 

@@ -75,7 +75,7 @@ export const useAnalysis = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCompleteAnalysis = useCallback(async (sessionId: string) => {
+  const fetchCompleteAnalysis = useCallback(async (sessionId: string, retryCount = 0): Promise<any> => {
     setLoading(true);
     setError(null);
     
@@ -85,11 +85,23 @@ export const useAnalysis = () => {
       return response.data;
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Failed to fetch analysis';
+      
+      // Check for transient database error and retry
+      if (errorMessage.includes('another operation is in progress') && retryCount < 3) {
+        console.log(`Database busy, retrying analysis fetch in ${(retryCount + 1) * 500}ms... (attempt ${retryCount + 1}/3)`);
+        setLoading(false); // Reset loading before retry
+        
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 500));
+        return fetchCompleteAnalysis(sessionId, retryCount + 1);
+      }
+      
       setError(errorMessage);
       console.error('Analysis fetch error:', err);
       throw err;
     } finally {
-      setLoading(false);
+      if (retryCount === 0) {
+        setLoading(false);
+      }
     }
   }, []);
 

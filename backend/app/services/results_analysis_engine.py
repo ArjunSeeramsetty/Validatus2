@@ -647,7 +647,8 @@ Return ONLY valid JSON without any additional text or markdown formatting.
                     for seg in segment_analyses:
                         seg_name = seg.get('segment_name', seg.get('segment_id', ''))
                         result['segment_scores'][seg_name] = {
-                            'score': seg.get('overall_segment_score', 0.0),
+                            # Use 'overall_score' (API field name), fallback to 'overall_segment_score' (database field name)
+                            'score': seg.get('overall_score', seg.get('overall_segment_score', 0.0)),
                             'confidence': seg.get('confidence', 0.8),
                             'insights': seg.get('key_insights', []),
                             'opportunities': seg.get('opportunities', []),

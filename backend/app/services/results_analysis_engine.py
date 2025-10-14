@@ -20,14 +20,48 @@ from app.models.analysis_results import (
 from app.core.database_config import DatabaseManager
 from app.core.gemini_client import GeminiClient
 
+# Import existing sophisticated engines (already implemented in repo)
+try:
+    from app.services.enhanced_analytical_engines import (
+        PDFFormulaEngine,
+        ActionLayerCalculator,
+        FactorInput,
+        PDFAnalysisResult
+    )
+    from app.services.enhanced_analytical_engines.monte_carlo_simulator import MonteCarloSimulator, SimulationParameters
+    ENHANCED_ENGINES_AVAILABLE = True
+except ImportError as e:
+    ENHANCED_ENGINES_AVAILABLE = False
+    logger.warning(f"Enhanced analytical engines not available: {e}")
+
 logger = logging.getLogger(__name__)
 
 class ResultsAnalysisEngine:
-    """Engine for generating comprehensive results analysis"""
+    """
+    Engine for generating comprehensive results analysis
+    Integrates with existing sophisticated engines (pdf_formula_engine, action_layer_calculator)
+    """
     
     def __init__(self):
         self.db_manager = DatabaseManager()
         self.gemini_client = GeminiClient()
+        
+        # Initialize sophisticated engines if available
+        if ENHANCED_ENGINES_AVAILABLE:
+            try:
+                self.pdf_formula_engine = PDFFormulaEngine()
+                self.action_layer_calculator = ActionLayerCalculator()
+                self.monte_carlo_simulator = MonteCarloSimulator(SimulationParameters(iterations=1000))
+                logger.info("✅ Sophisticated analytical engines initialized (F1-F28 formulas, 18 action layers, Monte Carlo)")
+            except Exception as e:
+                logger.warning(f"Could not initialize enhanced engines: {e}")
+                self.pdf_formula_engine = None
+                self.action_layer_calculator = None
+                self.monte_carlo_simulator = None
+        else:
+            self.pdf_formula_engine = None
+            self.action_layer_calculator = None
+            self.monte_carlo_simulator = None
     
     async def generate_complete_analysis(self, session_id: str) -> CompleteAnalysisResult:
         """

@@ -9,8 +9,19 @@ from enum import Enum
 from .pdf_formula_engine import PDFAnalysisResult
 from ...core.feature_flags import FeatureFlags
 from ...core.gcp_config import GCPSettings
-from ...middleware.monitoring import performance_monitor
 from ...core.error_recovery import with_exponential_backoff
+
+# Optional monitoring import (requires google-cloud-monitoring)
+try:
+    from ...middleware.monitoring import performance_monitor
+    MONITORING_AVAILABLE = True
+except ImportError:
+    # Create a no-op decorator when monitoring not available
+    def performance_monitor(operation_name):
+        def decorator(func):
+            return func
+        return decorator
+    MONITORING_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 

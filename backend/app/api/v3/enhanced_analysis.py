@@ -368,15 +368,15 @@ async def get_current_weights() -> Dict[str, Any]:
 async def get_formula_engine_status() -> Dict[str, Any]:
     """Check if sophisticated analytical engines are available"""
     return {
-        "sophisticated_engines_available": ENGINES_AVAILABLE,
+        "sophisticated_engines_available": SOPHISTICATED_ENGINES_AVAILABLE,
         "engines": {
-            "pdf_formula_engine": "F1-F28 factor calculations" if ENGINES_AVAILABLE else "Not loaded",
-            "action_layer_calculator": "18 strategic action layers" if ENGINES_AVAILABLE else "Not loaded",
-            "monte_carlo_simulator": "Probabilistic scenario generation" if ENGINES_AVAILABLE else "Not loaded"
+            "pdf_formula_engine": "F1-F28 factor calculations" if SOPHISTICATED_ENGINES_AVAILABLE else "Not loaded",
+            "action_layer_calculator": "18 strategic action layers" if SOPHISTICATED_ENGINES_AVAILABLE else "Not loaded",
+            "monte_carlo_simulator": "Probabilistic scenario generation" if SOPHISTICATED_ENGINES_AVAILABLE else "Not loaded"
         },
         "data_driven": True,
         "formula_source": "PDF documentation in docs/ folder",
-        "status": "Engines ready for Results tab integration" if ENGINES_AVAILABLE else "Using baseline v2.0 analysis"
+        "status": "Engines ready for Results tab integration" if SOPHISTICATED_ENGINES_AVAILABLE else "Using baseline v2.0 analysis"
     }
 
 
@@ -386,7 +386,7 @@ async def calculate_pdf_formulas(session_id: str) -> Dict[str, Any]:
     Calculate F1-F28 factors using documented PDF formulas
     100% data-driven - uses actual v2.0 scoring results
     """
-    if not ENGINES_AVAILABLE:
+    if not SOPHISTICATED_ENGINES_AVAILABLE:
         raise HTTPException(
             status_code=503,
             detail="Sophisticated engines not available. Using baseline v2.0 analysis."
@@ -452,7 +452,7 @@ async def calculate_action_layers(session_id: str) -> Dict[str, Any]:
     Calculate 18 Action Layer strategic assessments
     Uses F1-F28 factors to generate strategic insights
     """
-    if not ENGINES_AVAILABLE:
+    if not SOPHISTICATED_ENGINES_AVAILABLE:
         raise HTTPException(
             status_code=503,
             detail="Action layer calculator not available"
@@ -492,7 +492,7 @@ async def run_monte_carlo_simulation(session_id: str) -> Dict[str, Any]:
     Run Monte Carlo simulation for probabilistic scenario analysis
     Uses actual scoring data with uncertainty quantification
     """
-    if not ENGINES_AVAILABLE:
+    if not SOPHISTICATED_ENGINES_AVAILABLE:
         raise HTTPException(
             status_code=503,
             detail="Monte Carlo simulator not available"

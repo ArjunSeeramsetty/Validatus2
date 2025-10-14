@@ -12,16 +12,18 @@ from app.services.results_analysis_service import results_analysis_service
 from app.services.enhanced_scoring_engine import enhanced_scoring_engine
 from app.core.database_config import DatabaseManager
 
-# Import sophisticated engines (F1-F28 formulas, 18 action layers, Monte Carlo)
+# Import sophisticated engines (F1-F28 formulas, 18 action layers, Monte Carlo, Pattern Library)
 try:
     from app.services.enhanced_analytical_engines import (
         PDFFormulaEngine,
         ActionLayerCalculator,
-        FactorInput
+        FactorInput,
+        PatternLibrary,
+        PatternMatch
     )
     from app.services.enhanced_analytical_engines.monte_carlo_simulator import MonteCarloSimulator, SimulationParameters
     SOPHISTICATED_ENGINES_AVAILABLE = True
-    logger.info("✅ Sophisticated analytical engines available for Results tab")
+    logger.info("✅ Sophisticated analytical engines available (F1-F28, 18 layers, Monte Carlo, Patterns)")
 except ImportError as e:
     SOPHISTICATED_ENGINES_AVAILABLE = False
     logger.warning(f"Sophisticated engines not available: {e}")
@@ -545,5 +547,155 @@ async def run_monte_carlo_simulation(session_id: str) -> Dict[str, Any]:
         raise
     except Exception as e:
         logger.error(f"Monte Carlo simulation failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/pattern-matching/{session_id}")
+async def match_patterns_to_scores(session_id: str) -> Dict[str, Any]:
+    """
+    Match patterns from Pattern Library (P001-P041) to actual scores
+    100% data-driven - uses actual v2.0 segment and factor scores
+    """
+    if not SOPHISTICATED_ENGINES_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="Pattern Library not available"
+        )
+    
+    try:
+        logger.info(f"Matching patterns for {session_id}")
+        
+        # Get actual v2.0 scores from database
+        db_manager = DatabaseManager()
+        connection = await db_manager.get_connection()
+        
+        query = "SELECT full_results FROM v2_analysis_results WHERE session_id = $1 ORDER BY updated_at DESC LIMIT 1"
+        row = await connection.fetchrow(query, session_id)
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="No scoring results found")
+        
+        import json
+        full_results = row['full_results']
+        if isinstance(full_results, str):
+            full_results = json.loads(full_results)
+        
+        # Extract ACTUAL segment scores
+        segment_analyses = full_results.get('segment_analyses', [])
+        segment_scores = {}
+        for seg in segment_analyses:
+            seg_name = seg.get('segment_name', '').replace('_Intelligence', '').replace('_', '').lower()
+            seg_score = seg.get('overall_score', seg.get('overall_segment_score', 0.0))
+            segment_scores[seg_name] = float(seg_score)
+        
+        # Extract ACTUAL factor scores
+        factor_calculations = full_results.get('factor_calculations', [])
+        factor_scores = {}
+        for factor in factor_calculations:
+            factor_id = factor.get('factor_id', '')
+            factor_value = factor.get('value', factor.get('calculated_value', 0.0))
+            factor_scores[factor_id] = float(factor_value)
+        
+        # Match patterns using actual scores
+        pattern_lib = PatternLibrary()
+        pattern_matches = pattern_lib.match_patterns(segment_scores, factor_scores)
+        
+        return {
+            "success": True,
+            "session_id": session_id,
+            "pattern_matches": [
+                {
+                    "pattern_id": p.pattern_id,
+                    "pattern_name": p.pattern_name,
+                    "pattern_type": p.pattern_type.value,
+                    "confidence": p.confidence,
+                    "segments_involved": p.segments_involved,
+                    "factors_triggered": p.factors_triggered,
+                    "strategic_response": p.strategic_response,
+                    "effect_size_hints": p.effect_size_hints,
+                    "outcome_measures": p.outcome_measures,
+                    "evidence_strength": p.evidence_strength
+                }
+                for p in pattern_matches
+            ],
+            "total_matches": len(pattern_matches),
+            "segment_scores_used": segment_scores,
+            "factor_count_used": len(factor_scores),
+            "methodology": "Pattern matching using actual v2.0 scores from database",
+            "data_driven": True
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Pattern matching failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/comprehensive-scenarios/{session_id}")
+async def generate_comprehensive_scenarios(session_id: str) -> Dict[str, Any]:
+    """
+    Generate comprehensive Monte Carlo scenarios for all matched patterns
+    Uses Pattern Library + Monte Carlo simulator + actual v2.0 scores
+    """
+    if not SOPHISTICATED_ENGINES_AVAILABLE:
+        raise HTTPException(
+            status_code=503,
+            detail="Sophisticated engines not available"
+        )
+    
+    try:
+        logger.info(f"Generating comprehensive scenarios for {session_id}")
+        
+        # Get actual v2.0 scores
+        db_manager = DatabaseManager()
+        connection = await db_manager.get_connection()
+        
+        query = "SELECT full_results FROM v2_analysis_results WHERE session_id = $1 ORDER BY updated_at DESC LIMIT 1"
+        row = await connection.fetchrow(query, session_id)
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="No scoring results found")
+        
+        import json
+        full_results = row['full_results']
+        if isinstance(full_results, str):
+            full_results = json.loads(full_results)
+        
+        # Extract actual scores
+        segment_analyses = full_results.get('segment_analyses', [])
+        segment_scores = {}
+        for seg in segment_analyses:
+            seg_name = seg.get('segment_name', '').replace('_Intelligence', '').replace('_', '').lower()
+            segment_scores[seg_name] = float(seg.get('overall_score', seg.get('overall_segment_score', 0.0)))
+        
+        factor_calculations = full_results.get('factor_calculations', [])
+        factor_scores = {}
+        for factor in factor_calculations:
+            factor_scores[factor.get('factor_id', '')] = float(factor.get('value', factor.get('calculated_value', 0.0)))
+        
+        # Match patterns
+        pattern_lib = PatternLibrary()
+        pattern_matches = pattern_lib.match_patterns(segment_scores, factor_scores)
+        
+        # Generate Monte Carlo scenarios for matched patterns
+        scenarios = pattern_lib.generate_monte_carlo_scenarios(pattern_matches, num_simulations=1000)
+        
+        return {
+            "success": True,
+            "session_id": session_id,
+            "scenarios": scenarios,
+            "pattern_matches_count": len(pattern_matches),
+            "simulations_per_pattern": 1000,
+            "segment_scores_used": segment_scores,
+            "methodology": "Pattern-based Monte Carlo with 1000 iterations per KPI",
+            "data_driven": True,
+            "note": "All scenarios based on actual v2.0 scoring results"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Comprehensive scenario generation failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -19,6 +19,7 @@ from .pdf_formula_engine import PDFFormulaEngine, FactorInput, FactorResult, PDF
 from .action_layer_calculator import ActionLayerCalculator, ActionLayerAnalysis, ActionLayerResult, ActionRecommendation
 from .monte_carlo_simulator import MonteCarloSimulator, SimulationParameters, SimulationResult
 from .formula_adapters import EnhancedFormulaAdapter
+from .pattern_library import PatternLibrary, PatternMatch, PatternType
 
 __all__ = [
     # Mathematical Models
@@ -45,5 +46,10 @@ __all__ = [
     'SimulationResult',
     
     # Formula Adapters
-    'EnhancedFormulaAdapter'
+    'EnhancedFormulaAdapter',
+    
+    # Pattern Library
+    'PatternLibrary',
+    'PatternMatch',
+    'PatternType'
 ]

@@ -10,7 +10,16 @@ from datetime import datetime, timezone
 import hashlib
 
 from ..models.analysis_models import ContentQualityScores
-from ..middleware.monitoring import performance_monitor
+
+# Optional monitoring import (requires google-cloud-monitoring)
+try:
+    from ..middleware.monitoring import performance_monitor
+    MONITORING_AVAILABLE = True
+except ImportError:
+    # Create a no-op decorator when monitoring not available
+    def performance_monitor(func):
+        return func
+    MONITORING_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 

@@ -18,8 +18,15 @@ from .mathematical_models import MathematicalModels, NormalizationMethod, Robust
 from .pdf_formula_engine import PDFFormulaEngine, FactorInput, FactorResult, PDFAnalysisResult
 from .action_layer_calculator import ActionLayerCalculator, ActionLayerAnalysis, ActionLayerResult, ActionRecommendation
 from .monte_carlo_simulator import MonteCarloSimulator, SimulationParameters, SimulationResult
-from .formula_adapters import EnhancedFormulaAdapter
 from .pattern_library import PatternLibrary, PatternMatch, PatternType
+
+# Formula adapters are optional - only import if needed (requires full dependencies)
+try:
+    from .formula_adapters import EnhancedFormulaAdapter
+    FORMULA_ADAPTERS_AVAILABLE = True
+except ImportError:
+    EnhancedFormulaAdapter = None
+    FORMULA_ADAPTERS_AVAILABLE = False
 
 __all__ = [
     # Mathematical Models
@@ -45,11 +52,15 @@ __all__ = [
     'SimulationParameters',
     'SimulationResult',
     
-    # Formula Adapters
-    'EnhancedFormulaAdapter',
-    
     # Pattern Library
     'PatternLibrary',
     'PatternMatch',
-    'PatternType'
+    'PatternType',
+    
+    # Conditional exports
+    'FORMULA_ADAPTERS_AVAILABLE'
 ]
+
+# Add EnhancedFormulaAdapter to exports if available
+if FORMULA_ADAPTERS_AVAILABLE:
+    __all__.append('EnhancedFormulaAdapter')

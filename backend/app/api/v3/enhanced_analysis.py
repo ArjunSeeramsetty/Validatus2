@@ -12,6 +12,9 @@ from app.services.results_analysis_service import results_analysis_service
 from app.services.enhanced_scoring_engine import enhanced_scoring_engine
 from app.core.database_config import DatabaseManager
 
+# Set up logger FIRST
+logger = logging.getLogger(__name__)
+
 # Import sophisticated engines (F1-F28 formulas, 18 action layers, Monte Carlo, Pattern Library)
 try:
     from app.services.enhanced_analytical_engines import (
@@ -27,8 +30,6 @@ try:
 except ImportError as e:
     SOPHISTICATED_ENGINES_AVAILABLE = False
     logger.warning(f"Sophisticated engines not available: {e}")
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v3/enhanced-analysis", tags=["enhanced_analysis"])
 

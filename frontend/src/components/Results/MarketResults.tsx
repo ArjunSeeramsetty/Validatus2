@@ -26,7 +26,7 @@ import {
 
 import type { MarketAnalysisData } from '../../hooks/useAnalysis';
 
-interface MarketResultsProps {
+export interface MarketResultsProps {
   data: MarketAnalysisData;
 }
 

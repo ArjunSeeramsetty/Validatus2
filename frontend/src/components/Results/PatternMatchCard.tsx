@@ -4,13 +4,7 @@
  */
 
 import React from 'react';
-import { Box, Typography, Chip, LinearProgress, Grid } from '@mui/material';
-import {
-  TrendingUp as TrendingUpIcon,
-  Warning as WarningIcon,
-  Lightbulb as LightbulbIcon,
-  CheckCircle as CheckCircleIcon
-} from '@mui/icons-material';
+import { Box, Typography, LinearProgress, Grid } from '@mui/material';
 import ExpandableTile from '../Common/ExpandableTile';
 import type { PatternMatch, MonteCarloScenario } from '../../services/enhancedAnalysisService';
 
@@ -36,22 +30,6 @@ const PatternMatchCard: React.FC<PatternMatchCardProps> = ({ pattern, scenario }
     }
   };
 
-  // Get icon based on pattern type
-  const getIcon = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'success':
-        return <CheckCircleIcon sx={{ fontSize: 20 }} />;
-      case 'opportunity':
-        return <LightbulbIcon sx={{ fontSize: 20 }} />;
-      case 'fragility':
-        return <WarningIcon sx={{ fontSize: 20 }} />;
-      case 'adaptation':
-        return <TrendingUpIcon sx={{ fontSize: 20 }} />;
-      default:
-        return <TrendingUpIcon sx={{ fontSize: 20 }} />;
-    }
-  };
-
   // Format chips
   const chips = [
     pattern.pattern_type,
@@ -70,14 +48,7 @@ const PatternMatchCard: React.FC<PatternMatchCardProps> = ({ pattern, scenario }
 
   return (
     <ExpandableTile
-      title={
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {getIcon(pattern.pattern_type)}
-          <Typography variant="h6" component="span">
-            {pattern.pattern_id}: {pattern.pattern_name}
-          </Typography>
-        </Box>
-      }
+      title={`${pattern.pattern_id}: ${pattern.pattern_name}`}
       bgcolor={getBgColor(pattern.pattern_type)}
       content={pattern.strategic_response}
       confidence={pattern.confidence}

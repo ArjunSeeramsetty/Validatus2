@@ -29,14 +29,14 @@ import type { ConsumerAnalysisData } from '../../hooks/useAnalysis';
 import { useEnhancedAnalysis } from '../../hooks/useEnhancedAnalysis';
 import PatternMatchCard from './PatternMatchCard';
 
-interface ConsumerResultsProps {
+export interface ConsumerResultsProps {
   data: ConsumerAnalysisData;
   sessionId?: string;
 }
 
 const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) => {
   // Fetch enhanced analysis (Pattern Library, Monte Carlo)
-  const { patternMatches, scenarios, loading: enhancedLoading, enginesAvailable } = useEnhancedAnalysis(sessionId || null);
+  const { patternMatches, scenarios,  enginesAvailable } = useEnhancedAnalysis(sessionId || null);
 
   // Filter consumer-related patterns
   const consumerPatterns = patternMatches?.pattern_matches?.filter(p => 

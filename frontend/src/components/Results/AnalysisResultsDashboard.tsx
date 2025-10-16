@@ -127,7 +127,7 @@ const AnalysisResultsDashboard: React.FC<AnalysisResultsDashboardProps> = ({ res
               color: '#e8e8f0',
               borderRadius: '8px'
             }}
-            formatter={(value: number, name: string, props: any) => [
+            formatter={(value: number, _name: string, props: any) => [
               `${value}%`,
               props.payload.fullLayer
             ]}
@@ -144,7 +144,7 @@ const AnalysisResultsDashboard: React.FC<AnalysisResultsDashboardProps> = ({ res
   };
 
   const renderFactorTrends = (factorScores: { [factor: string]: number }) => {
-    const data = Object.entries(factorScores).map(([factor, score], index) => ({
+    const data = Object.entries(factorScores).map(([factor, score]) => ({
       factor: factor.length > 15 ? factor.substring(0, 15) + '...' : factor,
       score,
       trend: score + (Math.random() - 0.5) * 10, // Mock trend data
@@ -247,7 +247,7 @@ const AnalysisResultsDashboard: React.FC<AnalysisResultsDashboardProps> = ({ res
           </motion.div>
         ) : (
           <Grid container spacing={3}>
-            {mockResults.map((result, index) => (
+            {mockResults.map((result) => (
               <Grid item xs={12} key={result.id}>
                 <motion.div variants={itemVariants}>
                   <Card sx={{ 

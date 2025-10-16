@@ -128,7 +128,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ sessionId: initialSessionId }) 
     }
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 

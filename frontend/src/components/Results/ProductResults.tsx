@@ -27,7 +27,7 @@ import {
 
 import type { ProductAnalysisData } from '../../hooks/useAnalysis';
 
-interface ProductResultsProps {
+export interface ProductResultsProps {
   data: ProductAnalysisData;
 }
 

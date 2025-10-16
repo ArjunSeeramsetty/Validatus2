@@ -27,7 +27,7 @@ import {
 
 import type { ExperienceAnalysisData } from '../../hooks/useAnalysis';
 
-interface ExperienceResultsProps {
+export interface ExperienceResultsProps {
   data: ExperienceAnalysisData;
 }
 

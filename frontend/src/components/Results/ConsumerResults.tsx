@@ -223,24 +223,6 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) =>
                         <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#E0E0E0', lineHeight: 1.5 }}>
                           {persona.description}
                         </Typography>
-                        {persona.motivations && persona.motivations.length > 0 && (
-                          <Box sx={{ mt: 1.5 }}>
-                            {persona.motivations.slice(0, 2).map((motivation, i) => (
-                              <Chip 
-                                key={i}
-                                label={motivation}
-                                size="small"
-                                sx={{ 
-                                  mr: 0.5, 
-                                  mt: 0.5,
-                                  bgcolor: 'rgba(76, 175, 80, 0.2)', 
-                                  color: '#4CAF50',
-                                  fontSize: '0.7rem'
-                                }}
-                              />
-                            ))}
-                          </Box>
-                        )}
                       </Box>
                     </Grid>
                   ))}

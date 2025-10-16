@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Consumer Results Component
  * Displays consumer analysis including personas, recommendations, challenges, and motivators
  */
@@ -14,8 +14,7 @@ import {
   List,
   ListItem,
   ListItemText,
-  CircularProgress,
-  Chip
+  CircularProgress
 } from '@mui/material';
 import { 
   Person, 
@@ -27,6 +26,8 @@ import {
 
 import type { ConsumerAnalysisData } from '../../hooks/useAnalysis';
 import { useEnhancedAnalysis } from '../../hooks/useEnhancedAnalysis';
+import { usePersonas } from '../../hooks/usePersonas';
+import { useSegmentPatterns } from '../../hooks/useSegmentPatterns';
 import PatternMatchCard from './PatternMatchCard';
 
 export interface ConsumerResultsProps {
@@ -36,12 +37,24 @@ export interface ConsumerResultsProps {
 
 const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) => {
   // Fetch enhanced analysis (Pattern Library, Monte Carlo)
-  const { patternMatches, scenarios,  enginesAvailable } = useEnhancedAnalysis(sessionId || null);
+  const { patternMatches, scenarios } = useEnhancedAnalysis(sessionId || null);
 
-  // Filter consumer-related patterns
-  const consumerPatterns = patternMatches?.pattern_matches?.filter(p => 
-    p.segments_involved.some(seg => seg.toLowerCase().includes('consumer'))
-  ) || [];
+  // NEW: Fetch generated personas
+  const { personas } = usePersonas(sessionId || null);
+  
+  // NEW: Fetch Consumer-specific patterns (top 4)
+  const { patternMatches: consumerPatterns, scenarios: consumerScenarios, hasPatterns } = useSegmentPatterns(
+    sessionId || null,
+    'consumer'
+  );
+
+  // Use segment-specific patterns if available, otherwise fall back
+  const displayPatterns = hasPatterns ? consumerPatterns : (
+    patternMatches?.pattern_matches?.filter(p => 
+      p.segments_involved.some(seg => seg.toLowerCase().includes('consumer'))
+    ) || []
+  );
+  const displayScenarios = hasPatterns ? consumerScenarios : scenarios;
 
   if (!data) {
     return (
@@ -71,11 +84,12 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) =>
                   {data.recommendations.map((rec, index) => (
                     <Box key={index} sx={{ mb: 2, p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 1 }}>
                       <Typography variant="subtitle2" sx={{ color: '#E1BEE7', fontWeight: 'bold', mb: 0.5 }}>
-                        {rec.type || `Recommendation ${index + 1}`}
-                        {rec.timeline && ` (${rec.timeline})`}
+                        {typeof rec === 'object' 
+                          ? `${rec.type || `Recommendation ${index + 1}`}${rec.timeline ? ` (${rec.timeline})` : ''}`
+                          : `Recommendation ${index + 1}`}
                       </Typography>
                       <Typography variant="body2" sx={{ fontSize: '0.85rem', color: 'white' }}>
-                        {rec.description || rec}
+                        {typeof rec === 'object' ? rec.description : rec}
                       </Typography>
                     </Box>
                   ))}
@@ -89,7 +103,7 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) =>
                         {data.additional_recommendations.map((item, index) => (
                           <ListItem key={index} sx={{ px: 0, py: 0.5 }}>
                             <ListItemText 
-                              primary={`• ${item}`}
+                              primary={`â€¢ ${item}`}
                               primaryTypographyProps={{ fontSize: '0.8rem', color: '#E1BEE7' }}
                             />
                           </ListItem>
@@ -134,7 +148,7 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) =>
                   {data.challenges.slice(1).map((challenge, index) => (
                     <Box key={index} sx={{ mb: 1.5 }}>
                       <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#E0E0E0' }}>
-                        • {challenge}
+                        â€¢ {challenge}
                       </Typography>
                     </Box>
                   ))}
@@ -189,7 +203,7 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) =>
           </Card>
         </Grid>
 
-        {/* Relevant Personas Section */}
+        {/* Relevant Personas Section - ENHANCED with generated personas */}
         <Grid item xs={12} md={8}>
           <Card sx={{ height: '100%', bgcolor: '#424242', color: 'white' }}>
             <CardContent>
@@ -200,7 +214,39 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) =>
                 </Typography>
               </Box>
               
-              {data.relevant_personas && data.relevant_personas.length > 0 ? (
+              {personas && personas.length > 0 ? (
+                <Grid container spacing={2}>
+                  {personas.map((persona, index) => (
+                    <Grid item xs={12} md={4} key={index}>
+                      <Box sx={{ p: 2, bgcolor: 'rgba(94, 53, 177, 0.2)', borderRadius: 2, height: '100%', border: '1px solid rgba(94, 53, 177, 0.4)' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                          <Avatar sx={{ bgcolor: '#5E35B1', mr: 2, width: 48, height: 48 }}>
+                            <Person sx={{ fontSize: 28 }} />
+                          </Avatar>
+                          <Box>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'white' }}>
+                              {persona.name}
+                            </Typography>
+                            {persona.age && (
+                              <Typography variant="caption" sx={{ color: '#BDBDBD' }}>
+                                Age: {persona.age}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                        <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#E0E0E0', lineHeight: 1.5 }}>
+                          {persona.description}
+                        </Typography>
+                        {persona.market_share && (
+                          <Typography variant="caption" sx={{ color: '#B39DDB', display: 'block', mt: 1 }}>
+                            Market Share: {(persona.market_share * 100).toFixed(0)}% â€¢ {persona.value_tier}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+              ) : data.relevant_personas && data.relevant_personas.length > 0 ? (
                 <Grid container spacing={2}>
                   {data.relevant_personas.map((persona, index) => (
                     <Grid item xs={12} md={4} key={index}>
@@ -279,7 +325,7 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) =>
                             {segment}:
                           </Typography>
                           <Typography variant="body2" sx={{ fontSize: '0.75rem', color: '#E1BEE7', ml: 1 }}>
-                            {details}
+                            {String(details)}
                           </Typography>
                         </Box>
                       ))}
@@ -299,7 +345,7 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) =>
         <Grid item xs={12}>
           <Card sx={{ bgcolor: '#FF5722', color: 'white' }}>
             <CardContent>
-              <Grid container spacing={3} alignItems="center">
+              <Grid container spacing={3}>
                 <Grid item xs={12} md={3}>
                   <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
                     Consumer Fit
@@ -381,22 +427,22 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) =>
           </Card>
         </Grid>
 
-        {/* Pattern Library Insights - Enhanced Analysis */}
-        {enginesAvailable && consumerPatterns.length > 0 && (
+        {/* Pattern Library Insights - Enhanced Analysis (TOP 4 CONSUMER PATTERNS) */}
+        {displayPatterns.length > 0 && (
           <Grid item xs={12}>
             <Box sx={{ mt: 4 }}>
               <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: '#5E35B1' }}>
-                🎯 Strategic Pattern Insights (Pattern Library)
+                ðŸŽ¯ Strategic Pattern Insights (Pattern Library - Top 4)
               </Typography>
               <Typography variant="body2" sx={{ mb: 3, color: '#666' }}>
-                Patterns matched using actual Consumer Intelligence scores • Monte Carlo simulations (1000 iterations)
+                Patterns matched using actual Consumer Intelligence scores â€¢ Monte Carlo simulations (1000 iterations)
               </Typography>
               <Grid container spacing={2}>
-                {consumerPatterns.map((pattern) => (
+                {displayPatterns.slice(0, 4).map((pattern) => (
                   <Grid item xs={12} lg={6} key={pattern.pattern_id}>
                     <PatternMatchCard 
                       pattern={pattern}
-                      scenario={scenarios?.scenarios?.[pattern.pattern_id]}
+                      scenario={(displayScenarios as any)?.[pattern.pattern_id]}
                     />
                   </Grid>
                 ))}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Market Results Component
  * Displays comprehensive market analysis including competitors, opportunities, pricing, and growth
  */
@@ -27,10 +27,10 @@ import {
 import type { MarketAnalysisData } from '../../hooks/useAnalysis';
 
 export interface MarketResultsProps {
-  data: MarketAnalysisData;
+  data: MarketAnalysisData;  sessionId?: string;
 }
 
-const MarketResults: React.FC<MarketResultsProps> = ({ data }) => {
+const MarketResults: React.FC<MarketResultsProps> = ({ data , sessionId }) => {
   if (!data) {
     return (
       <Typography sx={{ color: '#888' }}>
@@ -213,7 +213,7 @@ const MarketResults: React.FC<MarketResultsProps> = ({ data }) => {
                         {data.pricing_switching.insights.map((insight: string, index: number) => (
                           <ListItem key={index} sx={{ px: 0 }}>
                             <ListItemText 
-                              primary={`• ${insight}`}
+                              primary={`â€¢ ${insight}`}
                               primaryTypographyProps={{ fontSize: '0.85rem', color: '#E1BEE7' }}
                             />
                           </ListItem>
@@ -251,7 +251,7 @@ const MarketResults: React.FC<MarketResultsProps> = ({ data }) => {
                       </Typography>
                       {data.regulation_tariffs.key_regulations.map((reg: string, index: number) => (
                         <Typography key={index} variant="body2" sx={{ color: '#E1BEE7', mb: 0.5 }}>
-                          • {reg}
+                          â€¢ {reg}
                         </Typography>
                       ))}
                     </Box>
@@ -266,7 +266,7 @@ const MarketResults: React.FC<MarketResultsProps> = ({ data }) => {
                         {data.regulation_tariffs.details.map((detail: string, index: number) => (
                           <ListItem key={index} sx={{ px: 0 }}>
                             <ListItemText 
-                              primary={`• ${detail}`}
+                              primary={`â€¢ ${detail}`}
                               primaryTypographyProps={{ fontSize: '0.85rem', color: '#E1BEE7' }}
                             />
                           </ListItem>
@@ -325,7 +325,7 @@ const MarketResults: React.FC<MarketResultsProps> = ({ data }) => {
                         </Typography>
                         {data.growth_demand.demand_drivers.map((driver: string, index: number) => (
                           <Typography key={index} variant="body2" sx={{ color: '#E1BEE7', mb: 0.5 }}>
-                            • {driver}
+                            â€¢ {driver}
                           </Typography>
                         ))}
                       </Box>

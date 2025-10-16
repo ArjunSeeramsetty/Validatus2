@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Brand Results Component
  * Displays brand analysis including positioning, perception, and opportunities
  */
@@ -25,12 +25,33 @@ import {
 } from '@mui/icons-material';
 
 import type { BrandAnalysisData } from '../../hooks/useAnalysis';
+import { useEnhancedAnalysis } from '../../hooks/useEnhancedAnalysis';
+import { useSegmentPatterns } from '../../hooks/useSegmentPatterns';
+import PatternMatchCard from './PatternMatchCard';
 
 export interface BrandResultsProps {
   data: BrandAnalysisData;
+  sessionId?: string;
 }
 
-const BrandResults: React.FC<BrandResultsProps> = ({ data }) => {
+const BrandResults: React.FC<BrandResultsProps> = ({ data, sessionId }) => {
+  // Fetch enhanced analysis (Pattern Library, Monte Carlo)
+  const { patternMatches, scenarios } = useEnhancedAnalysis(sessionId || null);
+
+  // NEW: Fetch Brand-specific patterns (top 4)
+  const { patternMatches: brandPatterns, scenarios: brandScenarios, hasPatterns } = useSegmentPatterns(
+    sessionId || null,
+    'brand'
+  );
+
+  // Use segment-specific patterns if available
+  const displayPatterns = hasPatterns ? brandPatterns : (
+    patternMatches?.pattern_matches?.filter(p => 
+      p.segments_involved.some(seg => seg.toLowerCase().includes('brand'))
+    ) || []
+  );
+  const displayScenarios = hasPatterns ? brandScenarios : scenarios;
+
   if (!data) {
     return (
       <Typography sx={{ color: '#888' }}>
@@ -263,7 +284,7 @@ const BrandResults: React.FC<BrandResultsProps> = ({ data }) => {
                         </Typography>
                         {data.messaging_strategy.key_messages.map((message: string, index: number) => (
                           <Typography key={index} variant="body2" sx={{ fontSize: '0.85rem', color: 'white', mb: 0.5 }}>
-                            • {message}
+                            â€¢ {message}
                           </Typography>
                         ))}
                       </Box>
@@ -372,6 +393,30 @@ const BrandResults: React.FC<BrandResultsProps> = ({ data }) => {
             </CardContent>
           </Card>
         </Grid>
+
+        {/* Pattern Library Insights - Enhanced Analysis (TOP 4 BRAND PATTERNS) */}
+        {displayPatterns.length > 0 && (
+          <Grid item xs={12}>
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: '#7B1FA2' }}>
+                ðŸŽ¯ Strategic Pattern Insights (Pattern Library - Top 4)
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 3, color: '#666' }}>
+                Patterns matched using actual Brand Intelligence scores â€¢ Monte Carlo simulations (1000 iterations)
+              </Typography>
+              <Grid container spacing={2}>
+                {displayPatterns.slice(0, 4).map((pattern) => (
+                  <Grid item xs={12} lg={6} key={pattern.pattern_id}>
+                    <PatternMatchCard 
+                      pattern={pattern}
+                      scenario={(displayScenarios as any)?.[pattern.pattern_id]}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          </Grid>
+        )}
 
       </Grid>
     </Box>

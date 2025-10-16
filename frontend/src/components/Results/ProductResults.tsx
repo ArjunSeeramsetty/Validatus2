@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Product Results Component
  * Displays product analysis including features, positioning, and innovation opportunities
  */
@@ -28,10 +28,10 @@ import {
 import type { ProductAnalysisData } from '../../hooks/useAnalysis';
 
 export interface ProductResultsProps {
-  data: ProductAnalysisData;
+  data: ProductAnalysisData;  sessionId?: string;
 }
 
-const ProductResults: React.FC<ProductResultsProps> = ({ data }) => {
+const ProductResults: React.FC<ProductResultsProps> = ({ data , sessionId }) => {
   if (!data) {
     return (
       <Typography sx={{ color: '#888' }}>

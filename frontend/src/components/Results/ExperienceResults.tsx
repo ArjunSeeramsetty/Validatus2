@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Experience Results Component
  * Displays experience analysis including user journey, touchpoints, and improvements
  */
@@ -28,10 +28,10 @@ import {
 import type { ExperienceAnalysisData } from '../../hooks/useAnalysis';
 
 export interface ExperienceResultsProps {
-  data: ExperienceAnalysisData;
+  data: ExperienceAnalysisData;  sessionId?: string;
 }
 
-const ExperienceResults: React.FC<ExperienceResultsProps> = ({ data }) => {
+const ExperienceResults: React.FC<ExperienceResultsProps> = ({ data , sessionId }) => {
   if (!data) {
     return (
       <Typography sx={{ color: '#888' }}>
@@ -102,7 +102,7 @@ const ExperienceResults: React.FC<ExperienceResultsProps> = ({ data }) => {
                             {stage.pain_points.map((pain, i) => (
                               <ListItem key={i} sx={{ px: 0, py: 0.2 }}>
                                 <ListItemText 
-                                  primary={`• ${pain}`}
+                                  primary={`â€¢ ${pain}`}
                                   primaryTypographyProps={{ fontSize: '0.75rem', color: '#FFCDD2' }}
                                 />
                               </ListItem>
@@ -121,7 +121,7 @@ const ExperienceResults: React.FC<ExperienceResultsProps> = ({ data }) => {
                             {stage.opportunities.map((opp, i) => (
                               <ListItem key={i} sx={{ px: 0, py: 0.2 }}>
                                 <ListItemText 
-                                  primary={`• ${opp}`}
+                                  primary={`â€¢ ${opp}`}
                                   primaryTypographyProps={{ fontSize: '0.75rem', color: '#C8E6C9' }}
                                 />
                               </ListItem>

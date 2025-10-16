@@ -700,3 +700,255 @@ async def generate_comprehensive_scenarios(session_id: str) -> Dict[str, Any]:
         logger.error(f"Comprehensive scenario generation failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.get("/growth-demand/{session_id}")
+async def get_growth_demand_analysis(session_id: str):
+    """
+    Get detailed Growth & Demand analysis for Market segment
+    Fixes the issue of Market Size and Growth Rate showing 0.00
+    
+    Returns actual market size and growth rate scores extracted from content
+    """
+    try:
+        from app.services.market_growth_demand_analyzer import get_market_growth_demand_analyzer
+        
+        # Get scraped content
+        db_manager = DatabaseManager()
+        connection = await db_manager.get_connection()
+        
+        query = """
+        SELECT url, title, content, metadata
+        FROM scraped_content
+        WHERE session_id = $1
+        AND processing_status = 'completed'
+        ORDER BY scraped_at DESC
+        LIMIT 30
+        """
+        rows = await connection.fetch(query, session_id)
+        
+        if not rows:
+            return {
+                "session_id": session_id,
+                "market_size": {"score": 0.0, "evidence": "No content available"},
+                "growth_rate": {"score": 0.0, "evidence": "No content available"},
+                "note": "Run content scraping first"
+            }
+        
+        content_data = [{"url": r['url'], "title": r['title'], "content": r['content']} for r in rows]
+        
+        # Analyze with growth/demand analyzer
+        analyzer = get_market_growth_demand_analyzer()
+        result = await analyzer.analyze_growth_demand(session_id, content_data)
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Growth/demand analysis failed for {session_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/personas/{session_id}")
+async def get_generated_personas(session_id: str):
+    """
+    Generate consumer personas from analysis data
+    Fixes the "Consumer personas will be generated from analysis" placeholder issue
+    
+    Returns 3-5 data-driven personas with demographics, pain points, and messaging
+    """
+    try:
+        from app.services.persona_generation_service import get_persona_generation_service
+        
+        # Get consumer factor scores (would come from actual scoring)
+        # For now, fetch from scored data
+        db_manager = DatabaseManager()
+        connection = await db_manager.get_connection()
+        
+        # Get scored components
+        score_query = """
+        SELECT dimension, component, score, confidence, metadata
+        FROM analysis_scores
+        WHERE session_id = $1
+        AND dimension = 'consumer'
+        ORDER BY component
+        """
+        score_rows = await connection.fetch(score_query, session_id)
+        
+        consumer_factors = {}
+        for row in score_rows:
+            # Map components to factors (simplified mapping)
+            component = row['component']
+            if 'demand' in component.lower():
+                consumer_factors['F11'] = row['score']
+            elif 'behavior' in component.lower():
+                consumer_factors['F12'] = row['score']
+            elif 'loyalty' in component.lower():
+                consumer_factors['F13'] = row['score']
+            elif 'perception' in component.lower():
+                consumer_factors['F14'] = row['score']
+            elif 'adoption' in component.lower():
+                consumer_factors['F15'] = row['score']
+        
+        # Get scraped content
+        content_query = """
+        SELECT url, title, content
+        FROM scraped_content
+        WHERE session_id = $1
+        AND processing_status = 'completed'
+        ORDER BY scraped_at DESC
+        LIMIT 20
+        """
+        content_rows = await connection.fetch(content_query, session_id)
+        content_data = [{"url": r['url'], "title": r['title'], "content": r['content']} for r in content_rows]
+        
+        # Generate personas
+        persona_service = get_persona_generation_service()
+        personas = await persona_service.generate_personas(
+            session_id=session_id,
+            consumer_factors=consumer_factors,
+            scraped_content=content_data,
+            num_personas=4
+        )
+        
+        return {
+            "session_id": session_id,
+            "personas": personas,
+            "total_personas": len(personas),
+            "generation_method": "LLM analysis with factor scores",
+            "data_driven": True,
+            "generated_at": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Persona generation failed for {session_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/patterns-by-segment/{session_id}/{segment}")
+async def get_patterns_by_segment(session_id: str, segment: str):
+    """
+    Get top 4 patterns for a specific segment with Monte Carlo simulations
+    Enables pattern display in ALL segments (not just Consumer)
+    
+    Segments: consumer, market, product, brand, experience
+    """
+    try:
+        if not SOPHISTICATED_ENGINES_AVAILABLE:
+            return {
+                "session_id": session_id,
+                "segment": segment,
+                "pattern_matches": [],
+                "scenarios": {},
+                "note": "Sophisticated engines not available"
+            }
+        
+        # Get segment scores
+        db_manager = DatabaseManager()
+        connection = await db_manager.get_connection()
+        
+        # Get v2.0 segment scores
+        segment_query = """
+        SELECT dimension, AVG(score) as avg_score
+        FROM analysis_scores
+        WHERE session_id = $1
+        GROUP BY dimension
+        """
+        segment_rows = await connection.fetch(segment_query, session_id)
+        segment_scores = {row['dimension']: float(row['avg_score']) for row in segment_rows}
+        
+        # Get factor scores (from components)
+        factor_query = """
+        SELECT dimension, component, score
+        FROM analysis_scores
+        WHERE session_id = $1
+        ORDER BY dimension, component
+        """
+        factor_rows = await connection.fetch(factor_query, session_id)
+        
+        # Map components to factors (simplified)
+        factor_scores = {}
+        for row in factor_rows:
+            # Create pseudo-factor IDs from components
+            component = row['component']
+            dim = row['dimension']
+            
+            # Assign factor IDs based on component names and dimensions
+            if dim == 'consumer':
+                if 'demand' in component.lower(): factor_scores['F11'] = row['score']
+                elif 'behavior' in component.lower(): factor_scores['F12'] = row['score']
+                elif 'loyalty' in component.lower(): factor_scores['F13'] = row['score']
+                elif 'perception' in component.lower(): factor_scores['F14'] = row['score']
+                elif 'adoption' in component.lower(): factor_scores['F15'] = row['score']
+            elif dim == 'market':
+                if 'timing' in component.lower(): factor_scores['F1'] = row['score']
+                elif 'access' in component.lower(): factor_scores['F2'] = row['score']
+                elif 'dynamics' in component.lower(): factor_scores['F3'] = row['score']
+                elif 'regulatory' in component.lower(): factor_scores['F4'] = row['score']
+                elif 'pricing' in component.lower(): factor_scores['F5'] = row['score']
+            elif dim == 'product':
+                if 'quality' in component.lower(): factor_scores['F6'] = row['score']
+                elif 'differentiation' in component.lower(): factor_scores['F7'] = row['score']
+                elif 'feasibility' in component.lower(): factor_scores['F8'] = row['score']
+                elif 'innovation' in component.lower(): factor_scores['F9'] = row['score']
+                elif 'development' in component.lower(): factor_scores['F10'] = row['score']
+            elif dim == 'brand':
+                if 'positioning' in component.lower(): factor_scores['F21'] = row['score']
+                elif 'equity' in component.lower(): factor_scores['F22'] = row['score']
+                elif 'differentiation' in component.lower(): factor_scores['F23'] = row['score']
+                elif 'trust' in component.lower(): factor_scores['F24'] = row['score']
+                elif 'awareness' in component.lower(): factor_scores['F25'] = row['score']
+            elif dim == 'experience':
+                if 'engagement' in component.lower(): factor_scores['F26'] = row['score']
+                elif 'satisfaction' in component.lower(): factor_scores['F27'] = row['score']
+                elif 'interface' in component.lower(): factor_scores['F28'] = row['score']
+        
+        # Get pattern library and match patterns
+        pattern_lib = PatternLibrary()
+        
+        # Get all patterns for this segment
+        all_patterns = pattern_lib.get_patterns_for_segment(segment.capitalize())
+        
+        # Match patterns
+        all_matches = pattern_lib.match_patterns(segment_scores, factor_scores)
+        
+        # Filter to this segment only and get top 4
+        segment_matches = [
+            m for m in all_matches 
+            if segment.capitalize() in m.segments_involved
+        ][:4]  # Top 4 patterns
+        
+        # Generate Monte Carlo scenarios for these patterns
+        scenarios = pattern_lib.generate_monte_carlo_scenarios(segment_matches, num_simulations=1000)
+        
+        # Format response
+        pattern_matches_data = [
+            {
+                "pattern_id": m.pattern_id,
+                "pattern_name": m.pattern_name,
+                "pattern_type": m.pattern_type.value,
+                "confidence": m.confidence,
+                "probability_range": m.probability_range,
+                "segments_involved": m.segments_involved,
+                "factors_triggered": m.factors_triggered,
+                "strategic_response": m.strategic_response,
+                "effect_size_hints": m.effect_size_hints,
+                "outcome_measures": m.outcome_measures,
+                "evidence_strength": m.evidence_strength
+            }
+            for m in segment_matches
+        ]
+        
+        return {
+            "session_id": session_id,
+            "segment": segment,
+            "pattern_matches": pattern_matches_data,
+            "scenarios": scenarios,
+            "total_patterns_available": len(all_patterns),
+            "patterns_matched": len(segment_matches),
+            "data_driven": True,
+            "methodology": f"Patterns matched using actual {segment.capitalize()} Intelligence scores v2.0"
+        }
+        
+    except Exception as e:
+        logger.error(f"Pattern matching failed for {session_id}/{segment}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+

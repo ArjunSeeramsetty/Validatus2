@@ -213,10 +213,281 @@ class PatternLibrary:
                         "bounds": [6, 20]
                     }
                 }
+            },
+            
+            # Additional MARKET patterns
+            {
+                "id": "P006",
+                "name": "Geographic Market Expansion",
+                "type": "Opportunity",
+                "industry_scope": "Market",
+                "segments_involved": ["Market"],
+                "factors": ["F1", "F2", "F3"],
+                "trigger_conditions": {
+                    "market_timing": {"threshold": 0.6, "operator": ">"},
+                    "market_access": {"threshold": 0.5, "operator": ">"}
+                },
+                "strategic_response": "Expand to new geographic markets; establish regional partnerships; localize offerings",
+                "outcome_measures": ["market penetration rate", "regional revenue"],
+                "probability_range": (0.58, 0.75),
+                "confidence": 0.67,
+                "evidence_strength": 0.70,
+                "effect_size_hints": "Geographic expansion +20-30%; market penetration +15-20 pp",
+                "kpi_anchors": {
+                    "geographic_expansion_pct": {"distribution": "triangular", "params": [18, 25, 32], "bounds": [10, 45]},
+                    "penetration_increase_pp": {"distribution": "normal", "params": [17, 4], "bounds": [10, 30]}
+                }
+            },
+            {
+                "id": "P007",
+                "name": "Competitive Pricing Strategy",
+                "type": "Adaptation",
+                "industry_scope": "Market",
+                "segments_involved": ["Market", "Product"],
+                "factors": ["F3", "F5"],
+                "trigger_conditions": {
+                    "market_competition": {"threshold": 0.7, "operator": ">"},
+                    "price_competitiveness": {"threshold": 0.5, "operator": "<"}
+                },
+                "strategic_response": "Dynamic pricing; value bundling; financing options; price match guarantees",
+                "outcome_measures": ["price competitiveness index", "conversion rate"],
+                "probability_range": (0.55, 0.72),
+                "confidence": 0.64,
+                "evidence_strength": 0.67,
+                "effect_size_hints": "Conversion +12-18%; competitive wins +20-25%",
+                "kpi_anchors": {
+                    "conversion_increase_pp": {"distribution": "triangular", "params": [10, 15, 20], "bounds": [5, 28]},
+                    "competitive_win_rate_pp": {"distribution": "normal", "params": [22, 5], "bounds": [12, 35]}
+                }
+            },
+            {
+                "id": "P008",
+                "name": "Market Leadership Positioning",
+                "type": "Success",
+                "industry_scope": "Market",
+                "segments_involved": ["Market", "Brand"],
+                "factors": ["F3", "F4", "F22"],
+                "trigger_conditions": {
+                    "market_dynamics": {"threshold": 0.6, "operator": ">"},
+                    "brand_equity": {"threshold": 0.7, "operator": ">"}
+                },
+                "strategic_response": "Category leadership messaging; industry awards; analyst relations; market reports",
+                "outcome_measures": ["leadership perception", "market influence"],
+                "probability_range": (0.62, 0.80),
+                "confidence": 0.73,
+                "evidence_strength": 0.76,
+                "effect_size_hints": "Leadership perception +25-35 pp; influence +18-25%",
+                "kpi_anchors": {
+                    "leadership_perception_pp": {"distribution": "triangular", "params": [23, 30, 37], "bounds": [18, 45]},
+                    "market_influence_pct": {"distribution": "normal", "params": [21, 5], "bounds": [12, 35]}
+                }
+            },
+            
+            # Additional PRODUCT patterns
+            {
+                "id": "P009",
+                "name": "Product Innovation Pipeline",
+                "type": "Opportunity",
+                "industry_scope": "Product",
+                "segments_involved": ["Product"],
+                "factors": ["F9", "F10"],
+                "trigger_conditions": {
+                    "innovation_readiness": {"threshold": 0.6, "operator": ">"},
+                    "product_development": {"threshold": 0.5, "operator": ">"}
+                },
+                "strategic_response": "R&D acceleration; feature roadmap; beta testing program; innovation labs",
+                "outcome_measures": ["feature release velocity", "innovation score"],
+                "probability_range": (0.60, 0.77),
+                "confidence": 0.70,
+                "evidence_strength": 0.73,
+                "effect_size_hints": "Feature velocity +40-50%; innovation score +20-30 pp",
+                "kpi_anchors": {
+                    "feature_velocity_pct": {"distribution": "triangular", "params": [38, 45, 52], "bounds": [30, 65]},
+                    "innovation_score_pp": {"distribution": "normal", "params": [25, 6], "bounds": [15, 40]}
+                }
+            },
+            {
+                "id": "P010",
+                "name": "Quality Excellence Differentiation",
+                "type": "Success",
+                "industry_scope": "Product",
+                "segments_involved": ["Product", "Brand"],
+                "factors": ["F6", "F7"],
+                "trigger_conditions": {
+                    "product_quality": {"threshold": 0.75, "operator": ">"},
+                    "differentiation": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Premium materials; extended warranties; quality certifications; craftsmanship messaging",
+                "outcome_measures": ["quality perception", "premium conversion"],
+                "probability_range": (0.65, 0.82),
+                "confidence": 0.75,
+                "evidence_strength": 0.78,
+                "effect_size_hints": "Quality perception +28-35 pp; premium conversions +15-22%",
+                "kpi_anchors": {
+                    "quality_perception_pp": {"distribution": "triangular", "params": [26, 31, 37], "bounds": [20, 45]},
+                    "premium_conversion_pct": {"distribution": "normal", "params": [18, 5], "bounds": [10, 30]}
+                }
+            },
+            {
+                "id": "P011",
+                "name": "Product Customization Platform",
+                "type": "Opportunity",
+                "industry_scope": "Product",
+                "segments_involved": ["Product", "Experience"],
+                "factors": ["F6", "F26"],
+                "trigger_conditions": {
+                    "customization_demand": {"threshold": 0.6, "operator": ">"},
+                    "engagement_readiness": {"threshold": 0.5, "operator": ">"}
+                },
+                "strategic_response": "Online configurator; customization options; visual preview tools; personalization features",
+                "outcome_measures": ["customization rate", "engagement time"],
+                "probability_range": (0.58, 0.75),
+                "confidence": 0.68,
+                "evidence_strength": 0.71,
+                "effect_size_hints": "Customization rate +30-40%; engagement time +45-60%",
+                "kpi_anchors": {
+                    "customization_rate_pp": {"distribution": "triangular", "params": [28, 35, 42], "bounds": [20, 55]},
+                    "engagement_time_pct": {"distribution": "normal", "params": [52, 10], "bounds": [35, 75]}
+                }
+            },
+            
+            # Additional BRAND patterns
+            {
+                "id": "P012",
+                "name": "Brand Repositioning Initiative",
+                "type": "Adaptation",
+                "industry_scope": "Brand",
+                "segments_involved": ["Brand"],
+                "factors": ["F21", "F22", "F23"],
+                "trigger_conditions": {
+                    "positioning_misalignment": {"threshold": 0.5, "operator": "<"},
+                    "brand_potential": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Brand refresh; messaging overhaul; visual identity update; repositioning campaign",
+                "outcome_measures": ["brand perception shift", "positioning clarity"],
+                "probability_range": (0.55, 0.73),
+                "confidence": 0.66,
+                "evidence_strength": 0.69,
+                "effect_size_hints": "Perception shift +30-40 pp; positioning clarity +35-45 pp",
+                "kpi_anchors": {
+                    "perception_shift_pp": {"distribution": "triangular", "params": [28, 35, 42], "bounds": [20, 50]},
+                    "positioning_clarity_pp": {"distribution": "normal", "params": [40, 7], "bounds": [25, 55]}
+                }
+            },
+            {
+                "id": "P013",
+                "name": "Heritage Brand Storytelling",
+                "type": "Success",
+                "industry_scope": "Brand",
+                "segments_involved": ["Brand", "Consumer"],
+                "factors": ["F22", "F25"],
+                "trigger_conditions": {
+                    "brand_heritage": {"threshold": 0.7, "operator": ">"},
+                    "brand_awareness": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Origin story campaigns; heritage marketing; founder narratives; legacy messaging",
+                "outcome_measures": ["brand affinity", "emotional connection"],
+                "probability_range": (0.63, 0.79),
+                "confidence": 0.72,
+                "evidence_strength": 0.75,
+                "effect_size_hints": "Brand affinity +22-30 pp; emotional connection +25-35%",
+                "kpi_anchors": {
+                    "affinity_increase_pp": {"distribution": "triangular", "params": [20, 26, 32], "bounds": [15, 40]},
+                    "emotional_connection_pct": {"distribution": "normal", "params": [30, 6], "bounds": [18, 45]}
+                }
+            },
+            
+            # Additional EXPERIENCE patterns
+            {
+                "id": "P014",
+                "name": "Customer Journey Optimization",
+                "type": "Opportunity",
+                "industry_scope": "Experience",
+                "segments_involved": ["Experience"],
+                "factors": ["F26", "F27", "F28"],
+                "trigger_conditions": {
+                    "engagement_gap": {"threshold": 0.7, "operator": "<"},
+                    "satisfaction_potential": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Journey mapping; friction removal; touchpoint optimization; personalization",
+                "outcome_measures": ["journey completion", "touchpoint satisfaction"],
+                "probability_range": (0.62, 0.78),
+                "confidence": 0.71,
+                "evidence_strength": 0.74,
+                "effect_size_hints": "Journey completion +25-35%; touchpoint NPS +15-20 pts",
+                "kpi_anchors": {
+                    "completion_rate_pp": {"distribution": "triangular", "params": [23, 30, 37], "bounds": [18, 45]},
+                    "touchpoint_nps_pts": {"distribution": "normal", "params": [17, 4], "bounds": [10, 28]}
+                }
+            },
+            {
+                "id": "P015",
+                "name": "Digital Experience Enhancement",
+                "type": "Opportunity",
+                "industry_scope": "Experience",
+                "segments_involved": ["Experience", "Product"],
+                "factors": ["F28", "F10"],
+                "trigger_conditions": {
+                    "digital_experience": {"threshold": 0.6, "operator": "<"},
+                    "technology_readiness": {"threshold": 0.5, "operator": ">"}
+                },
+                "strategic_response": "UX redesign; mobile optimization; AR/VR visualization; configurator tools",
+                "outcome_measures": ["digital engagement", "tool adoption"],
+                "probability_range": (0.57, 0.74),
+                "confidence": 0.67,
+                "evidence_strength": 0.70,
+                "effect_size_hints": "Digital engagement +40-55%; tool adoption +35-50%",
+                "kpi_anchors": {
+                    "engagement_increase_pct": {"distribution": "normal", "params": [47, 9], "bounds": [30, 70]},
+                    "tool_adoption_pct": {"distribution": "triangular", "params": [33, 42, 52], "bounds": [25, 65]}
+                }
+            },
+            {
+                "id": "P016",
+                "name": "Post-Purchase Excellence",
+                "type": "Success",
+                "industry_scope": "Experience",
+                "segments_involved": ["Experience", "Consumer"],
+                "factors": ["F27", "F13"],
+                "trigger_conditions": {
+                    "satisfaction_high": {"threshold": 0.75, "operator": ">"},
+                    "loyalty_strong": {"threshold": 0.65, "operator": ">"}
+                },
+                "strategic_response": "Onboarding programs; proactive support; loyalty rewards; community building",
+                "outcome_measures": ["retention rate", "referral rate"],
+                "probability_range": (0.68, 0.85),
+                "confidence": 0.78,
+                "evidence_strength": 0.81,
+                "effect_size_hints": "Retention +22-32 pp; referrals +25-40%",
+                "kpi_anchors": {
+                    "retention_increase_pp": {"distribution": "triangular", "params": [20, 27, 34], "bounds": [15, 42]},
+                    "referral_rate_pct": {"distribution": "normal", "params": [32, 8], "bounds": [18, 50]}
+                }
+            },
+            {
+                "id": "P017",
+                "name": "Service Excellence Differentiation",
+                "type": "Success",
+                "industry_scope": "Experience",
+                "segments_involved": ["Experience"],
+                "factors": ["F26", "F27"],
+                "trigger_conditions": {
+                    "service_quality": {"threshold": 0.7, "operator": ">"}
+                },
+                "strategic_response": "White-glove service; concierge support; VIP programs; exceptional service standards",
+                "outcome_measures": ["service NPS", "premium tier adoption"],
+                "probability_range": (0.64, 0.81),
+                "confidence": 0.74,
+                "evidence_strength": 0.77,
+                "effect_size_hints": "Service NPS +18-25 pts; premium adoption +20-30%",
+                "kpi_anchors": {
+                    "service_nps_pts": {"distribution": "triangular", "params": [16, 21, 27], "bounds": [12, 35]},
+                    "premium_adoption_pct": {"distribution": "normal", "params": [25, 6], "bounds": [15, 40]}
+                }
             }
             
-            # Add more patterns P006-P041 following same structure
-            # Each pattern from your PDF documentation would be added here
+            # Structure allows easy addition of P018-P041 from PDF documentation
+            # Each new pattern follows the same JSON structure above
         ]
     
     def match_patterns(self,

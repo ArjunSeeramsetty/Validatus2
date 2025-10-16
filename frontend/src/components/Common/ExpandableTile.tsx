@@ -96,6 +96,9 @@ interface ExpandableTileProps {
   title: string;
   content: React.ReactNode;
   bgcolor?: string;
+  textColor?: string;  // NEW: Explicit text color for WCAG AAA accessibility
+  chipColor?: string;  // NEW: Chip background color
+  chipTextColor?: string;  // NEW: Chip text color
   additionalContent?: React.ReactNode;
   chips?: string[];
   metrics?: Record<string, string | number>;
@@ -110,6 +113,9 @@ const ExpandableTile: React.FC<ExpandableTileProps> = ({
   title,
   content,
   bgcolor = '#5E35B1',
+  textColor = '#FFFFFF',  // Default white for dark backgrounds
+  chipColor = 'rgba(255,255,255,0.25)',
+  chipTextColor = '#FFFFFF',
   additionalContent,
   chips = [],
   metrics = {},
@@ -160,7 +166,7 @@ const ExpandableTile: React.FC<ExpandableTileProps> = ({
           gutterBottom 
           sx={{ 
             fontWeight: 'bold', 
-            color: 'white',
+            color: textColor,  // Use explicit text color
             pr: confidence !== null ? 6 : 0,
             mb: 2
           }}
@@ -178,10 +184,18 @@ const ExpandableTile: React.FC<ExpandableTileProps> = ({
         {chips.length > 0 && (
           <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
             {chips.map((chip, index) => (
-              <MetricChip 
+              <Chip 
                 key={index}
                 label={chip}
                 size="small"
+                sx={{
+                  backgroundColor: chipColor,
+                  color: chipTextColor,
+                  margin: '2px 4px',
+                  fontSize: '0.75rem',
+                  height: '24px',
+                  fontWeight: 'bold'
+                }}
               />
             ))}
           </Box>

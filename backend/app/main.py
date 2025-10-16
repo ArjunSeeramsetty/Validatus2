@@ -66,6 +66,13 @@ except Exception as e:
     logger.warning(f"Enhanced Analysis API not available: {e}")
     ENHANCED_ANALYSIS_API_AVAILABLE = False
 
+try:
+    from .api.v3.enhanced_segment_results import router as enhanced_segment_results_router
+    ENHANCED_SEGMENT_RESULTS_API_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"Enhanced Segment Results API not available: {e}")
+    ENHANCED_SEGMENT_RESULTS_API_AVAILABLE = False
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan management"""
@@ -194,6 +201,12 @@ if ENHANCED_ANALYSIS_API_AVAILABLE:
     logger.info("✅ Enhanced Analysis API registered (Scoring Breakdown, Recalculation, Weights)")
 else:
     logger.warning("⚠️ Enhanced Analysis API not registered (dependencies missing)")
+
+if ENHANCED_SEGMENT_RESULTS_API_AVAILABLE:
+    app.include_router(enhanced_segment_results_router, tags=["Enhanced Segment Results"])
+    logger.info("✅ Enhanced Segment Results API registered (Monte Carlo + Rich Content + Personas)")
+else:
+    logger.warning("⚠️ Enhanced Segment Results API not registered (dependencies missing)")
 
 # Global exception handler
 @app.exception_handler(Exception)

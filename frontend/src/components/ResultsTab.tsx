@@ -41,11 +41,11 @@ import {
 
 import { useAnalysis } from '../hooks/useAnalysis';
 import { apiClient } from '../services/apiClient';
-import MarketResults from './Results/MarketResults';
-import ConsumerResults from './Results/ConsumerResults';
-import ProductResults from './Results/ProductResults';
-import BrandResults from './Results/BrandResults';
-import ExperienceResults from './Results/ExperienceResults';
+import MarketResults, { type MarketResultsProps } from './Results/MarketResults';
+import ConsumerResults, { type ConsumerResultsProps } from './Results/ConsumerResults';
+import ProductResults, { type ProductResultsProps } from './Results/ProductResults';
+import BrandResults, { type BrandResultsProps } from './Results/BrandResults';
+import ExperienceResults, { type ExperienceResultsProps } from './Results/ExperienceResults';
 
 interface ResultsTabProps {
   sessionId?: string;
@@ -184,7 +184,7 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ sessionId: initialSessionId }) 
             <Button
               variant="outlined"
               size="small"
-              onClick={loadTopics}
+              onClick={() => loadTopics()}
               startIcon={<RefreshIcon />}
               disabled={loadingTopics}
               sx={{

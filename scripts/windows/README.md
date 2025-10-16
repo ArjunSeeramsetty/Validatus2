@@ -1,320 +1,408 @@
-# Windows PowerShell Deployment Scripts for Validatus
+# Windows Scripts for Validatus2
 
-This directory contains comprehensive PowerShell scripts for deploying Validatus to Google Cloud Platform on Windows systems.
+PowerShell scripts for Windows-based development and deployment.
 
-## 📁 Script Overview
+## 📜 Available Scripts
 
-| Script | Purpose | Description |
-|--------|---------|-------------|
-| `Install-Prerequisites.ps1` | Prerequisites Installation | Installs all required tools (Python, gcloud, Terraform, etc.) |
-| `Setup-GCP-Infrastructure.ps1` | Infrastructure Setup | Creates all GCP resources using Terraform |
-| `Deploy-Production.ps1` | Application Deployment | Builds and deploys the application to Cloud Run |
-| `Verify-Production.ps1` | Deployment Verification | Tests the deployed application thoroughly |
-| `Set-EnvironmentVariables.ps1` | Environment Setup | Sets up environment variables for local development |
+### 1. Install-Prerequisites.ps1
+Installs required software for Validatus2 development.
 
-## 🚀 Quick Start
-
-### **One-Command Deployment**
-
+**Usage**:
 ```powershell
-# Clone the repository
-git clone https://github.com/ArjunSeeramsetty/Validatus2.git
-cd Validatus2
+.\scripts\windows\Install-Prerequisites.ps1
+```
 
-# Set execution policy (if needed)
+**What it installs**:
+- Google Cloud SDK (gcloud CLI)
+- Terraform
+- Node.js and npm
+- Python 3.10+
+- Git (if not present)
+- Docker Desktop (optional)
+
+**Options**:
+- `-SkipDocker` - Skip Docker installation
+- `-SkipPython` - Skip Python installation
+- `-Force` - Force reinstall even if present
+
+---
+
+### 2. Setup-GCP-Infrastructure.ps1
+Sets up Google Cloud Platform infrastructure.
+
+**Usage**:
+```powershell
+.\scripts\windows\Setup-GCP-Infrastructure.ps1 -ProjectId validatus-platform
+```
+
+**What it does**:
+- Enables required GCP APIs
+- Creates service accounts
+- Sets up IAM roles
+- Configures Cloud SQL
+- Sets up Secret Manager
+- Creates storage buckets
+
+**Required Parameters**:
+- `-ProjectId` - GCP project ID
+
+**Optional Parameters**:
+- `-Region` - GCP region (default: us-central1)
+- `-SkipCloudSQL` - Skip Cloud SQL setup
+- `-SkipSecrets` - Skip Secret Manager setup
+
+---
+
+### 3. Load-EnvironmentVariables.ps1
+Loads environment variables from .env files.
+
+**Usage**:
+```powershell
+.\scripts\windows\Load-EnvironmentVariables.ps1
+```
+
+**What it does**:
+- Reads `.env` file
+- Exports variables to current session
+- Validates required variables
+- Optionally persists to user environment
+
+**Options**:
+- `-EnvFile` - Path to .env file (default: .env)
+- `-Persist` - Save to user environment variables
+- `-Validate` - Validate required variables exist
+
+---
+
+### 4. Check-Deployment-Status.ps1
+Checks the status of deployed services.
+
+**Usage**:
+```powershell
+.\scripts\windows\Check-Deployment-Status.ps1
+```
+
+**What it checks**:
+- Backend Cloud Run service status
+- Frontend Cloud Run service status
+- Cloud SQL instance status
+- Service endpoints availability
+- Health check endpoints
+
+**Output**:
+- Service URLs
+- Health status
+- Last deployment time
+- Version information
+
+---
+
+### 5. Verify-Production.ps1
+Comprehensive production deployment verification.
+
+**Usage**:
+```powershell
+.\scripts\windows\Verify-Production.ps1 -ProjectId validatus-platform
+```
+
+**What it verifies**:
+- All GCP services are running
+- Endpoints are accessible
+- Health checks pass
+- Database connectivity
+- API functionality
+- Frontend accessibility
+
+**Parameters**:
+- `-ProjectId` - GCP project ID
+- `-BackendUrl` - Backend URL (optional, auto-detected)
+- `-FrontendUrl` - Frontend URL (optional, auto-detected)
+- `-Detailed` - Run detailed verification
+
+---
+
+### 6. Test-Complete-Application.ps1
+Runs comprehensive application tests.
+
+**Usage**:
+```powershell
+.\scripts\windows\Test-Complete-Application.ps1
+```
+
+**What it tests**:
+- API endpoints
+- Database connectivity
+- Frontend functionality
+- Authentication flows
+- Core workflows
+- Integration points
+
+**Equivalent to**:
+```bash
+pytest tests/ -v --cov=backend/app
+```
+
+**Note**: This script calls pytest. For more granular testing, use pytest directly:
+```powershell
+# API tests only
+pytest tests/api/ -v
+
+# Integration tests
+pytest tests/integration/ -v
+
+# E2E tests
+pytest tests/e2e/ -v
+```
+
+---
+
+## 🚀 Complete Setup Workflow
+
+### First-Time Setup
+```powershell
+# 1. Install prerequisites
+.\scripts\windows\Install-Prerequisites.ps1
+
+# 2. Load environment variables
+.\scripts\windows\Load-EnvironmentVariables.ps1 -Persist
+
+# 3. Setup GCP infrastructure
+.\scripts\windows\Setup-GCP-Infrastructure.ps1 -ProjectId validatus-platform
+
+# 4. Or use the orchestrator script
+.\setup-validatus-production.ps1 -ProjectId validatus-platform
+```
+
+### Deployment Verification
+```powershell
+# 1. Check deployment status
+.\scripts\windows\Check-Deployment-Status.ps1
+
+# 2. Verify production
+.\scripts\windows\Verify-Production.ps1 -ProjectId validatus-platform
+
+# 3. Run tests
+.\scripts\windows\Test-Complete-Application.ps1
+```
+
+### Daily Development
+```powershell
+# Load environment variables
+.\scripts\windows\Load-EnvironmentVariables.ps1
+
+# Run local backend
+python backend\start_local_backend.py
+
+# Run local frontend (separate terminal)
+cd frontend
+npm run dev
+
+# Run tests
+pytest tests/ -v
+```
+
+---
+
+## 🛠️ Prerequisites
+
+Before running these scripts:
+
+1. **PowerShell 5.1+** (Windows 10/11 includes this)
+2. **Administrator privileges** (for some installations)
+3. **Internet connection** (for downloads)
+4. **GCP Account** (for cloud deployments)
+
+### Check PowerShell Version
+```powershell
+$PSVersionTable.PSVersion
+```
+
+### Enable Script Execution
+```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-
-# Run complete setup (replace with your project ID)
-.\Setup-Validatus-Production.ps1 -ProjectId "your-validatus-project-id" -AutoApprove
 ```
 
-### **Step-by-Step Deployment**
+---
 
+## 🎨 Script Features
+
+### Common Features
+All Windows scripts include:
+- ✅ **Parameter validation**
+- ✅ **Colored output** (success/warning/error)
+- ✅ **Error handling** with proper exit codes
+- ✅ **Progress indicators**
+- ✅ **Logging** to console and optionally to file
+- ✅ **Help documentation** (use `-Help` or `Get-Help .\script.ps1`)
+
+### Error Handling
 ```powershell
-# 1. Install prerequisites (run as Administrator)
-.\scripts\windows\Install-Prerequisites.ps1
+$ErrorActionPreference = "Stop"
 
-# 2. Setup GCP infrastructure
-.\scripts\windows\Setup-GCP-Infrastructure.ps1 -ProjectId "your-project-id" -AutoApprove
-
-# 3. Deploy application
-.\scripts\windows\Deploy-Production.ps1 -ProjectId "your-project-id"
-
-# 4. Verify deployment
-.\scripts\windows\Verify-Production.ps1 -ProjectId "your-project-id"
+try {
+    # Script logic
+} catch {
+    Write-Host "❌ Error: $_" -ForegroundColor Red
+    exit 1
+}
 ```
 
-## 🔧 Prerequisites
+### Colored Output
+- 🟢 **Green**: Success messages
+- 🟡 **Yellow**: Warnings
+- 🔴 **Red**: Errors
+- 🔵 **Cyan**: Information
+- ⚪ **White**: Standard output
 
-### **System Requirements**
-- Windows 10/11 or Windows Server 2019/2022
-- PowerShell 5.1 or PowerShell Core 7+
-- Administrator privileges (for prerequisite installation)
+---
 
-### **Manual Prerequisites (if not using Install-Prerequisites.ps1)**
-- [Google Cloud SDK](https://cloud.google.com/sdk/docs/install)
-- [Terraform](https://www.terraform.io/downloads)
-- [Python 3.11+](https://www.python.org/downloads/)
-- [Git](https://git-scm.com/download/win)
-- [Chocolatey](https://chocolatey.org/install) (for automated installation)
+## 📝 Script Parameters
 
-### **GCP Requirements**
-- Active Google Cloud Project with billing enabled
-- Owner or Editor permissions on the project
-- Required APIs enabled (handled automatically by scripts)
+### Common Parameters
+Most scripts support:
+- `-Verbose` - Detailed output
+- `-WhatIf` - Show what would happen (dry run)
+- `-Confirm` - Prompt before making changes
+- `-Help` - Display help information
 
-## 📋 Detailed Script Usage
-
-### **1. Install-Prerequisites.ps1**
-
-Installs all required tools for Validatus deployment.
-
+### Example
 ```powershell
-# Install all prerequisites
-.\scripts\windows\Install-Prerequisites.ps1
-
-# Skip specific tools
-.\scripts\windows\Install-Prerequisites.ps1 -SkipPython -SkipTerraform
-```
-
-**Features:**
-- Automatic Chocolatey installation
-- Python 3.11+ installation
-- Google Cloud CLI installation
-- Terraform installation
-- Git and Docker Desktop installation
-- Comprehensive verification
-
-### **2. Setup-GCP-Infrastructure.ps1**
-
-Sets up all GCP infrastructure using Terraform.
-
-```powershell
-# Basic setup
-.\scripts\windows\Setup-GCP-Infrastructure.ps1 -ProjectId "your-project-id"
-
-# With custom region
-.\scripts\windows\Setup-GCP-Infrastructure.ps1 -ProjectId "your-project-id" -Region "us-east1"
-
-# Skip planning phase
-.\scripts\windows\Setup-GCP-Infrastructure.ps1 -ProjectId "your-project-id" -SkipPlan
-
-# Auto-approve all prompts
-.\scripts\windows\Setup-GCP-Infrastructure.ps1 -ProjectId "your-project-id" -AutoApprove
-```
-
-**Features:**
-- Google Cloud authentication setup
-- Terraform initialization and validation
-- Infrastructure deployment with confirmation
-- Environment configuration generation
-- Database schema setup
-- Deployment verification
-
-### **3. Deploy-Production.ps1**
-
-Builds and deploys the application to Cloud Run.
-
-```powershell
-# Basic deployment
-.\scripts\windows\Deploy-Production.ps1 -ProjectId "your-project-id"
-
-# Custom service name and region
-.\scripts\windows\Deploy-Production.ps1 -ProjectId "your-project-id" -ServiceName "my-backend" -Region "us-east1"
-
-# Skip build step
-.\scripts\windows\Deploy-Production.ps1 -ProjectId "your-project-id" -SkipBuild
-
-# Skip tests
-.\scripts\windows\Deploy-Production.ps1 -ProjectId "your-project-id" -SkipTests
-
-# Custom timeout
-.\scripts\windows\Deploy-Production.ps1 -ProjectId "your-project-id" -TimeoutMinutes 60
-```
-
-**Features:**
-- Cloud Build integration
-- Health check with retry logic
-- Database connectivity testing
-- Monitoring setup
-- Post-deployment verification
-
-### **4. Verify-Production.ps1**
-
-Comprehensive verification of the deployed application.
-
-```powershell
-# Basic verification
-.\scripts\windows\Verify-Production.ps1 -ProjectId "your-project-id"
-
-# Skip API tests
-.\scripts\windows\Verify-Production.ps1 -ProjectId "your-project-id" -SkipApiTests
-
 # Verbose output
-.\scripts\windows\Verify-Production.ps1 -ProjectId "your-project-id" -Verbose
+.\Setup-GCP-Infrastructure.ps1 -ProjectId validatus-platform -Verbose
 
-# Custom service URL
-.\scripts\windows\Verify-Production.ps1 -BaseUrl "https://your-custom-url.com"
+# Dry run
+.\Verify-Production.ps1 -ProjectId validatus-platform -WhatIf
+
+# With confirmation
+.\Load-EnvironmentVariables.ps1 -Persist -Confirm
 ```
 
-**Features:**
-- Health endpoint testing
-- Topic creation and retrieval testing
-- Database connectivity verification
-- Performance testing
-- Comprehensive reporting
+---
 
-### **5. Set-EnvironmentVariables.ps1**
+## 🐛 Troubleshooting
 
-Sets up environment variables for local development.
-
+### "Script cannot be loaded" Error
 ```powershell
-# Use default .env.production file
-.\scripts\windows\Set-EnvironmentVariables.ps1
-
-# Use custom environment file
-.\scripts\windows\Set-EnvironmentVariables.ps1 -EnvFile ".env.local"
-```
-
-## 🛠️ Troubleshooting
-
-### **Common Issues**
-
-#### **1. Execution Policy Errors**
-```powershell
+# Solution: Enable script execution
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-#### **2. Administrator Privileges Required**
-- Run PowerShell as Administrator for prerequisite installation
-- Regular user privileges are sufficient for deployment scripts
-
-#### **3. Google Cloud Authentication Issues**
+### "Access Denied" Error
 ```powershell
-# Re-authenticate
-gcloud auth login
-gcloud auth application-default login
-
-# Set project
-gcloud config set project YOUR_PROJECT_ID
+# Solution: Run as Administrator
+# Right-click PowerShell → "Run as Administrator"
 ```
 
-#### **4. Terraform State Issues**
+### gcloud Command Not Found
 ```powershell
-# Reinitialize Terraform
-cd infrastructure\terraform
-terraform init
+# Solution 1: Run Install-Prerequisites.ps1
+.\scripts\windows\Install-Prerequisites.ps1
+
+# Solution 2: Add to PATH manually
+$env:Path += ";C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin"
 ```
 
-#### **5. Python Virtual Environment Issues**
+### Environment Variables Not Persisting
 ```powershell
-# Recreate virtual environment
-cd backend
-Remove-Item -Recurse -Force venv
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements-gcp.txt
+# Solution: Use -Persist flag
+.\scripts\windows\Load-EnvironmentVariables.ps1 -Persist
 ```
 
-### **Debugging Tips**
-
-1. **Enable Verbose Output:**
-   ```powershell
-   $VerbosePreference = "Continue"
-   .\script-name.ps1 -Verbose
-   ```
-
-2. **Check Script Execution:**
-   ```powershell
-   # Check if scripts exist
-   Test-Path ".\scripts\windows\*.ps1"
-   ```
-
-3. **Verify Dependencies:**
-   ```powershell
-   # Check if tools are available
-   gcloud version
-   terraform version
-   python --version
-   ```
-
-4. **Review Logs:**
-   - Check PowerShell console output
-   - Review Cloud Build logs in GCP Console
-   - Check Cloud Run logs for application issues
-
-## 🔒 Security Considerations
-
-### **Service Account Permissions**
-The scripts create a service account with minimal required permissions:
-- Cloud SQL Client
-- Storage Object Admin
-- Redis Editor
-- Spanner Database User
-- AI Platform User
-- Secret Manager Secret Accessor
-
-### **Network Security**
-- Private VPC with Cloud NAT
-- No public IP addresses for databases
-- Secure inter-service communication
-
-### **Secrets Management**
-- Database passwords stored in Secret Manager
-- Service account keys managed securely
-- No hardcoded credentials
-
-## 📊 Cost Optimization
-
-### **Resource Sizing**
-- Cloud SQL: 2 vCPU, 7.5GB RAM (adjustable)
-- Redis: 4GB memory (adjustable)
-- Spanner: 100 processing units (adjustable)
-
-### **Lifecycle Policies**
-- Cloud Storage: Automatic tiering (Standard → Nearline → Coldline)
-- Automatic backup retention
-- Cost monitoring and alerts
-
-## 🚀 Advanced Usage
-
-### **Custom Configuration**
-1. Edit `infrastructure/terraform/terraform.tfvars` for custom settings
-2. Modify environment variables in generated `.env.production`
-3. Adjust resource sizes in Terraform files
-
-### **Multi-Environment Deployment**
+### Python Virtual Environment Issues
 ```powershell
-# Development environment
-.\Setup-Validatus-Production.ps1 -ProjectId "validatus-dev" -Region "us-central1"
+# Activate virtual environment first
+.\validatus-env\Scripts\Activate.ps1
 
-# Staging environment  
-.\Setup-Validatus-Production.ps1 -ProjectId "validatus-staging" -Region "us-east1"
-
-# Production environment
-.\Setup-Validatus-Production.ps1 -ProjectId "validatus-prod" -Region "us-central1"
+# If activation fails, recreate venv
+python -m venv validatus-env
+.\validatus-env\Scripts\Activate.ps1
+pip install -r backend\requirements.txt
 ```
 
-### **CI/CD Integration**
-The scripts can be integrated into CI/CD pipelines:
-```yaml
-# GitHub Actions example
-- name: Deploy to GCP
-  run: |
-    .\Setup-Validatus-Production.ps1 -ProjectId ${{ secrets.GCP_PROJECT_ID }} -AutoApprove
+---
+
+## 🔗 Related Documentation
+
+- **Main Scripts README**: `scripts/README.md`
+- **Testing Guide**: `tests/README.md`
+- **Deployment Guide**: `DEPLOYMENT_GUIDE.md`
+- **Development Guide**: `DEVELOPMENT_HISTORY.md`
+
+---
+
+## 📞 Getting Help
+
+### For Individual Scripts
+```powershell
+Get-Help .\Setup-GCP-Infrastructure.ps1 -Full
+Get-Help .\Verify-Production.ps1 -Examples
 ```
 
-## 📞 Support
+### For General Issues
+1. Check this README
+2. Review script output and error messages
+3. Check related documentation
+4. Review GCP Console for cloud-specific issues
+5. Check logs in Cloud Logging
 
-For issues or questions:
-1. Check the troubleshooting section above
-2. Review GCP Console logs
-3. Verify all prerequisites are installed
-4. Ensure proper GCP permissions
+---
 
-## 📚 Additional Resources
+## 🤝 Contributing
 
-- [Google Cloud SDK Documentation](https://cloud.google.com/sdk/docs)
-- [Terraform GCP Provider](https://registry.terraform.io/providers/hashicorp/google/latest/docs)
-- [PowerShell Documentation](https://docs.microsoft.com/en-us/powershell/)
-- [Validatus Application Documentation](../README.md)
+When adding new Windows scripts:
+1. Use **PascalCase** naming (e.g., `My-New-Script.ps1`)
+2. Include **parameter validation** and help
+3. Use **colored output** for better UX
+4. Add **comprehensive error handling**
+5. Document in this README
+6. Test on Windows 10 and 11
+7. Consider adding Linux/Mac equivalent
+
+---
+
+## 📊 Script Dependencies
+
+```
+Install-Prerequisites.ps1
+    └── (No dependencies)
+
+Setup-GCP-Infrastructure.ps1
+    ├── Requires: gcloud CLI
+    └── Requires: Project ID
+
+Load-EnvironmentVariables.ps1
+    └── Requires: .env file
+
+Check-Deployment-Status.ps1
+    ├── Requires: gcloud CLI
+    └── Requires: Deployed services
+
+Verify-Production.ps1
+    ├── Requires: gcloud CLI
+    ├── Requires: curl or Invoke-WebRequest
+    └── Depends on: Check-Deployment-Status.ps1
+
+Test-Complete-Application.ps1
+    ├── Requires: Python 3.10+
+    ├── Requires: pytest
+    └── Requires: Backend dependencies
+```
+
+---
+
+## 🎓 PowerShell Best Practices
+
+These scripts follow PowerShell best practices:
+- ✅ Approved verbs (Get, Set, New, etc.)
+- ✅ CmdletBinding for advanced functions
+- ✅ Parameter validation
+- ✅ Help documentation
+- ✅ WhatIf and Confirm support
+- ✅ Error handling
+- ✅ Consistent naming
+- ✅ Meaningful output
+
+---
+
+**Last Updated**: October 16, 2025
+**Maintained By**: Validatus2 Development Team

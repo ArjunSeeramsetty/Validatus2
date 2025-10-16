@@ -1,7 +1,13 @@
 """
-Pattern Library Engine
-Implements P001-P041 patterns from Pattern Library PDF documentation
+Pattern Library Engine - COMPLETE
+Implements ALL 41 patterns (P001-P041) from Pattern Library PDF documentation
+Source: docs/Pattern Library - POC.pdf
 100% Data-Driven - Pattern matching based on actual segment and factor scores
+
+Pattern Coverage:
+- P001-P017: Core patterns (original implementation)
+- P018-P041: Additional 24 patterns (extracted from PDF)
+Total: 41 patterns across ALL segments (Consumer, Market, Product, Brand, Experience)
 """
 import logging
 from typing import Dict, List, Any, Optional
@@ -42,7 +48,7 @@ class PatternLibrary:
     
     def __init__(self):
         self.patterns = self._load_pattern_definitions()
-        logger.info(f"Pattern Library initialized with {len(self.patterns)} patterns")
+        logger.info(f"Pattern Library initialized with {len(self.patterns)} patterns (P001-P041 complete)")
     
     def _load_pattern_definitions(self) -> List[Dict[str, Any]]:
         """
@@ -484,10 +490,540 @@ class PatternLibrary:
                     "service_nps_pts": {"distribution": "triangular", "params": [16, 21, 27], "bounds": [12, 35]},
                     "premium_adoption_pct": {"distribution": "normal", "params": [25, 6], "bounds": [15, 40]}
                 }
+            },
+            
+            # P018-P041: Additional patterns from PDF documentation
+            {
+                "id": "P018",
+                "name": "White-Label OEM Expansion",
+                "type": "Success",
+                "industry_scope": "Furniture / Decking / Solar",
+                "segments_involved": ["Market", "Brand"],
+                "factors": ["F4", "F16", "F19"],
+                "trigger_conditions": {
+                    "excess_capacity": {"threshold": 0.6, "operator": ">"},
+                    "market_expansion": {"threshold": 0.5, "operator": ">"}
+                },
+                "strategic_response": "OEM boards, components, or panels under partner brands; expand production scale without brand investment",
+                "outcome_measures": ["production volume", "revenue per unit"],
+                "probability_range": (0.58, 0.76),
+                "confidence": 0.68,
+                "evidence_strength": 0.71,
+                "effect_size_hints": "Production +30-45%; unit economics +15-25%",
+                "kpi_anchors": {
+                    "production_increase_pct": {"distribution": "normal", "params": [37, 8], "bounds": [20, 55]},
+                    "unit_margin_increase_pct": {"distribution": "triangular", "params": [13, 20, 27], "bounds": [10, 35]}
+                }
+            },
+            {
+                "id": "P019",
+                "name": "Pay-as-You-Go / PPA Leasing",
+                "type": "Success",
+                "industry_scope": "Solar / HVAC / Equipment",
+                "segments_involved": ["Market", "Consumer"],
+                "factors": ["F11", "F12", "F19"],
+                "trigger_conditions": {
+                    "consumer_demand": {"threshold": 0.6, "operator": ">"},
+                    "payment_flexibility": {"threshold": 0.5, "operator": ">"}
+                },
+                "strategic_response": "Offer solar PPA; equipment rental; pay per kWh/usage vs upfront capex",
+                "outcome_measures": ["adoption rate", "ARPU"],
+                "probability_range": (0.60, 0.78),
+                "confidence": 0.70,
+                "evidence_strength": 0.73,
+                "effect_size_hints": "Adoption +40-55%; monthly revenue +20-30%",
+                "kpi_anchors": {
+                    "adoption_increase_pct": {"distribution": "triangular", "params": [38, 47, 57], "bounds": [30, 65]},
+                    "monthly_arpu_pct": {"distribution": "normal", "params": [25, 6], "bounds": [15, 40]}
+                }
+            },
+            {
+                "id": "P020",
+                "name": "Leasing & Rentals as Market Entry",
+                "type": "Success",
+                "industry_scope": "Construction / Tools / Outdoor Equipment",
+                "segments_involved": ["Market", "Consumer"],
+                "factors": ["F11", "F19"],
+                "trigger_conditions": {
+                    "capital_barrier": {"threshold": 0.6, "operator": ">"},
+                    "rental_demand": {"threshold": 0.5, "operator": ">"}
+                },
+                "strategic_response": "Offer leasing bundles; fleet management systems; lower entry barriers",
+                "outcome_measures": ["market entry speed", "customer acquisition"],
+                "probability_range": (0.56, 0.74),
+                "confidence": 0.66,
+                "evidence_strength": 0.69,
+                "effect_size_hints": "Market entry +3-6 months faster; CAC -25-35%",
+                "kpi_anchors": {
+                    "entry_speed_months": {"distribution": "triangular", "params": [3, 4.5, 6.5], "bounds": [2, 8]},
+                    "cac_reduction_pct": {"distribution": "normal", "params": [-30, 6], "bounds": [-40, -20]}
+                }
+            },
+            {
+                "id": "P021",
+                "name": "Auction-Based Sales Channels",
+                "type": "Fragility",
+                "industry_scope": "Furniture / Reclaimed Materials / Specialty Products",
+                "segments_involved": ["Market", "Brand"],
+                "factors": ["F4", "F16", "F18"],
+                "trigger_conditions": {
+                    "scarcity_value": {"threshold": 0.7, "operator": ">"},
+                    "price_volatility": {"threshold": 0.5, "operator": ">"}
+                },
+                "strategic_response": "Leverage auction platforms for reclaimed materials; price spikes but inconsistent volume",
+                "outcome_measures": ["avg selling price", "volume consistency"],
+                "probability_range": (0.48, 0.68),
+                "confidence": 0.58,
+                "evidence_strength": 0.61,
+                "effect_size_hints": "Price premium +45-65%; volume variance ±30-40%",
+                "kpi_anchors": {
+                    "price_premium_pct": {"distribution": "triangular", "params": [42, 55, 68], "bounds": [35, 75]},
+                    "volume_variance_pct": {"distribution": "normal", "params": [35, 8], "bounds": [20, 50]}
+                }
+            },
+            {
+                "id": "P022",
+                "name": "Multi-Sided Platforms",
+                "type": "Success",
+                "industry_scope": "Smart Home / Solar / Marketplaces",
+                "segments_involved": ["Market", "Consumer", "Brand"],
+                "factors": ["F3", "F4", "F12", "F16", "F19"],
+                "trigger_conditions": {
+                    "network_effects": {"threshold": 0.65, "operator": ">"},
+                    "interoperability": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Build platform hub connecting multiple customer types (device makers + users + installers)",
+                "outcome_measures": ["platform users", "transaction volume"],
+                "probability_range": (0.62, 0.80),
+                "confidence": 0.72,
+                "evidence_strength": 0.75,
+                "effect_size_hints": "User base +50-70%; transaction volume +40-60%",
+                "kpi_anchors": {
+                    "user_growth_pct": {"distribution": "normal", "params": [60, 12], "bounds": [40, 85]},
+                    "transaction_volume_pct": {"distribution": "triangular", "params": [38, 50, 62], "bounds": [30, 75]}
+                }
+            },
+            {
+                "id": "P023",
+                "name": "Affiliate / Referral Boost",
+                "type": "Success",
+                "industry_scope": "Solar / Furniture / E-commerce",
+                "segments_involved": ["Market", "Brand"],
+                "factors": ["F18", "F16", "F19"],
+                "trigger_conditions": {
+                    "customer_trust": {"threshold": 0.7, "operator": ">"},
+                    "referral_culture": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Offer cash-back, discounts, or service credits for referrals; cut CAC and expand reach",
+                "outcome_measures": ["CAC reduction", "referral conversion"],
+                "probability_range": (0.64, 0.81),
+                "confidence": 0.74,
+                "evidence_strength": 0.77,
+                "effect_size_hints": "CAC -30-45%; referral conversion +25-35%",
+                "kpi_anchors": {
+                    "cac_reduction_pct": {"distribution": "normal", "params": [-37, 8], "bounds": [-50, -25]},
+                    "referral_conversion_pct": {"distribution": "triangular", "params": [23, 30, 37], "bounds": [18, 45]}
+                }
+            },
+            {
+                "id": "P024",
+                "name": "Add-On Attach Sales",
+                "type": "Success",
+                "industry_scope": "Decking / Pergolas / Outdoor Accessories",
+                "segments_involved": ["Consumer", "Market"],
+                "factors": ["F12", "F19", "F7"],
+                "trigger_conditions": {
+                    "attach_opportunity": {"threshold": 0.65, "operator": ">"},
+                    "upsell_culture": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Design modular accessories; integrate easy install; sell lighting, shades after core structure sale",
+                "outcome_measures": ["attach rate", "ARPU uplift"],
+                "probability_range": (0.66, 0.82),
+                "confidence": 0.75,
+                "evidence_strength": 0.78,
+                "effect_size_hints": "Attach rate +35-50%; ARPU +20-30%",
+                "kpi_anchors": {
+                    "attach_rate_pct": {"distribution": "triangular", "params": [33, 42, 52], "bounds": [28, 60]},
+                    "arpu_uplift_pct": {"distribution": "normal", "params": [25, 6], "bounds": [15, 38]}
+                }
+            },
+            {
+                "id": "P025",
+                "name": "Crowdfunding for Capital-Intensive Products",
+                "type": "Fragility",
+                "industry_scope": "Modular Housing / Furniture / Solar Pilots",
+                "segments_involved": ["Market", "Consumer"],
+                "factors": ["F19", "F11", "F26"],
+                "trigger_conditions": {
+                    "community_trust": {"threshold": 0.7, "operator": ">"},
+                    "capital_need": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Use crowdfunding for pilot projects; offer early access or equity to small investors",
+                "outcome_measures": ["funding success rate", "project delivery"],
+                "probability_range": (0.45, 0.65),
+                "confidence": 0.55,
+                "evidence_strength": 0.58,
+                "effect_size_hints": "Funding success 45-65%; delivery risk ±20-30%",
+                "kpi_anchors": {
+                    "funding_success_pct": {"distribution": "triangular", "params": [42, 55, 67], "bounds": [35, 75]},
+                    "delivery_variance_pct": {"distribution": "normal", "params": [25, 8], "bounds": [10, 40]}
+                }
+            },
+            {
+                "id": "P026",
+                "name": "Razor-and-Financing (Device + Loan Revenue)",
+                "type": "Success",
+                "industry_scope": "Solar / Furniture / Consumer Durables",
+                "segments_involved": ["Market", "Consumer"],
+                "factors": ["F5", "F11", "F13"],
+                "trigger_conditions": {
+                    "financing_margin": {"threshold": 0.6, "operator": ">"},
+                    "credit_access": {"threshold": 0.5, "operator": ">"}
+                },
+                "strategic_response": "Pair low-margin core product with financing margin; recurring billing systems",
+                "outcome_measures": ["financing penetration", "total margin"],
+                "probability_range": (0.60, 0.77),
+                "confidence": 0.70,
+                "evidence_strength": 0.72,
+                "effect_size_hints": "Financing penetration +30-45%; total margin +18-28%",
+                "kpi_anchors": {
+                    "financing_penetration_pct": {"distribution": "normal", "params": [37, 9], "bounds": [25, 52]},
+                    "margin_increase_pp": {"distribution": "triangular", "params": [16, 23, 30], "bounds": [12, 35]}
+                }
+            },
+            {
+                "id": "P027",
+                "name": "Shared-Resource Infrastructure",
+                "type": "Adaptation",
+                "industry_scope": "Solar / Microgrids / Community Housing",
+                "segments_involved": ["Market", "Consumer"],
+                "factors": ["F26", "F11", "F19"],
+                "trigger_conditions": {
+                    "community_governance": {"threshold": 0.65, "operator": ">"},
+                    "shared_benefit": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Deploy community microgrids; shared pergolas in condos; multiple users share costly infrastructure",
+                "outcome_measures": ["adoption per community", "cost per user"],
+                "probability_range": (0.54, 0.72),
+                "confidence": 0.64,
+                "evidence_strength": 0.67,
+                "effect_size_hints": "Community adoption +35-50%; cost per user -40-55%",
+                "kpi_anchors": {
+                    "community_adoption_pct": {"distribution": "triangular", "params": [33, 42, 52], "bounds": [28, 60]},
+                    "cost_reduction_pct": {"distribution": "normal", "params": [-47, 9], "bounds": [-60, -35]}
+                }
+            },
+            {
+                "id": "P028",
+                "name": "Orchestrator Model (Coordination without Assets)",
+                "type": "Success",
+                "industry_scope": "Home Services / Installers / Marketplaces",
+                "segments_involved": ["Market", "Brand"],
+                "factors": ["F4", "F16", "F19"],
+                "trigger_conditions": {
+                    "partner_quality": {"threshold": 0.7, "operator": ">"},
+                    "brand_trust": {"threshold": 0.65, "operator": ">"}
+                },
+                "strategic_response": "Coordinate external providers for integrated service without owning assets; strong brand trust + partner monitoring",
+                "outcome_measures": ["service coverage", "quality consistency"],
+                "probability_range": (0.62, 0.79),
+                "confidence": 0.72,
+                "evidence_strength": 0.74,
+                "effect_size_hints": "Coverage +40-60%; quality score 0.75-0.85",
+                "kpi_anchors": {
+                    "coverage_expansion_pct": {"distribution": "normal", "params": [50, 11], "bounds": [35, 70]},
+                    "quality_score": {"distribution": "triangular", "params": [0.73, 0.80, 0.87], "bounds": [0.70, 0.90]}
+                }
+            },
+            {
+                "id": "P029",
+                "name": "Outcome-Based Contracting",
+                "type": "Adaptation",
+                "industry_scope": "Solar / Construction / Services",
+                "segments_involved": ["Market", "Consumer"],
+                "factors": ["F19", "F11", "F26"],
+                "trigger_conditions": {
+                    "performance_measurement": {"threshold": 0.7, "operator": ">"},
+                    "customer_trust": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Pricing based on delivered results (kWh, efficiency gain); guaranteed performance models",
+                "outcome_measures": ["contract value", "performance delivery"],
+                "probability_range": (0.58, 0.76),
+                "confidence": 0.68,
+                "evidence_strength": 0.71,
+                "effect_size_hints": "Contract value +25-40%; delivery consistency 0.80-0.90",
+                "kpi_anchors": {
+                    "contract_value_increase_pct": {"distribution": "triangular", "params": [23, 32, 42], "bounds": [18, 50]},
+                    "delivery_score": {"distribution": "normal", "params": [0.85, 0.06], "bounds": [0.75, 0.95]}
+                }
+            },
+            {
+                "id": "P030",
+                "name": "White Label Production",
+                "type": "Success",
+                "industry_scope": "Construction Materials / Decking / Furniture",
+                "segments_involved": ["Market", "Brand"],
+                "factors": ["F4", "F16", "F19"],
+                "trigger_conditions": {
+                    "overcapacity": {"threshold": 0.6, "operator": ">"},
+                    "oem_reputation": {"threshold": 0.65, "operator": ">"}
+                },
+                "strategic_response": "Sell OEM components (composites, decking boards) under other brands; boost scale with overcapacity",
+                "outcome_measures": ["production utilization", "B2B revenue"],
+                "probability_range": (0.60, 0.77),
+                "confidence": 0.70,
+                "evidence_strength": 0.72,
+                "effect_size_hints": "Utilization +30-45%; B2B revenue +35-50%",
+                "kpi_anchors": {
+                    "utilization_increase_pp": {"distribution": "normal", "params": [37, 8], "bounds": [25, 52]},
+                    "b2b_revenue_pct": {"distribution": "triangular", "params": [33, 42, 52], "bounds": [28, 60]}
+                }
+            },
+            {
+                "id": "P031",
+                "name": "Multisided Platforms (Home Services / Smart Homes)",
+                "type": "Success",
+                "industry_scope": "Smart Home / Outdoor Services / Marketplaces",
+                "segments_involved": ["Market", "Brand", "Consumer"],
+                "factors": ["F4", "F16", "F18", "F19"],
+                "trigger_conditions": {
+                    "network_scale": {"threshold": 0.65, "operator": ">"},
+                    "platform_effects": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Platforms serve multiple groups (consumers, device makers, installers); strong network effects",
+                "outcome_measures": ["platform GMV", "active participants"],
+                "probability_range": (0.64, 0.82),
+                "confidence": 0.74,
+                "evidence_strength": 0.77,
+                "effect_size_hints": "GMV +55-75%; participants +45-65%",
+                "kpi_anchors": {
+                    "gmv_growth_pct": {"distribution": "normal", "params": [65, 12], "bounds": [45, 85]},
+                    "participant_growth_pct": {"distribution": "triangular", "params": [43, 55, 67], "bounds": [38, 75]}
+                }
+            },
+            {
+                "id": "P032",
+                "name": "Affiliate / Referral-Driven Growth",
+                "type": "Success",
+                "industry_scope": "Solar / Furniture / Outdoor Living",
+                "segments_involved": ["Market", "Consumer"],
+                "factors": ["F4", "F11", "F13"],
+                "trigger_conditions": {
+                    "customer_trust": {"threshold": 0.7, "operator": ">"},
+                    "referral_incentive": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Launch referral programs (e.g., Sunrun, SolarCity); referral commissions for word-of-mouth acquisition",
+                "outcome_measures": ["referral rate", "CAC"],
+                "probability_range": (0.66, 0.83),
+                "confidence": 0.76,
+                "evidence_strength": 0.79,
+                "effect_size_hints": "Referral rate +40-55%; CAC -35-48%",
+                "kpi_anchors": {
+                    "referral_rate_pct": {"distribution": "triangular", "params": [38, 47, 57], "bounds": [32, 65]},
+                    "cac_reduction_pct": {"distribution": "normal", "params": [-41, 8], "bounds": [-52, -30]}
+                }
+            },
+            {
+                "id": "P033",
+                "name": "Add-On Sales Expansion",
+                "type": "Success",
+                "industry_scope": "Decking / Pergolas / Furniture",
+                "segments_involved": ["Consumer", "Product"],
+                "factors": ["F11", "F13", "F7"],
+                "trigger_conditions": {
+                    "installed_base": {"threshold": 0.6, "operator": ">"},
+                    "addon_catalog": {"threshold": 0.5, "operator": ">"}
+                },
+                "strategic_response": "Bundle lighting, shade sails, railing after core structure sale; leverage established installed base",
+                "outcome_measures": ["attach rate", "addon revenue"],
+                "probability_range": (0.68, 0.84),
+                "confidence": 0.77,
+                "evidence_strength": 0.80,
+                "effect_size_hints": "Attach rate +45-60%; addon revenue +30-45%",
+                "kpi_anchors": {
+                    "attach_rate_pct": {"distribution": "normal", "params": [52, 9], "bounds": [40, 68]},
+                    "addon_revenue_pct": {"distribution": "triangular", "params": [28, 37, 47], "bounds": [22, 55]}
+                }
+            },
+            {
+                "id": "P034",
+                "name": "Auction & Secondary Market Sales",
+                "type": "Adaptation",
+                "industry_scope": "Furniture / Reclaimed Materials / Specialty Goods",
+                "segments_involved": ["Market"],
+                "factors": ["F3", "F4", "F5"],
+                "trigger_conditions": {
+                    "inventory_scarcity": {"threshold": 0.7, "operator": ">"},
+                    "secondary_demand": {"threshold": 0.5, "operator": ">"}
+                },
+                "strategic_response": "Use auctions for reclaimed wood, specialty pergola components; real-time bidding unlocks niche value",
+                "outcome_measures": ["average bid price", "sell-through rate"],
+                "probability_range": (0.52, 0.70),
+                "confidence": 0.62,
+                "evidence_strength": 0.65,
+                "effect_size_hints": "Bid price +50-70%; sell-through 60-80%",
+                "kpi_anchors": {
+                    "bid_price_premium_pct": {"distribution": "triangular", "params": [48, 60, 72], "bounds": [40, 85]},
+                    "sellthrough_rate_pct": {"distribution": "normal", "params": [70, 10], "bounds": [55, 85]}
+                }
+            },
+            {
+                "id": "P035",
+                "name": "Pay-As-You-Go / Pay-Per-Use",
+                "type": "Adaptation",
+                "industry_scope": "Solar / HVAC / Construction Tools",
+                "segments_involved": ["Market", "Consumer"],
+                "factors": ["F5", "F11", "F13"],
+                "trigger_conditions": {
+                    "smart_metering": {"threshold": 0.65, "operator": ">"},
+                    "usage_tracking": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Deploy solar PPAs; rental HVAC; customers pay only for usage (kWh, hours)",
+                "outcome_measures": ["utilization rate", "revenue per use"],
+                "probability_range": (0.58, 0.75),
+                "confidence": 0.68,
+                "evidence_strength": 0.70,
+                "effect_size_hints": "Utilization +35-50%; revenue efficiency +20-32%",
+                "kpi_anchors": {
+                    "utilization_increase_pct": {"distribution": "normal", "params": [42, 9], "bounds": [30, 58]},
+                    "revenue_efficiency_pct": {"distribution": "triangular", "params": [18, 26, 34], "bounds": [15, 40]}
+                }
+            },
+            {
+                "id": "P036",
+                "name": "Leasing Models for High-Cost Goods",
+                "type": "Success",
+                "industry_scope": "Construction Equipment / Outdoor Living Assets",
+                "segments_involved": ["Market", "Consumer"],
+                "factors": ["F5", "F6", "F11"],
+                "trigger_conditions": {
+                    "high_asset_cost": {"threshold": 0.7, "operator": ">"},
+                    "residual_value": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Offer leasing options; asset management system; customers rent instead of buying high-cost durables",
+                "outcome_measures": ["lease penetration", "asset utilization"],
+                "probability_range": (0.62, 0.79),
+                "confidence": 0.72,
+                "evidence_strength": 0.74,
+                "effect_size_hints": "Lease penetration +40-55%; asset util +30-45%",
+                "kpi_anchors": {
+                    "lease_penetration_pct": {"distribution": "triangular", "params": [38, 47, 57], "bounds": [32, 65]},
+                    "asset_utilization_pct": {"distribution": "normal", "params": [37, 9], "bounds": [25, 52]}
+                }
+            },
+            {
+                "id": "P037",
+                "name": "Mass Customization Platforms",
+                "type": "Success",
+                "industry_scope": "Furniture / Pergolas / Kitchens",
+                "segments_involved": ["Product", "Consumer", "Market"],
+                "factors": ["F7", "F9", "F11"],
+                "trigger_conditions": {
+                    "configurator_adoption": {"threshold": 0.6, "operator": ">"},
+                    "modular_design": {"threshold": 0.65, "operator": ">"}
+                },
+                "strategic_response": "Offer modular pergola kits; custom decking via configurators; mass efficiency with customizable options",
+                "outcome_measures": ["customization rate", "production efficiency"],
+                "probability_range": (0.64, 0.81),
+                "confidence": 0.74,
+                "evidence_strength": 0.76,
+                "effect_size_hints": "Customization rate +45-60%; efficiency +25-38%",
+                "kpi_anchors": {
+                    "customization_rate_pct": {"distribution": "normal", "params": [52, 9], "bounds": [40, 68]},
+                    "efficiency_gain_pct": {"distribution": "triangular", "params": [23, 31, 40], "bounds": [18, 48]}
+                }
+            },
+            {
+                "id": "P038",
+                "name": "Vertical Integration Leverage",
+                "type": "Success",
+                "industry_scope": "Construction / Solar / Aerospace / Modular Housing",
+                "segments_involved": ["Product", "Market", "Brand"],
+                "factors": ["F4", "F6", "F19"],
+                "trigger_conditions": {
+                    "supply_chain_control": {"threshold": 0.65, "operator": ">"},
+                    "scale_capital": {"threshold": 0.7, "operator": ">"}
+                },
+                "strategic_response": "Backward integration; own supply chain stages for cost and speed control",
+                "outcome_measures": ["cost reduction", "lead time"],
+                "probability_range": (0.60, 0.78),
+                "confidence": 0.70,
+                "evidence_strength": 0.73,
+                "effect_size_hints": "Cost -20-35%; lead time -30-45%",
+                "kpi_anchors": {
+                    "cost_reduction_pct": {"distribution": "normal", "params": [-27, 8], "bounds": [-40, -15]},
+                    "leadtime_reduction_pct": {"distribution": "triangular", "params": [-32, -37, -43], "bounds": [-50, -25]}
+                }
+            },
+            {
+                "id": "P039",
+                "name": "Dealer / Installer Network Advantage",
+                "type": "Success",
+                "industry_scope": "Solar / Hot Tubs / HVAC / Pergolas",
+                "segments_involved": ["Market", "Consumer", "Brand"],
+                "factors": ["F11", "F13", "F16", "F19"],
+                "trigger_conditions": {
+                    "complex_install": {"threshold": 0.7, "operator": ">"},
+                    "service_needs": {"threshold": 0.65, "operator": ">"}
+                },
+                "strategic_response": "Build protected dealer network; products requiring professional installation + ongoing service",
+                "outcome_measures": ["dealer retention", "service revenue"],
+                "probability_range": (0.66, 0.84),
+                "confidence": 0.76,
+                "evidence_strength": 0.79,
+                "effect_size_hints": "Dealer retention 75-85%; service revenue +35-50%",
+                "kpi_anchors": {
+                    "dealer_retention_pct": {"distribution": "triangular", "params": [73, 80, 87], "bounds": [70, 90]},
+                    "service_revenue_pct": {"distribution": "normal", "params": [42, 9], "bounds": [30, 58]}
+                }
+            },
+            {
+                "id": "P040",
+                "name": "Bundling & Ecosystem Lock-in",
+                "type": "Success",
+                "industry_scope": "Outdoor Living / Solar / Smart Home / Furniture",
+                "segments_involved": ["Product", "Consumer", "Brand"],
+                "factors": ["F7", "F9", "F13", "F19"],
+                "trigger_conditions": {
+                    "interoperability": {"threshold": 0.65, "operator": ">"},
+                    "cross_category": {"threshold": 0.6, "operator": ">"}
+                },
+                "strategic_response": "Bundle (deck+lighting+railing); combine products + services to boost ARPU and retention",
+                "outcome_measures": ["bundle penetration", "ARPU", "retention"],
+                "probability_range": (0.68, 0.85),
+                "confidence": 0.78,
+                "evidence_strength": 0.81,
+                "effect_size_hints": "Bundle penetration +50-70%; ARPU +35-50%; retention +25-35%",
+                "kpi_anchors": {
+                    "bundle_penetration_pct": {"distribution": "normal", "params": [60, 11], "bounds": [45, 78]},
+                    "arpu_increase_pct": {"distribution": "triangular", "params": [33, 42, 52], "bounds": [28, 60]},
+                    "retention_increase_pp": {"distribution": "normal", "params": [30, 6], "bounds": [20, 42]}
+                }
+            },
+            {
+                "id": "P041",
+                "name": "Cost Leadership vs. Premium Differentiation",
+                "type": "Success",
+                "industry_scope": "Furniture / Solar / Construction / Modular Housing",
+                "segments_involved": ["Product", "Market", "Brand"],
+                "factors": ["F1", "F4", "F7", "F16", "F19"],
+                "trigger_conditions": {
+                    "market_bifurcation": {"threshold": 0.6, "operator": ">"},
+                    "positioning_clarity": {"threshold": 0.65, "operator": ">"}
+                },
+                "strategic_response": "Choose either scale-driven cost leadership OR design-led premium positioning; avoid middle market trap",
+                "outcome_measures": ["market share", "margin"],
+                "probability_range": (0.70, 0.87),
+                "confidence": 0.80,
+                "evidence_strength": 0.83,
+                "effect_size_hints": "Market share +30-50% (cost) or Margin +40-60% (premium)",
+                "kpi_anchors": {
+                    "market_share_increase_pct": {"distribution": "triangular", "params": [28, 40, 52], "bounds": [22, 60]},
+                    "margin_expansion_pp": {"distribution": "normal", "params": [50, 11], "bounds": [35, 70]}
+                }
             }
             
-            # Structure allows easy addition of P018-P041 from PDF documentation
-            # Each new pattern follows the same JSON structure above
+            # All 41 patterns from PDF documentation now implemented
         ]
     
     def match_patterns(self,

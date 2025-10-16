@@ -26,12 +26,23 @@ import {
 } from '@mui/icons-material';
 
 import type { ConsumerAnalysisData } from '../../hooks/useAnalysis';
+import { useEnhancedAnalysis } from '../../hooks/useEnhancedAnalysis';
+import PatternMatchCard from './PatternMatchCard';
 
 interface ConsumerResultsProps {
   data: ConsumerAnalysisData;
+  sessionId?: string;
 }
 
-const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data }) => {
+const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) => {
+  // Fetch enhanced analysis (Pattern Library, Monte Carlo)
+  const { patternMatches, scenarios, loading: enhancedLoading, enginesAvailable } = useEnhancedAnalysis(sessionId || null);
+
+  // Filter consumer-related patterns
+  const consumerPatterns = patternMatches?.pattern_matches?.filter(p => 
+    p.segments_involved.some(seg => seg.toLowerCase().includes('consumer'))
+  ) || [];
+
   if (!data) {
     return (
       <Typography sx={{ color: '#888' }}>
@@ -387,6 +398,30 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data }) => {
             </CardContent>
           </Card>
         </Grid>
+
+        {/* Pattern Library Insights - Enhanced Analysis */}
+        {enginesAvailable && consumerPatterns.length > 0 && (
+          <Grid item xs={12}>
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: '#5E35B1' }}>
+                🎯 Strategic Pattern Insights (Pattern Library)
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 3, color: '#666' }}>
+                Patterns matched using actual Consumer Intelligence scores • Monte Carlo simulations (1000 iterations)
+              </Typography>
+              <Grid container spacing={2}>
+                {consumerPatterns.map((pattern) => (
+                  <Grid item xs={12} lg={6} key={pattern.pattern_id}>
+                    <PatternMatchCard 
+                      pattern={pattern}
+                      scenario={scenarios?.scenarios?.[pattern.pattern_id]}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          </Grid>
+        )}
 
       </Grid>
     </Box>

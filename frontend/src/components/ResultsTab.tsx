@@ -583,11 +583,11 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ sessionId: initialSessionId }) 
 
       {/* Tab Panels */}
       <Box sx={{ p: 3, bgcolor: '#0a0a14' }}>
-        {activeTab === 0 && <MarketResults data={analysisData.market} />}
-        {activeTab === 1 && <ConsumerResults data={analysisData.consumer} />}
-        {activeTab === 2 && <ProductResults data={analysisData.product} />}
-        {activeTab === 3 && <BrandResults data={analysisData.brand} />}
-        {activeTab === 4 && <ExperienceResults data={analysisData.experience} />}
+        {activeTab === 0 && <MarketResults data={analysisData.market} sessionId={selectedSessionId} />}
+        {activeTab === 1 && <ConsumerResults data={analysisData.consumer} sessionId={selectedSessionId} />}
+        {activeTab === 2 && <ProductResults data={analysisData.product} sessionId={selectedSessionId} />}
+        {activeTab === 3 && <BrandResults data={analysisData.brand} sessionId={selectedSessionId} />}
+        {activeTab === 4 && <ExperienceResults data={analysisData.experience} sessionId={selectedSessionId} />}
       </Box>
     </Box>
   );

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Product Results Component
  * Displays product analysis including features, positioning, and innovation opportunities
  */
@@ -26,12 +26,33 @@ import {
 } from '@mui/icons-material';
 
 import type { ProductAnalysisData } from '../../hooks/useAnalysis';
+import { useEnhancedAnalysis } from '../../hooks/useEnhancedAnalysis';
+import { useSegmentPatterns } from '../../hooks/useSegmentPatterns';
+import PatternMatchCard from './PatternMatchCard';
 
 export interface ProductResultsProps {
-  data: ProductAnalysisData;  sessionId?: string;
+  data: ProductAnalysisData;
+  sessionId?: string;
 }
 
-const ProductResults: React.FC<ProductResultsProps> = ({ data , sessionId }) => {
+const ProductResults: React.FC<ProductResultsProps> = ({ data, sessionId }) => {
+  // Fetch enhanced analysis (Pattern Library, Monte Carlo)
+  const { patternMatches, scenarios } = useEnhancedAnalysis(sessionId || null);
+
+  // NEW: Fetch Product-specific patterns (top 4)
+  const { patternMatches: productPatterns, scenarios: productScenarios, hasPatterns } = useSegmentPatterns(
+    sessionId || null,
+    'product'
+  );
+
+  // Use segment-specific patterns if available
+  const displayPatterns = hasPatterns ? productPatterns : (
+    patternMatches?.pattern_matches?.filter(p => 
+      p.segments_involved.some(seg => seg.toLowerCase().includes('product'))
+    ) || []
+  );
+  const displayScenarios = hasPatterns ? productScenarios : scenarios;
+
   if (!data) {
     return (
       <Typography sx={{ color: '#888' }}>
@@ -326,6 +347,30 @@ const ProductResults: React.FC<ProductResultsProps> = ({ data , sessionId }) => 
             </CardContent>
           </Card>
         </Grid>
+
+        {/* Pattern Library Insights - NEW (TOP 4 PRODUCT PATTERNS) */}
+        {displayPatterns.length > 0 && (
+          <Grid item xs={12}>
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: '#1976D2' }}>
+                🎯 Strategic Pattern Insights (Pattern Library - Top 4)
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 3, color: '#666' }}>
+                Patterns matched using actual Product Intelligence scores • Monte Carlo simulations (1000 iterations)
+              </Typography>
+              <Grid container spacing={2}>
+                {displayPatterns.slice(0, 4).map((pattern) => (
+                  <Grid item xs={12} lg={6} key={pattern.pattern_id}>
+                    <PatternMatchCard 
+                      pattern={pattern}
+                      scenario={(displayScenarios as any)?.[pattern.pattern_id]}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          </Grid>
+        )}
 
       </Grid>
     </Box>

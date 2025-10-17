@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Experience Results Component
  * Displays experience analysis including user journey, touchpoints, and improvements
  */
@@ -26,12 +26,33 @@ import {
 } from '@mui/icons-material';
 
 import type { ExperienceAnalysisData } from '../../hooks/useAnalysis';
+import { useEnhancedAnalysis } from '../../hooks/useEnhancedAnalysis';
+import { useSegmentPatterns } from '../../hooks/useSegmentPatterns';
+import PatternMatchCard from './PatternMatchCard';
 
 export interface ExperienceResultsProps {
-  data: ExperienceAnalysisData;  sessionId?: string;
+  data: ExperienceAnalysisData;
+  sessionId?: string;
 }
 
-const ExperienceResults: React.FC<ExperienceResultsProps> = ({ data , sessionId }) => {
+const ExperienceResults: React.FC<ExperienceResultsProps> = ({ data, sessionId }) => {
+  // Fetch enhanced analysis (Pattern Library, Monte Carlo)
+  const { patternMatches, scenarios } = useEnhancedAnalysis(sessionId || null);
+
+  // NEW: Fetch Experience-specific patterns (top 4)
+  const { patternMatches: experiencePatterns, scenarios: experienceScenarios, hasPatterns } = useSegmentPatterns(
+    sessionId || null,
+    'experience'
+  );
+
+  // Use segment-specific patterns if available
+  const displayPatterns = hasPatterns ? experiencePatterns : (
+    patternMatches?.pattern_matches?.filter(p => 
+      p.segments_involved.some(seg => seg.toLowerCase().includes('experience'))
+    ) || []
+  );
+  const displayScenarios = hasPatterns ? experienceScenarios : scenarios;
+
   if (!data) {
     return (
       <Typography sx={{ color: '#888' }}>
@@ -102,7 +123,7 @@ const ExperienceResults: React.FC<ExperienceResultsProps> = ({ data , sessionId 
                             {stage.pain_points.map((pain, i) => (
                               <ListItem key={i} sx={{ px: 0, py: 0.2 }}>
                                 <ListItemText 
-                                  primary={`â€¢ ${pain}`}
+                                  primary={`• ${pain}`}
                                   primaryTypographyProps={{ fontSize: '0.75rem', color: '#FFCDD2' }}
                                 />
                               </ListItem>
@@ -121,7 +142,7 @@ const ExperienceResults: React.FC<ExperienceResultsProps> = ({ data , sessionId 
                             {stage.opportunities.map((opp, i) => (
                               <ListItem key={i} sx={{ px: 0, py: 0.2 }}>
                                 <ListItemText 
-                                  primary={`â€¢ ${opp}`}
+                                  primary={`• ${opp}`}
                                   primaryTypographyProps={{ fontSize: '0.75rem', color: '#C8E6C9' }}
                                 />
                               </ListItem>
@@ -422,6 +443,30 @@ const ExperienceResults: React.FC<ExperienceResultsProps> = ({ data , sessionId 
             </CardContent>
           </Card>
         </Grid>
+
+        {/* Pattern Library Insights - Enhanced Analysis (TOP 4 EXPERIENCE PATTERNS) */}
+        {displayPatterns.length > 0 && (
+          <Grid item xs={12}>
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: '#00796B' }}>
+                🎯 Strategic Pattern Insights (Pattern Library - Top 4)
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 3, color: '#666' }}>
+                Patterns matched using actual Experience Intelligence scores • Monte Carlo simulations (1000 iterations)
+              </Typography>
+              <Grid container spacing={2}>
+                {displayPatterns.slice(0, 4).map((pattern) => (
+                  <Grid item xs={12} lg={6} key={pattern.pattern_id}>
+                    <PatternMatchCard 
+                      pattern={pattern}
+                      scenario={(displayScenarios as any)?.[pattern.pattern_id]}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          </Grid>
+        )}
 
       </Grid>
     </Box>

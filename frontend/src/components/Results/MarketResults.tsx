@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Market Results Component
  * Displays comprehensive market analysis including competitors, opportunities, pricing, and growth
  */
@@ -23,14 +23,32 @@ import {
   Policy,
   ShowChart
 } from '@mui/icons-material';
+import ExpandableTile from '../Common/ExpandableTile';
 
 import type { MarketAnalysisData } from '../../hooks/useAnalysis';
+import { useEnhancedAnalysis } from '../../hooks/useEnhancedAnalysis';
+import { useGrowthDemand } from '../../hooks/useGrowthDemand';
+import { useSegmentPatterns } from '../../hooks/useSegmentPatterns';
+import PatternMatchCard from './PatternMatchCard';
 
 export interface MarketResultsProps {
-  data: MarketAnalysisData;  sessionId?: string;
+  data: MarketAnalysisData;
+  sessionId?: string;
 }
 
-const MarketResults: React.FC<MarketResultsProps> = ({ data , sessionId }) => {
+const MarketResults: React.FC<MarketResultsProps> = ({ data, sessionId }) => {
+  // Fetch enhanced analysis (Pattern Library, Monte Carlo)
+  const { patternMatches, scenarios } = useEnhancedAnalysis(sessionId || null);
+  
+  // NEW: Fetch Growth & Demand data (fixes 0.00 scores)
+  const { growthDemandData } = useGrowthDemand(sessionId || null);
+  
+  // NEW: Fetch Market-specific patterns (top 4)
+  const { patternMatches: marketPatterns, scenarios: marketScenarios, hasPatterns } = useSegmentPatterns(
+    sessionId || null,
+    'market'
+  );
+
   if (!data) {
     return (
       <Typography sx={{ color: '#888' }}>
@@ -39,9 +57,90 @@ const MarketResults: React.FC<MarketResultsProps> = ({ data , sessionId }) => {
     );
   }
 
+  // Extract actual metrics from data (NO random numbers)
+  const opportunityCount = data.opportunities?.length || 0;
+  const competitorCount = Object.keys(data.competitor_analysis || {}).length;
+  const actualMarketFitScore = data.market_fit?.overall_score || 0;
+
+  // Use segment-specific patterns (top 4 for Market)
+  const displayPatterns = hasPatterns ? marketPatterns : (
+    patternMatches?.pattern_matches?.filter(p => 
+      p.segments_involved.some(seg => seg.toLowerCase().includes('market'))
+    ) || []
+  );
+  const displayScenarios = hasPatterns ? marketScenarios : scenarios;
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Grid container spacing={3}>
+        
+        {/* Market Opportunities - Using ExpandableTile */}
+        <Grid item xs={12} md={4}>
+          <ExpandableTile
+            title="Market Opportunities"
+            bgcolor="#66BB6A"
+            content={`${opportunityCount} strategic opportunities identified from analysis`}
+            chips={['Growth Opportunities', 'Strategic Analysis']}
+            metrics={{
+              'Opportunities': opportunityCount,
+              'Market Fit Score': `${(actualMarketFitScore * 100).toFixed(1)}%`
+            }}
+            insights={data.opportunities?.map(opp => ({
+              content: opp,
+              source: 'LLM Analysis with RAG'
+            }))}
+            confidence={actualMarketFitScore}
+            additionalContent={
+              <Box>
+                <Typography variant="body2" sx={{ mb: 2, color: 'rgba(255,255,255,0.9)' }}>
+                  {data.opportunities_rationale || 'Strategic opportunities based on comprehensive market analysis'}
+                </Typography>
+                {data.opportunities?.map((opp, index) => (
+                  <Box key={index} sx={{ mb: 2, p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ color: 'white' }}>
+                      • {opp}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            }
+          />
+        </Grid>
+        
+        {/* Competitor Analysis - Using ExpandableTile */}
+        <Grid item xs={12} md={4}>
+          <ExpandableTile
+            title="Competitor Analysis"
+            bgcolor="#4A148C"
+            content={`${competitorCount} competitors identified and analyzed`}
+            chips={['Competitive Intelligence', 'Market Position']}
+            metrics={{
+              'Competitors Analyzed': competitorCount,
+              'Data Sources': 'Scraped Content + Scoring'
+            }}
+            insights={Object.entries(data.competitor_analysis || {}).map(([name, details]: [string, any]) => ({
+              content: `${name}: ${typeof details === 'string' ? details : details.description}`,
+              source: 'Market Research'
+            }))}
+            confidence={actualMarketFitScore}
+            additionalContent={
+              <Box>
+                {Object.entries(data.competitor_analysis || {}).map(([competitor, details]: [string, any], index) => (
+                  <Box key={index} sx={{ mb: 2, p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                    <Typography variant="subtitle2" sx={{ color: 'white', fontWeight: 'bold' }}>
+                      {competitor}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 1, fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)' }}>
+                      {typeof details === 'string' ? details : details.description || details}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            }
+          />
+        </Grid>
+
+        {/* Existing card-based components for other sections */}
         
         {/* Competitor Analysis Section */}
         <Grid item xs={12} md={4}>
@@ -213,7 +312,7 @@ const MarketResults: React.FC<MarketResultsProps> = ({ data , sessionId }) => {
                         {data.pricing_switching.insights.map((insight: string, index: number) => (
                           <ListItem key={index} sx={{ px: 0 }}>
                             <ListItemText 
-                              primary={`â€¢ ${insight}`}
+                              primary={`• ${insight}`}
                               primaryTypographyProps={{ fontSize: '0.85rem', color: '#E1BEE7' }}
                             />
                           </ListItem>
@@ -251,7 +350,7 @@ const MarketResults: React.FC<MarketResultsProps> = ({ data , sessionId }) => {
                       </Typography>
                       {data.regulation_tariffs.key_regulations.map((reg: string, index: number) => (
                         <Typography key={index} variant="body2" sx={{ color: '#E1BEE7', mb: 0.5 }}>
-                          â€¢ {reg}
+                          • {reg}
                         </Typography>
                       ))}
                     </Box>
@@ -266,7 +365,7 @@ const MarketResults: React.FC<MarketResultsProps> = ({ data , sessionId }) => {
                         {data.regulation_tariffs.details.map((detail: string, index: number) => (
                           <ListItem key={index} sx={{ px: 0 }}>
                             <ListItemText 
-                              primary={`â€¢ ${detail}`}
+                              primary={`• ${detail}`}
                               primaryTypographyProps={{ fontSize: '0.85rem', color: '#E1BEE7' }}
                             />
                           </ListItem>
@@ -284,7 +383,7 @@ const MarketResults: React.FC<MarketResultsProps> = ({ data , sessionId }) => {
           </Card>
         </Grid>
 
-        {/* Growth & Demand Section */}
+        {/* Growth & Demand Section - ENHANCED with actual scores */}
         <Grid item xs={12} md={8}>
           <Card sx={{ height: '100%', bgcolor: '#5E35B1', color: 'white' }}>
             <CardContent>
@@ -295,7 +394,62 @@ const MarketResults: React.FC<MarketResultsProps> = ({ data , sessionId }) => {
                 </Typography>
               </Box>
               
-              {data.growth_demand && Object.keys(data.growth_demand).length > 0 ? (
+              {growthDemandData ? (
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                      <Typography variant="body2" sx={{ color: '#B39DDB', fontWeight: 'bold' }}>
+                        Market Size:
+                      </Typography>
+                      <Typography variant="h5" sx={{ color: 'white', my: 1 }}>
+                        Score: {(growthDemandData.market_size.score * 100).toFixed(2)}%
+                      </Typography>
+                      {growthDemandData.market_size.value && (
+                        <Typography variant="body2" sx={{ color: '#E1BEE7', fontSize: '0.85rem' }}>
+                          ${growthDemandData.market_size.value.toFixed(2)}B {growthDemandData.market_size.currency}
+                        </Typography>
+                      )}
+                      <Typography variant="caption" sx={{ color: '#B39DDB', display: 'block', mt: 1 }}>
+                        {growthDemandData.market_size.evidence}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 1 }}>
+                      <Typography variant="body2" sx={{ color: '#B39DDB', fontWeight: 'bold' }}>
+                        Growth Rate:
+                      </Typography>
+                      <Typography variant="h5" sx={{ color: 'white', my: 1 }}>
+                        Score: {(growthDemandData.growth_rate.score * 100).toFixed(2)}%
+                      </Typography>
+                      {growthDemandData.growth_rate.cagr && (
+                        <Typography variant="body2" sx={{ color: '#E1BEE7', fontSize: '0.85rem' }}>
+                          {growthDemandData.growth_rate.cagr.toFixed(1)}% CAGR {growthDemandData.growth_rate.period && `(${growthDemandData.growth_rate.period})`}
+                        </Typography>
+                      )}
+                      <Typography variant="caption" sx={{ color: '#B39DDB', display: 'block', mt: 1 }}>
+                        {growthDemandData.growth_rate.evidence}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  
+                  {growthDemandData.demand_drivers && growthDemandData.demand_drivers.length > 0 && (
+                    <Grid item xs={12}>
+                      <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 1 }}>
+                        <Typography variant="body2" sx={{ color: '#B39DDB', fontWeight: 'bold', mb: 1 }}>
+                          Demand Drivers:
+                        </Typography>
+                        {growthDemandData.demand_drivers.map((driver: string, index: number) => (
+                          <Typography key={index} variant="body2" sx={{ color: '#E1BEE7', mb: 0.5 }}>
+                            • {driver}
+                          </Typography>
+                        ))}
+                      </Box>
+                    </Grid>
+                  )}
+                </Grid>
+              ) : data.growth_demand && Object.keys(data.growth_demand).length > 0 ? (
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={6}>
                     <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 1 }}>
@@ -325,7 +479,7 @@ const MarketResults: React.FC<MarketResultsProps> = ({ data , sessionId }) => {
                         </Typography>
                         {data.growth_demand.demand_drivers.map((driver: string, index: number) => (
                           <Typography key={index} variant="body2" sx={{ color: '#E1BEE7', mb: 0.5 }}>
-                            â€¢ {driver}
+                            • {driver}
                           </Typography>
                         ))}
                       </Box>
@@ -394,6 +548,30 @@ const MarketResults: React.FC<MarketResultsProps> = ({ data , sessionId }) => {
             </CardContent>
           </Card>
         </Grid>
+
+        {/* Pattern Library Insights - Enhanced Analysis (TOP 4 MARKET PATTERNS) */}
+        {displayPatterns.length > 0 && (
+          <Grid item xs={12}>
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: '#1976D2' }}>
+                🎯 Strategic Pattern Insights (Pattern Library - Top 4)
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 3, color: '#666' }}>
+                Patterns matched using actual Market Intelligence scores • Monte Carlo simulations (1000 iterations)
+              </Typography>
+              <Grid container spacing={2}>
+                {displayPatterns.slice(0, 4).map((pattern) => (
+                  <Grid item xs={12} lg={6} key={pattern.pattern_id}>
+                    <PatternMatchCard 
+                      pattern={pattern}
+                      scenario={(displayScenarios as any)?.[pattern.pattern_id]}
+                    />
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          </Grid>
+        )}
 
       </Grid>
     </Box>

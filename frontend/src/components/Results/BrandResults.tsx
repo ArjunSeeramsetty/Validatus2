@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Brand Results Component
  * Displays brand analysis including positioning, perception, and opportunities
  */
@@ -284,7 +284,7 @@ const BrandResults: React.FC<BrandResultsProps> = ({ data, sessionId }) => {
                         </Typography>
                         {data.messaging_strategy.key_messages.map((message: string, index: number) => (
                           <Typography key={index} variant="body2" sx={{ fontSize: '0.85rem', color: 'white', mb: 0.5 }}>
-                            â€¢ {message}
+                            • {message}
                           </Typography>
                         ))}
                       </Box>
@@ -399,10 +399,10 @@ const BrandResults: React.FC<BrandResultsProps> = ({ data, sessionId }) => {
           <Grid item xs={12}>
             <Box sx={{ mt: 4 }}>
               <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: '#7B1FA2' }}>
-                ðŸŽ¯ Strategic Pattern Insights (Pattern Library - Top 4)
+                🎯 Strategic Pattern Insights (Pattern Library - Top 4)
               </Typography>
               <Typography variant="body2" sx={{ mb: 3, color: '#666' }}>
-                Patterns matched using actual Brand Intelligence scores â€¢ Monte Carlo simulations (1000 iterations)
+                Patterns matched using actual Brand Intelligence scores • Monte Carlo simulations (1000 iterations)
               </Typography>
               <Grid container spacing={2}>
                 {displayPatterns.slice(0, 4).map((pattern) => (

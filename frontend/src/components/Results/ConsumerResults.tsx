@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Consumer Results Component
  * Displays consumer analysis including personas, recommendations, challenges, and motivators
  */
@@ -103,7 +103,7 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) =>
                         {data.additional_recommendations.map((item, index) => (
                           <ListItem key={index} sx={{ px: 0, py: 0.5 }}>
                             <ListItemText 
-                              primary={`â€¢ ${item}`}
+                              primary={`• ${item}`}
                               primaryTypographyProps={{ fontSize: '0.8rem', color: '#E1BEE7' }}
                             />
                           </ListItem>
@@ -148,7 +148,7 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) =>
                   {data.challenges.slice(1).map((challenge, index) => (
                     <Box key={index} sx={{ mb: 1.5 }}>
                       <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#E0E0E0' }}>
-                        â€¢ {challenge}
+                        • {challenge}
                       </Typography>
                     </Box>
                   ))}
@@ -239,7 +239,7 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) =>
                         </Typography>
                         {persona.market_share && (
                           <Typography variant="caption" sx={{ color: '#B39DDB', display: 'block', mt: 1 }}>
-                            Market Share: {(persona.market_share * 100).toFixed(0)}% â€¢ {persona.value_tier}
+                            Market Share: {(persona.market_share * 100).toFixed(0)}% • {persona.value_tier}
                           </Typography>
                         )}
                       </Box>
@@ -432,10 +432,10 @@ const ConsumerResults: React.FC<ConsumerResultsProps> = ({ data, sessionId }) =>
           <Grid item xs={12}>
             <Box sx={{ mt: 4 }}>
               <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold', color: '#5E35B1' }}>
-                ðŸŽ¯ Strategic Pattern Insights (Pattern Library - Top 4)
+                🎯 Strategic Pattern Insights (Pattern Library - Top 4)
               </Typography>
               <Typography variant="body2" sx={{ mb: 3, color: '#666' }}>
-                Patterns matched using actual Consumer Intelligence scores â€¢ Monte Carlo simulations (1000 iterations)
+                Patterns matched using actual Consumer Intelligence scores • Monte Carlo simulations (1000 iterations)
               </Typography>
               <Grid container spacing={2}>
                 {displayPatterns.slice(0, 4).map((pattern) => (

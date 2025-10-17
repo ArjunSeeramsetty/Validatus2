@@ -77,8 +77,11 @@ except Exception as e:
 try:
     from .api.v3.data_driven_results_simple import router as data_driven_results_router
     DATA_DRIVEN_RESULTS_API_AVAILABLE = True
+    logger.info("✅ Data-Driven Results API module imported successfully")
 except Exception as e:
-    logger.warning(f"Data-Driven Results API not available: {e}")
+    import traceback
+    logger.error(f"❌ Data-Driven Results API import failed: {e}")
+    logger.error(traceback.format_exc())
     DATA_DRIVEN_RESULTS_API_AVAILABLE = False
 
 # Database Migration API

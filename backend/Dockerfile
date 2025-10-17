@@ -35,10 +35,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade pip==25.2
 
 # Copy requirements
-COPY requirements-minimal.txt /tmp/requirements-minimal.txt
+COPY requirements.txt /tmp/requirements.txt
 
 # Install all requirements from file to avoid conflicts and ensure consistency
-RUN pip install --no-cache-dir -r /tmp/requirements-minimal.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Stage 3: Production runtime
 FROM base as production
@@ -65,5 +65,5 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
 # Expose port
 EXPOSE 8000
 
-# Use exec form and fixed port for Cloud Run
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# Use gunicorn with uvicorn worker for better production performance
+CMD ["gunicorn", "app.main:app", "--bind", "0.0.0.0:8000", "--workers", "2", "--worker-class", "uvicorn.workers.UvicornWorker", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info"]

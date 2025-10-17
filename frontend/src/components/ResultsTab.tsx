@@ -41,7 +41,7 @@ import {
 
 import { useAnalysis } from '../hooks/useAnalysis';
 import { apiClient } from '../services/apiClient';
-import EnhancedSegmentPage from './Results/EnhancedSegmentPage';
+import DataDrivenSegmentPage from './Results/DataDrivenSegmentPage'; // NEW: Import DataDrivenSegmentPage
 
 interface ResultsTabProps {
   sessionId?: string;
@@ -577,14 +577,14 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ sessionId: initialSessionId }) 
         </Tabs>
       </Paper>
 
-      {/* Tab Panels - Now using EnhancedSegmentPage for all segments */}
-      <Box sx={{ p: 3, bgcolor: '#0a0a14' }}>
-        {activeTab === 0 && selectedSessionId && <EnhancedSegmentPage topicId={selectedSessionId} segment="market" />}
-        {activeTab === 1 && selectedSessionId && <EnhancedSegmentPage topicId={selectedSessionId} segment="consumer" />}
-        {activeTab === 2 && selectedSessionId && <EnhancedSegmentPage topicId={selectedSessionId} segment="product" />}
-        {activeTab === 3 && selectedSessionId && <EnhancedSegmentPage topicId={selectedSessionId} segment="brand" />}
-        {activeTab === 4 && selectedSessionId && <EnhancedSegmentPage topicId={selectedSessionId} segment="experience" />}
-      </Box>
+              {/* Tab Panels - Now using DataDrivenSegmentPage for all segments (100% Real Data) */}
+              <Box sx={{ p: 3, bgcolor: '#0a0a14' }}>
+                {activeTab === 0 && selectedSessionId && <DataDrivenSegmentPage sessionId={selectedSessionId} segment="market" />}
+                {activeTab === 1 && selectedSessionId && <DataDrivenSegmentPage sessionId={selectedSessionId} segment="consumer" />}
+                {activeTab === 2 && selectedSessionId && <DataDrivenSegmentPage sessionId={selectedSessionId} segment="product" />}
+                {activeTab === 3 && selectedSessionId && <DataDrivenSegmentPage sessionId={selectedSessionId} segment="brand" />}
+                {activeTab === 4 && selectedSessionId && <DataDrivenSegmentPage sessionId={selectedSessionId} segment="experience" />}
+              </Box>
     </Box>
   );
 };

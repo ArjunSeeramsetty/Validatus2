@@ -73,6 +73,14 @@ except Exception as e:
     logger.warning(f"Enhanced Analysis API not available: {e}")
     ENHANCED_ANALYSIS_API_AVAILABLE = False
 
+# Test Router
+try:
+    from .api.v3.test_router import router as test_router
+    TEST_ROUTER_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"Test Router not available: {e}")
+    TEST_ROUTER_AVAILABLE = False
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -206,6 +214,12 @@ if ENHANCED_ANALYSIS_API_AVAILABLE:
     logger.info("✅ Enhanced Analysis API registered (Scoring Breakdown, Recalculation, Weights)")
 else:
     logger.warning("⚠️ Enhanced Analysis API not registered (dependencies missing)")
+
+if TEST_ROUTER_AVAILABLE:
+    app.include_router(test_router, tags=["Test"])
+    logger.info("✅ Test Router registered")
+else:
+    logger.warning("⚠️ Test Router not registered")
 
 
 # Global exception handler

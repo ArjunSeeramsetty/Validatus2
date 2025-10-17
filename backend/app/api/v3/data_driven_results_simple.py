@@ -8,7 +8,7 @@ Bridges to existing results API until full persistence layer is implemented
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.core.database_session import get_db
-from app.services.results_analysis_engine import ResultsAnalysisEngine
+from app.services.results_analysis_engine import analysis_engine
 import logging
 import json
 from datetime import datetime
@@ -16,9 +16,6 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-# Initialize results analysis engine
-results_engine = ResultsAnalysisEngine()
 
 @router.get("/segment/{session_id}/{segment}")
 async def get_segment_results(
@@ -34,12 +31,30 @@ async def get_segment_results(
     try:
         logger.info(f"[Data-Driven Bridge] Getting segment results for {session_id}, {segment}")
         
-        # Fetch data from existing results API
-        results = await results_engine.get_segment_results(session_id, segment)
+        # Fetch complete analysis from existing engine
+        complete_analysis = await analysis_engine.generate_complete_analysis(session_id)
         
-        if not results:
+        # Get the specific segment
+        segment_data = None
+        if segment == "market":
+            segment_data = complete_analysis.market
+        elif segment == "consumer":
+            segment_data = complete_analysis.consumer
+        elif segment == "product":
+            segment_data = complete_analysis.product
+        elif segment == "brand":
+            segment_data = complete_analysis.brand
+        elif segment == "experience":
+            segment_data = complete_analysis.experience
+        else:
+            raise HTTPException(status_code=400, detail=f"Invalid segment: {segment}")
+        
+        if not segment_data:
             logger.warning(f"No results found for {session_id}, {segment}")
             raise HTTPException(status_code=404, detail=f"No results found for session {session_id}, segment {segment}")
+        
+        # Convert to dict for transformation
+        results = segment_data.dict() if hasattr(segment_data, 'dict') else segment_data
         
         # Transform to data-driven format
         transformed_results = {
@@ -53,7 +68,8 @@ async def get_segment_results(
                 "opportunities": results.get("opportunities", []),
                 "competitor_analysis": results.get("competitor_analysis", {}),
                 "market_share": results.get("market_share", {}),
-                "insights": results.get("insights", [])
+                "insights": results.get("insights", []),
+                "recommendations": results.get("recommendations", [])
             },
             "loaded_from_cache": False,
             "timestamp": datetime.utcnow().isoformat(),
@@ -108,11 +124,11 @@ async def get_generation_status(
     try:
         logger.info(f"[Data-Driven Bridge] Getting status for {session_id}")
         
-        # Check if results exist for this session (try market segment)
+        # Check if results exist for this session
         try:
-            results = await results_engine.get_segment_results(session_id, "market")
+            complete_analysis = await analysis_engine.generate_complete_analysis(session_id)
             
-            if results:
+            if complete_analysis:
                 return {
                     "session_id": session_id,
                     "status": "completed",

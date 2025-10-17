@@ -6,7 +6,7 @@ Simplified data-driven results API that works with existing services
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
-from app.core.database_config import db_manager
+from app.core.database_session import get_db
 import logging
 import json
 from datetime import datetime
@@ -14,14 +14,6 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-def get_db():
-    """Get database session"""
-    db = db_manager.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @router.get("/segment/{session_id}/{segment}")
 async def get_segment_results(

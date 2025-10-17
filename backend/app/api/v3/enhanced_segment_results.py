@@ -9,7 +9,7 @@ from typing import Dict, Any, List
 from datetime import datetime
 import logging
 
-from app.core.database_config import db_manager
+from app.core.database_session import get_db
 from app.services.pattern_library import StrategyPatternLibrary
 from app.services.segment_monte_carlo_engine import SegmentMonteCarloEngine
 from app.services.segment_content_generator import SegmentContentGenerator
@@ -23,13 +23,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v3/enhanced-segment-results", tags=["enhanced-segment-results"])
 
 
-def get_db():
-    """Get database session"""
-    db = db_manager.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Database session dependency imported from database_session
 
 
 @router.get("/{topic_id}/{segment}")

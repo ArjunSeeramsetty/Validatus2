@@ -8,7 +8,7 @@ Run migrations from Cloud Run with Cloud SQL access
 from fastapi import APIRouter, HTTPException
 import logging
 from sqlalchemy import text
-from app.core.database_config import db_manager
+from app.core.database_session import db_session_manager
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ async def run_results_persistence_migration():
     
     try:
         # Get a synchronous session
-        db = db_manager.SessionLocal()
+        db = db_session_manager.get_session()
         
         tables_created = []
         tables_existed = []
@@ -201,7 +201,7 @@ async def verify_results_persistence_tables():
     logger.info("🔍 Verifying results persistence tables...")
     
     try:
-        db = db_manager.SessionLocal()
+        db = db_session_manager.get_session()
         
         required_tables = [
             'computed_factors',

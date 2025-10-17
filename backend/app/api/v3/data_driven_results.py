@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
-from app.core.database_config import db_manager
+from app.core.database_session import get_db
 from app.services.results_generation_orchestrator import ResultsGenerationOrchestrator
 from app.services.results_persistence_service import ResultsPersistenceService
 import logging
@@ -10,14 +10,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v3/data-driven-results", tags=["data-driven-results"])
-
-def get_db():
-    """Get database session"""
-    db = db_manager.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @router.get("/segment/{session_id}/{segment}")
 async def get_segment_results(

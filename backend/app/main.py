@@ -100,6 +100,17 @@ except Exception as e:
     logger.warning(f"Test Router not available: {e}")
     TEST_ROUTER_AVAILABLE = False
 
+# Debug Router (Minimal test)
+try:
+    from .api.v3.test_router_debug import test_router as debug_router
+    DEBUG_ROUTER_AVAILABLE = True
+    logger.info("✅ Debug Router module imported successfully")
+except Exception as e:
+    import traceback
+    logger.error(f"❌ Debug Router import failed: {e}")
+    logger.error(traceback.format_exc())
+    DEBUG_ROUTER_AVAILABLE = False
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -233,9 +244,12 @@ else:
 
 if TEST_ROUTER_AVAILABLE:
     app.include_router(test_router, prefix="/api/v3/test", tags=["Test"])
-    logger.info("✅ Test Router registered")
+
+if DEBUG_ROUTER_AVAILABLE:
+    app.include_router(debug_router, tags=["Debug"])
+    logger.info("✅ Debug Router registered")
 else:
-    logger.warning("⚠️ Test Router not registered")
+    logger.warning("⚠️ Debug Router not registered")
 
 
 # Global exception handler

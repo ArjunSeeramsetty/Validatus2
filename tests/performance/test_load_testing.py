@@ -265,7 +265,7 @@ class TestLoadTesting:
             nonlocal success_count, recovery_count
             
             result = await error_recovery_manager.execute_with_recovery(
-                func=unreliable_function,
+                unreliable_function,
                 value,
                 recovery_strategy=error_recovery_manager.RecoveryStrategy.FALLBACK,
                 fallback_func=fallback_function

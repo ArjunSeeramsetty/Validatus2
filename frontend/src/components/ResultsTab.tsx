@@ -41,11 +41,7 @@ import {
 
 import { useAnalysis } from '../hooks/useAnalysis';
 import { apiClient } from '../services/apiClient';
-import MarketResults from './Results/MarketResults';
-import ConsumerResults from './Results/ConsumerResults';
-import ProductResults from './Results/ProductResults';
-import BrandResults from './Results/BrandResults';
-import ExperienceResults from './Results/ExperienceResults';
+import EnhancedSegmentPage from './Results/EnhancedSegmentPage';
 
 interface ResultsTabProps {
   sessionId?: string;
@@ -581,13 +577,13 @@ const ResultsTab: React.FC<ResultsTabProps> = ({ sessionId: initialSessionId }) 
         </Tabs>
       </Paper>
 
-      {/* Tab Panels */}
+      {/* Tab Panels - Now using EnhancedSegmentPage for all segments */}
       <Box sx={{ p: 3, bgcolor: '#0a0a14' }}>
-        {activeTab === 0 && <MarketResults data={analysisData.market} sessionId={selectedSessionId} />}
-        {activeTab === 1 && <ConsumerResults data={analysisData.consumer} sessionId={selectedSessionId} />}
-        {activeTab === 2 && <ProductResults data={analysisData.product} sessionId={selectedSessionId} />}
-        {activeTab === 3 && <BrandResults data={analysisData.brand} sessionId={selectedSessionId} />}
-        {activeTab === 4 && <ExperienceResults data={analysisData.experience} sessionId={selectedSessionId} />}
+        {activeTab === 0 && selectedSessionId && <EnhancedSegmentPage topicId={selectedSessionId} segment="market" />}
+        {activeTab === 1 && selectedSessionId && <EnhancedSegmentPage topicId={selectedSessionId} segment="consumer" />}
+        {activeTab === 2 && selectedSessionId && <EnhancedSegmentPage topicId={selectedSessionId} segment="product" />}
+        {activeTab === 3 && selectedSessionId && <EnhancedSegmentPage topicId={selectedSessionId} segment="brand" />}
+        {activeTab === 4 && selectedSessionId && <EnhancedSegmentPage topicId={selectedSessionId} segment="experience" />}
       </Box>
     </Box>
   );

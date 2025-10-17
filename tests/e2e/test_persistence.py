@@ -8,7 +8,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 
 class TestPersistence:

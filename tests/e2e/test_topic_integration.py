@@ -6,9 +6,10 @@ Tests complete topic workflow from frontend to backend
 """
 import pytest
 import requests
+import os
 
-BASE_URL = "http://localhost:8000"
-FRONTEND_URL = "http://localhost:3000"
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 
 class TestTopicIntegration:

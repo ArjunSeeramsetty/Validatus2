@@ -10,10 +10,10 @@ from datetime import datetime
 import logging
 
 from app.core.database_config import db_manager
-from app.services.comprehensive_pattern_library import PatternLibrary
+from app.services.pattern_library import StrategyPatternLibrary
 from app.services.segment_monte_carlo_engine import SegmentMonteCarloEngine
 from app.services.segment_content_generator import SegmentContentGenerator
-from app.services.gemini_service import GeminiService
+from app.core.gemini_client import GeminiClient
 from app.services.persona_generation_service import PersonaGenerationService
 from app.models.session import TopicSession
 from app.models.url_collection import CollectedURL
@@ -66,9 +66,9 @@ async def get_enhanced_segment_results(
             raise HTTPException(status_code=404, detail=f"Topic {topic_id} not found")
         
         # Initialize services
-        pattern_library = PatternLibrary()
+        pattern_library = StrategyPatternLibrary()
         monte_carlo_engine = SegmentMonteCarloEngine()
-        gemini_service = GeminiService()
+        gemini_service = GeminiClient()
         content_generator = SegmentContentGenerator(gemini_service)
         
         # 1. Get scraped content for this topic
@@ -92,8 +92,8 @@ async def get_enhanced_segment_results(
         factors = _generate_mock_factors(segment, scraped_content)
         factor_scores = {fid: f['value'] for fid, f in factors.items()}
         
-        # 3. Match patterns for this segment
-        matched_patterns = pattern_library.match_patterns_to_segment(segment, factor_scores)
+        # 3. Match patterns for this segment (mock implementation)
+        matched_patterns = _generate_mock_patterns(segment, factor_scores)
         
         logger.info(f"Matched {len(matched_patterns)} patterns for {segment}")
         
@@ -252,4 +252,196 @@ def _generate_mock_factors(segment: str, scraped_content: List[Dict]) -> Dict[st
     }
     
     return segment_factors.get(segment, segment_factors['market'])
+
+
+def _generate_mock_patterns(segment: str, factor_scores: Dict[str, float]) -> List[Dict[str, Any]]:
+    """
+    Generate mock pattern matches for the segment
+    In production, these would come from the pattern library
+    """
+    
+    segment_patterns = {
+        'market': [
+            {
+                'id': 'P001',
+                'name': 'Market Expansion Opportunity',
+                'type': 'Opportunity',
+                'confidence': 0.75,
+                'match_score': 0.82,
+                'strategic_response': 'Focus on geographic expansion and market penetration strategies',
+                'effect_size_hints': 'High growth potential with moderate risk',
+                'probability_range': [0.65, 0.85]
+            },
+            {
+                'id': 'P002',
+                'name': 'Competitive Advantage Pattern',
+                'type': 'Success',
+                'confidence': 0.70,
+                'match_score': 0.78,
+                'strategic_response': 'Leverage unique market position for sustainable growth',
+                'effect_size_hints': 'Strong competitive moat identified',
+                'probability_range': [0.70, 0.90]
+            },
+            {
+                'id': 'P003',
+                'name': 'Market Timing Optimization',
+                'type': 'Adaptation',
+                'confidence': 0.68,
+                'match_score': 0.75,
+                'strategic_response': 'Optimize launch timing based on market readiness',
+                'effect_size_hints': 'Moderate impact with high timing sensitivity',
+                'probability_range': [0.60, 0.80]
+            },
+            {
+                'id': 'P004',
+                'name': 'Regulatory Compliance Advantage',
+                'type': 'Success',
+                'confidence': 0.72,
+                'match_score': 0.80,
+                'strategic_response': 'Use regulatory compliance as competitive differentiator',
+                'effect_size_hints': 'Strong compliance foundation provides advantage',
+                'probability_range': [0.68, 0.88]
+            }
+        ],
+        'consumer': [
+            {
+                'id': 'P005',
+                'name': 'Consumer Demand Surge',
+                'type': 'Opportunity',
+                'confidence': 0.78,
+                'match_score': 0.85,
+                'strategic_response': 'Capitalize on increasing consumer demand with targeted campaigns',
+                'effect_size_hints': 'High demand growth with strong conversion potential',
+                'probability_range': [0.70, 0.90]
+            },
+            {
+                'id': 'P006',
+                'name': 'Premium Positioning Strategy',
+                'type': 'Success',
+                'confidence': 0.73,
+                'match_score': 0.82,
+                'strategic_response': 'Position as premium solution for quality-conscious consumers',
+                'effect_size_hints': 'Strong willingness to pay identified',
+                'probability_range': [0.65, 0.85]
+            },
+            {
+                'id': 'P007',
+                'name': 'Customer Loyalty Building',
+                'type': 'Adaptation',
+                'confidence': 0.70,
+                'match_score': 0.77,
+                'strategic_response': 'Implement loyalty programs and retention strategies',
+                'effect_size_hints': 'Moderate loyalty potential with room for improvement',
+                'probability_range': [0.60, 0.80]
+            },
+            {
+                'id': 'P008',
+                'name': 'Adoption Acceleration',
+                'type': 'Opportunity',
+                'confidence': 0.75,
+                'match_score': 0.83,
+                'strategic_response': 'Accelerate market adoption through education and incentives',
+                'effect_size_hints': 'High adoption readiness with strong growth potential',
+                'probability_range': [0.68, 0.88]
+            }
+        ],
+        'product': [
+            {
+                'id': 'P009',
+                'name': 'Product Innovation Leadership',
+                'type': 'Success',
+                'confidence': 0.80,
+                'match_score': 0.88,
+                'strategic_response': 'Lead market innovation with cutting-edge features',
+                'effect_size_hints': 'Exceptional innovation potential with strong differentiation',
+                'probability_range': [0.75, 0.95]
+            },
+            {
+                'id': 'P010',
+                'name': 'Quality Excellence Strategy',
+                'type': 'Success',
+                'confidence': 0.77,
+                'match_score': 0.85,
+                'strategic_response': 'Focus on superior quality as primary differentiator',
+                'effect_size_hints': 'High quality standards with strong market appeal',
+                'probability_range': [0.70, 0.90]
+            },
+            {
+                'id': 'P011',
+                'name': 'Technical Feasibility Advantage',
+                'type': 'Success',
+                'confidence': 0.72,
+                'match_score': 0.80,
+                'strategic_response': 'Leverage technical capabilities for market advantage',
+                'effect_size_hints': 'Strong technical foundation with implementation readiness',
+                'probability_range': [0.65, 0.85]
+            }
+        ],
+        'brand': [
+            {
+                'id': 'P012',
+                'name': 'Brand Trust Building',
+                'type': 'Adaptation',
+                'confidence': 0.76,
+                'match_score': 0.84,
+                'strategic_response': 'Build brand trust through transparency and reliability',
+                'effect_size_hints': 'Strong trust foundation with growth potential',
+                'probability_range': [0.70, 0.90]
+            },
+            {
+                'id': 'P013',
+                'name': 'Brand Positioning Optimization',
+                'type': 'Adaptation',
+                'confidence': 0.73,
+                'match_score': 0.81,
+                'strategic_response': 'Optimize brand positioning for target market appeal',
+                'effect_size_hints': 'Good positioning with room for strategic refinement',
+                'probability_range': [0.65, 0.85]
+            },
+            {
+                'id': 'P014',
+                'name': 'Brand Equity Enhancement',
+                'type': 'Success',
+                'confidence': 0.75,
+                'match_score': 0.83,
+                'strategic_response': 'Enhance brand equity through consistent value delivery',
+                'effect_size_hints': 'Strong brand equity potential with market recognition',
+                'probability_range': [0.68, 0.88]
+            },
+            {
+                'id': 'P015',
+                'name': 'Cultural Impact Strategy',
+                'type': 'Opportunity',
+                'confidence': 0.70,
+                'match_score': 0.78,
+                'strategic_response': 'Build cultural impact through community engagement',
+                'effect_size_hints': 'Moderate cultural potential with viral opportunities',
+                'probability_range': [0.60, 0.80]
+            }
+        ],
+        'experience': [
+            {
+                'id': 'P016',
+                'name': 'User Experience Excellence',
+                'type': 'Success',
+                'confidence': 0.78,
+                'match_score': 0.86,
+                'strategic_response': 'Deliver exceptional user experience across all touchpoints',
+                'effect_size_hints': 'High engagement potential with strong satisfaction drivers',
+                'probability_range': [0.72, 0.92]
+            },
+            {
+                'id': 'P017',
+                'name': 'Customer Journey Optimization',
+                'type': 'Adaptation',
+                'confidence': 0.75,
+                'match_score': 0.83,
+                'strategic_response': 'Optimize customer journey for seamless experience',
+                'effect_size_hints': 'Strong journey foundation with optimization opportunities',
+                'probability_range': [0.68, 0.88]
+            }
+        ]
+    }
+    
+    return segment_patterns.get(segment, [])
 

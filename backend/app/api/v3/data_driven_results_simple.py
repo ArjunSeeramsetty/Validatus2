@@ -2,11 +2,13 @@
 
 """
 Simplified data-driven results API that works with existing services
+Bridges to existing results API until full persistence layer is implemented
 """
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.core.database_session import get_db
+from app.services.results_analysis_engine import ResultsAnalysisEngine
 import logging
 import json
 from datetime import datetime
@@ -14,6 +16,9 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Initialize results analysis engine
+results_engine = ResultsAnalysisEngine()
 
 @router.get("/segment/{session_id}/{segment}")
 async def get_segment_results(
@@ -23,26 +28,45 @@ async def get_segment_results(
     db: Session = Depends(get_db)
 ):
     """
-    Get segment results - simplified version that works with existing data
+    Get segment results - bridges to existing results API
     """
     
     try:
-        logger.info(f"Getting segment results for {session_id}, {segment}")
+        logger.info(f"[Data-Driven Bridge] Getting segment results for {session_id}, {segment}")
         
-        # For now, return a simple response indicating the endpoint works
-        # This will be enhanced once we have the full persistence layer
+        # Fetch data from existing results API
+        results = await results_engine.get_segment_results(session_id, segment)
         
-        return {
+        if not results:
+            logger.warning(f"No results found for {session_id}, {segment}")
+            raise HTTPException(status_code=404, detail=f"No results found for session {session_id}, segment {segment}")
+        
+        # Transform to data-driven format
+        transformed_results = {
             "session_id": session_id,
             "segment": segment,
-            "status": "endpoint_working",
-            "message": "Data-driven results endpoint is operational",
+            "factors": results.get("factors", {}),
+            "patterns": results.get("patterns", []),
+            "scenarios": results.get("monte_carlo_scenarios", []),
+            "personas": results.get("personas", []),
+            "rich_content": {
+                "opportunities": results.get("opportunities", []),
+                "competitor_analysis": results.get("competitor_analysis", {}),
+                "market_share": results.get("market_share", {}),
+                "insights": results.get("insights", [])
+            },
+            "loaded_from_cache": False,
             "timestamp": datetime.utcnow().isoformat(),
-            "note": "Full persistence layer will be implemented after database migration"
+            "source": "existing_api_bridge"
         }
         
+        logger.info(f"[Data-Driven Bridge] Successfully fetched {segment} results for {session_id}")
+        return transformed_results
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error in segment results: {str(e)}")
+        logger.error(f"Error in segment results: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @router.post("/generate/{session_id}/{topic}")
@@ -79,22 +103,41 @@ async def get_generation_status(
     session_id: str,
     db: Session = Depends(get_db)
 ):
-    """Get generation status - simplified version"""
+    """Get generation status - checks if results exist"""
     
     try:
-        logger.info(f"Getting status for {session_id}")
+        logger.info(f"[Data-Driven Bridge] Getting status for {session_id}")
         
-        # Return a simple status
+        # Check if results exist for this session (try market segment)
+        try:
+            results = await results_engine.get_segment_results(session_id, "market")
+            
+            if results:
+                return {
+                    "session_id": session_id,
+                    "status": "completed",
+                    "message": "Results available",
+                    "progress_percentage": 100,
+                    "current_stage": "completed",
+                    "completed_segments": 5,
+                    "total_segments": 5
+                }
+        except:
+            pass
+        
+        # No results found
         return {
             "session_id": session_id,
-            "status": "ready",
-            "message": "Data-driven results system is ready",
-            "progress_percentage": 100,
-            "current_stage": "system_ready"
+            "status": "pending",
+            "message": "Results not yet available. Please complete scoring first.",
+            "progress_percentage": 0,
+            "current_stage": "waiting_for_scoring",
+            "completed_segments": 0,
+            "total_segments": 5
         }
         
     except Exception as e:
-        logger.error(f"Error getting status: {str(e)}")
+        logger.error(f"Error getting status: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @router.get("/test")

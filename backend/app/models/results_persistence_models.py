@@ -2,7 +2,10 @@
 
 from sqlalchemy import Column, Integer, String, Text, DECIMAL, TIMESTAMP, JSON, Index
 from sqlalchemy.sql import func
-from app.core.database_config import Base
+from sqlalchemy.ext.declarative import declarative_base
+
+# Create SQLAlchemy declarative base for ORM models
+Base = declarative_base()
 
 class ComputedFactors(Base):
     __tablename__ = 'computed_factors'

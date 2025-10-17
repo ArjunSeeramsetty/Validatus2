@@ -35,10 +35,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade pip==25.2
 
 # Copy requirements
-COPY requirements.txt /tmp/requirements.txt
+COPY requirements-minimal.txt /tmp/requirements-minimal.txt
 
 # Install all requirements from file to avoid conflicts and ensure consistency
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-minimal.txt
 
 # Stage 3: Production runtime
 FROM base as production

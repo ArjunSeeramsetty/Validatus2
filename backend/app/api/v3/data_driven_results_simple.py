@@ -119,16 +119,30 @@ async def get_generation_status(
     session_id: str,
     db: Session = Depends(get_db)
 ):
-    """Get generation status - checks if results exist"""
+    """Get generation status - lightweight check without heavy processing"""
     
     try:
         logger.info(f"[Data-Driven Bridge] Getting status for {session_id}")
         
-        # Check if results exist for this session
+        # Quick check: just verify if v2 results exist without generating analysis
+        from app.core.database_config import db_manager
+        
         try:
-            complete_analysis = await analysis_engine.generate_complete_analysis(session_id)
+            conn = await db_manager.get_connection()
             
-            if complete_analysis:
+            # Check if session has v2 scoring results
+            query = """
+                SELECT COUNT(*) as count 
+                FROM analysis_results 
+                WHERE session_id = $1 
+                AND analysis_type = 'validatus_v2_complete'
+                AND result_data IS NOT NULL
+            """
+            
+            result = await conn.fetchrow(query, session_id)
+            
+            if result and result['count'] > 0:
+                logger.info(f"[Data-Driven Bridge] Found v2 results for {session_id}")
                 return {
                     "session_id": session_id,
                     "status": "completed",
@@ -138,19 +152,30 @@ async def get_generation_status(
                     "completed_segments": 5,
                     "total_segments": 5
                 }
-        except:
-            pass
-        
-        # No results found
-        return {
-            "session_id": session_id,
-            "status": "pending",
-            "message": "Results not yet available. Please complete scoring first.",
-            "progress_percentage": 0,
-            "current_stage": "waiting_for_scoring",
-            "completed_segments": 0,
-            "total_segments": 5
-        }
+            else:
+                logger.info(f"[Data-Driven Bridge] No v2 results found for {session_id}")
+                return {
+                    "session_id": session_id,
+                    "status": "pending",
+                    "message": "Results not yet available. Please complete scoring first.",
+                    "progress_percentage": 0,
+                    "current_stage": "waiting_for_scoring",
+                    "completed_segments": 0,
+                    "total_segments": 5
+                }
+                
+        except Exception as db_error:
+            logger.error(f"Database check failed: {db_error}")
+            # Fallback to pending status
+            return {
+                "session_id": session_id,
+                "status": "pending",
+                "message": "Unable to verify results status",
+                "progress_percentage": 0,
+                "current_stage": "unknown",
+                "completed_segments": 0,
+                "total_segments": 5
+            }
         
     except Exception as e:
         logger.error(f"Error getting status: {str(e)}", exc_info=True)

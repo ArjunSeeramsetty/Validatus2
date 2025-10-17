@@ -73,6 +73,22 @@ except Exception as e:
     logger.warning(f"Enhanced Analysis API not available: {e}")
     ENHANCED_ANALYSIS_API_AVAILABLE = False
 
+# Data-Driven Results API (Simplified)
+try:
+    from .api.v3.data_driven_results_simple import router as data_driven_results_router
+    DATA_DRIVEN_RESULTS_API_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"Data-Driven Results API not available: {e}")
+    DATA_DRIVEN_RESULTS_API_AVAILABLE = False
+
+# Database Migration API
+try:
+    from .api.v3.database_migration import router as database_migration_router
+    DATABASE_MIGRATION_API_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"Database Migration API not available: {e}")
+    DATABASE_MIGRATION_API_AVAILABLE = False
+
 # Test Router
 try:
     from .api.v3.test_router import router as test_router
@@ -215,8 +231,20 @@ if ENHANCED_ANALYSIS_API_AVAILABLE:
 else:
     logger.warning("⚠️ Enhanced Analysis API not registered (dependencies missing)")
 
+if DATA_DRIVEN_RESULTS_API_AVAILABLE:
+    app.include_router(data_driven_results_router, prefix="/api/v3/data-driven-results", tags=["Data-Driven Results"])
+    logger.info("✅ Data-Driven Results API registered (100% Real Data, Cloud SQL Persistence)")
+else:
+    logger.warning("⚠️ Data-Driven Results API not registered (dependencies missing)")
+
+if DATABASE_MIGRATION_API_AVAILABLE:
+    app.include_router(database_migration_router, prefix="/api/v3/database", tags=["Database Migration"])
+    logger.info("✅ Database Migration API registered")
+else:
+    logger.warning("⚠️ Database Migration API not registered")
+
 if TEST_ROUTER_AVAILABLE:
-    app.include_router(test_router, tags=["Test"])
+    app.include_router(test_router, prefix="/api/v3/test", tags=["Test"])
     logger.info("✅ Test Router registered")
 else:
     logger.warning("⚠️ Test Router not registered")

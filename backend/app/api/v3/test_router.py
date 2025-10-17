@@ -6,7 +6,7 @@ Minimal test router to verify registration works
 
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/v3/test", tags=["test"])
+router = APIRouter()
 
 @router.get("/hello")
 async def hello():

@@ -13,7 +13,7 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v3/data-driven-results", tags=["data-driven-results"])
+router = APIRouter()
 
 def get_db():
     """Get database session"""

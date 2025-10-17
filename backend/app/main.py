@@ -111,7 +111,6 @@ except Exception as e:
     logger.error(traceback.format_exc())
     DEBUG_ROUTER_AVAILABLE = False
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan management"""
@@ -270,6 +269,12 @@ async def root():
         "status": "running",
         "docs": "/docs"
     }
+
+# Direct debug endpoint (no router)
+@app.get("/api/v3/debug-direct")
+async def debug_direct():
+    """Direct debug endpoint to test if the app is working"""
+    return {"message": "Direct debug endpoint works", "status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn

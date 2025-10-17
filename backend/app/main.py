@@ -166,23 +166,8 @@ async def health_check():
     
     return health_status
 
-# Migration endpoint
-@app.post("/migration/run")
-async def run_migration():
-    """Run database migration"""
-    try:
-        # Import and run the migration
-        from .scripts.fix_database_complete import fix_database_complete
-        success = await fix_database_complete()
-        
-        if success:
-            return {"message": "Migration completed successfully"}
-        else:
-            raise HTTPException(status_code=500, detail="Migration failed")
-            
-    except Exception as e:
-        logger.error(f"Migration failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Migration failed: {str(e)}")
+# Migration endpoint is now handled by migration_simple.py router
+# Removed duplicate endpoint that was causing import errors
 
 # Include API routers
 app.include_router(topics_router, prefix="/api/v3/topics", tags=["Topics"])

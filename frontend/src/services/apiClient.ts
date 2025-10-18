@@ -6,10 +6,11 @@ const API_BASE_URL = (import.meta as any).env?.VITE_API_URL ||
   (window.location.hostname === 'localhost' ? 'http://localhost:8001' : 'https://validatus-backend-ssivkqhvhq-uc.a.run.app');
 
 console.log('API Client initialized with base URL:', API_BASE_URL);
+console.log('API Client timeout set to:', 90000, 'ms (90 seconds)');
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 90000, // Increased to 90 seconds for heavy analysis operations
+  timeout: 90000, // Increased to 90 seconds for heavy analysis operations - v2.1
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',

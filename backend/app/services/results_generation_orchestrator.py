@@ -3,7 +3,7 @@
 from typing import Dict, List, Any
 from sqlalchemy.orm import Session
 from app.services.results_persistence_service import ResultsPersistenceService
-from app.services.enhanced_analytical_engines.pdf_formula_engine import AdvancedFormulaEngine
+from app.services.enhanced_analytical_engines.pdf_formula_engine import PDFFormulaEngine
 from app.services.enhanced_analytical_engines.pattern_library import PatternLibrary
 from app.services.segment_monte_carlo_engine import SegmentMonteCarloEngine
 from app.services.segment_content_generator import SegmentContentGenerator
@@ -21,7 +21,7 @@ class ResultsGenerationOrchestrator:
     def __init__(self, db_session: Session):
         self.db = db_session
         self.persistence = ResultsPersistenceService(db_session)
-        self.formula_engine = AdvancedFormulaEngine(db_session)
+        self.formula_engine = PDFFormulaEngine(db_session)
         self.pattern_library = PatternLibrary()
         self.monte_carlo = SegmentMonteCarloEngine()
         self.gemini_client = GeminiClient()

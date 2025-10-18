@@ -25,79 +25,41 @@ async def get_segment_results(
     db: Session = Depends(get_db)
 ):
     """
-    Get segment results - bridges to existing results API
+    Get segment results - generates complete results including Monte Carlo scenarios
     """
     
     try:
         logger.info(f"[Data-Driven Bridge] Getting segment results for {session_id}, {segment}")
         
-        # Fetch complete analysis from existing engine
-        complete_analysis = await analysis_engine.generate_complete_analysis(session_id)
+        # Use the orchestrator to generate complete results with Monte Carlo scenarios
+        from app.services.results_generation_orchestrator import ResultsGenerationOrchestrator
         
-        # Get the specific segment
-        segment_data = None
-        if segment == "market":
-            segment_data = complete_analysis.market
-        elif segment == "consumer":
-            segment_data = complete_analysis.consumer
-        elif segment == "product":
-            segment_data = complete_analysis.product
-        elif segment == "brand":
-            segment_data = complete_analysis.brand
-        elif segment == "experience":
-            segment_data = complete_analysis.experience
-        else:
-            raise HTTPException(status_code=400, detail=f"Invalid segment: {segment}")
+        orchestrator = ResultsGenerationOrchestrator(db)
         
-        if not segment_data:
-            logger.warning(f"No results found for {session_id}, {segment}")
-            raise HTTPException(status_code=404, detail=f"No results found for session {session_id}, segment {segment}")
+        # Get topic name from session (you might want to get this from database)
+        topic_name = f"Topic {session_id}"
         
-        # Convert to dict for transformation
-        results = segment_data.dict() if hasattr(segment_data, 'dict') else segment_data
+        # Generate complete results for this segment
+        segment_results = await orchestrator._generate_segment_results(session_id, topic_name, segment)
         
-        # Check if we have Monte Carlo scenarios, if not generate them
-        scenarios = results.get("monte_carlo_scenarios", [])
-        if not scenarios and not regenerate:
-            logger.info(f"[Data-Driven Bridge] No Monte Carlo scenarios found, generating them for {segment}")
-            try:
-                # Generate Monte Carlo scenarios using the orchestrator
-                from app.services.results_generation_orchestrator import ResultsGenerationOrchestrator
-                orchestrator = ResultsGenerationOrchestrator(db)
-                
-                # Get topic name (you might want to get this from database)
-                topic_name = f"Topic {session_id}"
-                
-                # Generate scenarios for this segment only
-                segment_results = await orchestrator._generate_segment_results(session_id, topic_name, segment)
-                scenarios = segment_results.get('monte_carlo_scenarios', [])
-                logger.info(f"[Data-Driven Bridge] Generated {len(scenarios)} Monte Carlo scenarios for {segment}")
-                
-            except Exception as e:
-                logger.warning(f"[Data-Driven Bridge] Failed to generate Monte Carlo scenarios: {str(e)}")
-                scenarios = []
+        if not segment_results:
+            raise HTTPException(status_code=404, detail=f"No results generated for session {session_id}, segment {segment}")
         
-        # Transform to data-driven format
+        # Transform to expected format
         transformed_results = {
             "session_id": session_id,
             "segment": segment,
-            "factors": results.get("factors", {}),
-            "patterns": results.get("patterns", []),
-            "scenarios": scenarios,
-            "personas": results.get("personas", []),
-            "rich_content": {
-                "opportunities": results.get("opportunities", []),
-                "competitor_analysis": results.get("competitor_analysis", {}),
-                "market_share": results.get("market_share", {}),
-                "insights": results.get("insights", []),
-                "recommendations": results.get("recommendations", [])
-            },
+            "factors": segment_results.get("factors", {}),
+            "patterns": segment_results.get("matched_patterns", []),
+            "scenarios": segment_results.get("monte_carlo_scenarios", []),
+            "personas": segment_results.get("personas", []),
+            "rich_content": segment_results.get("rich_content", {}),
             "loaded_from_cache": False,
             "timestamp": datetime.utcnow().isoformat(),
-            "source": "existing_api_bridge_with_monte_carlo"
+            "source": "orchestrator_generation"
         }
         
-        logger.info(f"[Data-Driven Bridge] Successfully fetched {segment} results for {session_id}")
+        logger.info(f"[Data-Driven Bridge] Successfully generated {segment} results for {session_id}")
         return transformed_results
         
     except HTTPException:

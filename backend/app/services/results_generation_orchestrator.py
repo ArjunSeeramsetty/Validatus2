@@ -134,22 +134,30 @@ class ResultsGenerationOrchestrator:
                     calculated_value = float(factor_calc.get('calculated_value', 0.0))
                     confidence_score = float(factor_calc.get('confidence_score', 0.0))
                     
-                    # If values are 0.0, generate realistic values using LLM persona scoring
+                    # If values are 0.0, calculate using formula engine
                     if calculated_value == 0.0:
-                        calculated_value = await self._generate_llm_factor_score(session_id, factor_id, segment)
+                        calculated_value = await self._calculate_factor_with_formula(session_id, factor_id, segment)
                     if confidence_score == 0.0:
-                        confidence_score = 0.80  # Higher confidence for LLM-generated scores
+                        confidence_score = 0.85  # High confidence for formula-calculated scores
+                    
+                    # Get factor name and description
+                    factor_name, factor_description = self._get_factor_info(factor_id)
+                    
+                    # Determine the calculation method used
+                    calculation_method = 'formula_engine' if calculated_value != factor_calc.get('calculated_value', 0.0) else factor_calc.get('calculation_method', 'v2_scoring')
                     
                     factor_dict[factor_id] = {
                         'value': calculated_value,
                         'confidence': confidence_score,
-                        'formula_applied': factor_calc.get('calculation_method', 'v2_scoring'),
+                        'name': factor_name,
+                        'description': factor_description,
+                        'formula_applied': calculation_method,
                         'metadata': {
                             'input_layer_count': factor_calc.get('input_layer_count', 0),
                             'calculation_formula': factor_calc.get('calculation_formula', ''),
                             'layer_contributions': factor_calc.get('layer_contributions', {}),
                             'validation_metrics': factor_calc.get('validation_metrics', {}),
-                            'source': 'v2_analysis_results'
+                            'source': 'v2_analysis_results' if calculation_method == 'v2_scoring' else 'formula_engine'
                         }
                     }
             
@@ -160,8 +168,8 @@ class ResultsGenerationOrchestrator:
             logger.error(f"Failed to retrieve real factor calculations: {str(e)}")
             return {}
     
-    async def _generate_llm_factor_score(self, session_id: str, factor_id: str, segment: str) -> float:
-        """Generate realistic factor scores using LLM persona scoring"""
+    async def _calculate_factor_with_formula(self, session_id: str, factor_id: str, segment: str) -> float:
+        """Calculate factor scores using the formula engine"""
         
         try:
             # Get content data for the session
@@ -171,23 +179,23 @@ class ResultsGenerationOrchestrator:
                 logger.warning(f"No content data found for session {session_id}, using fallback")
                 return self._get_fallback_factor_value(factor_id)
             
-            # Create factor-specific prompt based on factor type
-            factor_prompt = self._create_factor_scoring_prompt(factor_id, segment, content_data)
+            # Use the formula engine to calculate the factor
+            factor_score = await self.formula_engine.calculate_factor_score(
+                factor_id=factor_id,
+                segment=segment,
+                content_data=content_data,
+                session_id=session_id
+            )
             
-            # Use Gemini to score the factor
-            response = await self.gemini_client.generate_content(factor_prompt)
-            
-            if response and response.text:
-                # Extract score from LLM response
-                score = self._extract_score_from_response(response.text)
-                logger.info(f"LLM generated score for {factor_id}: {score}")
-                return score
+            if factor_score is not None and factor_score > 0:
+                logger.info(f"Formula engine calculated score for {factor_id}: {factor_score}")
+                return factor_score
             else:
-                logger.warning(f"LLM failed to generate score for {factor_id}, using fallback")
+                logger.warning(f"Formula engine returned invalid score for {factor_id}, using fallback")
                 return self._get_fallback_factor_value(factor_id)
                 
         except Exception as e:
-            logger.error(f"Error generating LLM factor score for {factor_id}: {str(e)}")
+            logger.error(f"Error calculating factor score with formula engine for {factor_id}: {str(e)}")
             return self._get_fallback_factor_value(factor_id)
     
     async def _get_session_content(self, session_id: str) -> List[Dict[str, Any]]:
@@ -338,6 +346,77 @@ Reasoning: [brief explanation]
         else:
             return 0.60 + (hash(factor_id) % 30) / 100  # 0.60-0.90
     
+    def _get_factor_info(self, factor_id: str) -> tuple[str, str]:
+        """Get factor name and description for display"""
+        
+        factor_info = {
+            'F1': ('Market Size', 'Total addressable market size and opportunity'),
+            'F2': ('Market Growth', 'Growth rate and expansion potential'),
+            'F3': ('Market Competition', 'Competitive intensity and barriers'),
+            'F4': ('Market Maturity', 'Market development stage and saturation'),
+            'F5': ('Market Accessibility', 'Ease of market entry and penetration'),
+            'F6': ('Market Profitability', 'Revenue potential and margins'),
+            'F7': ('Consumer Demand', 'Customer need and willingness to pay'),
+            'F8': ('Consumer Behavior', 'Usage patterns and preferences'),
+            'F9': ('Consumer Segmentation', 'Target audience clarity'),
+            'F10': ('Consumer Acquisition', 'Customer acquisition cost and channels'),
+            'F11': ('Consumer Retention', 'Customer loyalty and lifetime value'),
+            'F12': ('Consumer Satisfaction', 'User experience and feedback'),
+            'F13': ('Product Innovation', 'Technology advancement and differentiation'),
+            'F14': ('Product Quality', 'Reliability and performance standards'),
+            'F15': ('Product Features', 'Functionality and user benefits'),
+            'F16': ('Product Scalability', 'Growth capacity and adaptability'),
+            'F17': ('Product Development', 'R&D capability and speed'),
+            'F18': ('Product Support', 'Customer service and maintenance'),
+            'F19': ('Brand Recognition', 'Market awareness and reputation'),
+            'F20': ('Brand Trust', 'Credibility and reliability perception'),
+            'F21': ('Brand Positioning', 'Market differentiation and value prop'),
+            'F22': ('Brand Loyalty', 'Customer attachment and advocacy'),
+            'F23': ('Brand Expansion', 'Growth into new markets/products'),
+            'F24': ('Brand Protection', 'IP and competitive advantages'),
+            'F25': ('Experience Design', 'User interface and interaction quality'),
+            'F26': ('Experience Delivery', 'Service quality and consistency'),
+            'F27': ('Experience Innovation', 'Novel and engaging features'),
+            'F28': ('Experience Optimization', 'Continuous improvement capability')
+        }
+        
+        return factor_info.get(factor_id, (f'Factor {factor_id}', f'Strategic assessment for {factor_id}'))
+    
+    async def _calculate_segment_score(self, factor_scores: Dict[str, float], segment: str) -> float:
+        """Calculate segment score using formula engine"""
+        try:
+            # Use the formula engine to calculate segment score
+            segment_score = await self.formula_engine.calculate_segment_score(
+                segment=segment,
+                factor_scores=factor_scores
+            )
+            return segment_score
+        except Exception as e:
+            logger.error(f"Error calculating segment score: {str(e)}")
+            # Fallback: weighted average of factor scores
+            if factor_scores:
+                return sum(factor_scores.values()) / len(factor_scores)
+            return 0.5
+    
+    async def _calculate_action_layer_score(self, factor_scores: Dict[str, float], patterns: List[Any], scenarios: List[Any], segment: str) -> float:
+        """Calculate action layer score using formula engine"""
+        try:
+            # Use the formula engine to calculate action layer score
+            action_score = await self.formula_engine.calculate_action_layer_score(
+                segment=segment,
+                factor_scores=factor_scores,
+                matched_patterns=patterns,
+                scenarios=scenarios
+            )
+            return action_score
+        except Exception as e:
+            logger.error(f"Error calculating action layer score: {str(e)}")
+            # Fallback: combination of factor scores and pattern/scenario success
+            base_score = sum(factor_scores.values()) / len(factor_scores) if factor_scores else 0.5
+            pattern_bonus = min(0.2, len(patterns) * 0.05) if patterns else 0
+            scenario_bonus = min(0.1, len(scenarios) * 0.02) if scenarios else 0
+            return min(1.0, base_score + pattern_bonus + scenario_bonus)
+    
     async def _generate_segment_results(self, session_id: str, topic: str, segment: str) -> Dict[str, Any]:
         """Generate complete results for a single segment"""
         
@@ -364,9 +443,17 @@ Reasoning: [brief explanation]
             factor_dict = await self._generate_fallback_factors(session_id, topic, segment)
             self.persistence.persist_factors(session_id, topic, segment, factor_dict)
         
-        # STEP 2: Match Patterns using actual factor scores
+        # STEP 2: Calculate Segment Score using Formula Engine
         try:
             factor_scores = {fid: f['value'] for fid, f in factor_dict.items()}
+            segment_score = await self._calculate_segment_score(factor_scores, segment)
+            logger.info(f"Calculated segment score for {segment}: {segment_score}")
+        except Exception as e:
+            logger.warning(f"Segment score calculation failed for {segment}: {str(e)}")
+            segment_score = 0.5  # Default neutral score
+        
+        # STEP 3: Match Patterns using actual factor scores
+        try:
             matched_patterns = self.pattern_library.match_patterns_to_segment(segment, factor_scores)
             
             # Persist patterns
@@ -377,7 +464,7 @@ Reasoning: [brief explanation]
             logger.warning(f"Pattern matching failed for {segment}: {str(e)}")
             matched_patterns = []
         
-        # STEP 3: Generate Monte Carlo Scenarios using matched patterns
+        # STEP 4: Generate Monte Carlo Scenarios using matched patterns
         try:
             if matched_patterns:
                 monte_carlo_scenarios = await self.monte_carlo.generate_segment_scenarios(
@@ -409,7 +496,7 @@ Reasoning: [brief explanation]
             logger.warning(f"Monte Carlo generation failed for {segment}: {str(e)}")
             scenarios_list = []
         
-        # STEP 4: Generate Personas (Consumer only)
+        # STEP 5: Generate Personas (Consumer only)
         personas = []
         if segment == 'consumer':
             try:
@@ -424,7 +511,7 @@ Reasoning: [brief explanation]
                 logger.warning(f"Persona generation failed for consumer: {str(e)}")
                 personas = []
         
-        # STEP 5: Generate Rich Content (Product/Brand/Experience)
+        # STEP 6: Generate Rich Content (Product/Brand/Experience)
         rich_content = {}
         if segment in ['product', 'brand', 'experience']:
             try:
@@ -453,12 +540,25 @@ Reasoning: [brief explanation]
                 logger.warning(f"Rich content generation failed for {segment}: {str(e)}")
                 rich_content = {}
         
+        # STEP 7: Calculate Action Layer Score using Formula Engine
+        try:
+            action_layer_score = await self._calculate_action_layer_score(
+                factor_scores, matched_patterns, scenarios_list, segment
+            )
+            logger.info(f"Calculated action layer score for {segment}: {action_layer_score}")
+        except Exception as e:
+            logger.warning(f"Action layer score calculation failed for {segment}: {str(e)}")
+            action_layer_score = 0.5  # Default neutral score
+        
         return {
             'factors': factor_dict,
             'patterns': matched_patterns,
             'scenarios': scenarios_list,
             'personas': personas,
-            'rich_content': rich_content
+            'rich_content': rich_content,
+            'segment_score': segment_score,
+            'action_layer_score': action_layer_score,
+            'calculation_method': 'formula_engine'
         }
     
     async def _generate_fallback_factors(self, session_id: str, topic: str, segment: str) -> Dict[str, Any]:

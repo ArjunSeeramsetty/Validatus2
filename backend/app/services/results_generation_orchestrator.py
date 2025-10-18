@@ -89,29 +89,90 @@ class ResultsGenerationOrchestrator:
             )
             raise
     
+    async def _get_real_factor_calculations(self, session_id: str, segment: str) -> Dict[str, Any]:
+        """Retrieve real factor calculations from v2_analysis_results table"""
+        
+        try:
+            # Import database manager for direct SQL queries
+            from app.core.database_config import DatabaseManager
+            db_manager = DatabaseManager()
+            
+            connection = await db_manager.get_connection()
+            
+            # Query to get factor calculations from v2_analysis_results
+            query = """
+            SELECT full_results
+            FROM v2_analysis_results
+            WHERE session_id = $1
+            ORDER BY updated_at DESC
+            LIMIT 1
+            """
+            
+            row = await connection.fetchrow(query, session_id)
+            
+            if not row or not row['full_results']:
+                logger.warning(f"No v2_analysis_results found for session {session_id}")
+                return {}
+            
+            full_results = row['full_results']
+            if isinstance(full_results, str):
+                import json
+                full_results = json.loads(full_results)
+            
+            # Extract factor calculations
+            factor_calculations = full_results.get('factor_calculations', [])
+            
+            if not factor_calculations:
+                logger.warning(f"No factor_calculations found in v2_analysis_results for {session_id}")
+                return {}
+            
+            # Convert factor calculations to our format
+            factor_dict = {}
+            for factor_calc in factor_calculations:
+                factor_id = factor_calc.get('factor_id', '')
+                if factor_id:
+                    factor_dict[factor_id] = {
+                        'value': float(factor_calc.get('calculated_value', 0.0)),
+                        'confidence': float(factor_calc.get('confidence_score', 0.0)),
+                        'formula_applied': factor_calc.get('calculation_method', 'v2_scoring'),
+                        'metadata': {
+                            'input_layer_count': factor_calc.get('input_layer_count', 0),
+                            'calculation_formula': factor_calc.get('calculation_formula', ''),
+                            'layer_contributions': factor_calc.get('layer_contributions', {}),
+                            'validation_metrics': factor_calc.get('validation_metrics', {}),
+                            'source': 'v2_analysis_results'
+                        }
+                    }
+            
+            logger.info(f"Retrieved {len(factor_dict)} real factor calculations for {segment}")
+            return factor_dict
+            
+        except Exception as e:
+            logger.error(f"Failed to retrieve real factor calculations: {str(e)}")
+            return {}
+    
     async def _generate_segment_results(self, session_id: str, topic: str, segment: str) -> Dict[str, Any]:
         """Generate complete results for a single segment"""
         
         logger.info(f"Generating results for segment: {segment}")
         
-        # STEP 1: Calculate Factors from actual scoring data
+        # STEP 1: Retrieve Factors from actual scoring data
         try:
-            factors = await self.formula_engine.calculate_all_factors_for_segment(topic, segment)
-            factor_dict = {
-                fid: {
-                    'value': f.value,
-                    'confidence': f.confidence,
-                    'formula_applied': f.formula_applied,
-                    'metadata': f.calculation_metadata
-                } for fid, f in factors.items()
-            }
+            # Try to get real factor calculations from v2_analysis_results
+            factor_dict = await self._get_real_factor_calculations(session_id, segment)
             
-            # Persist factors
-            self.persistence.persist_factors(session_id, topic, segment, factor_dict)
-            logger.info(f"Calculated and persisted {len(factor_dict)} factors for {segment}")
+            if factor_dict:
+                # Persist real factors
+                self.persistence.persist_factors(session_id, topic, segment, factor_dict)
+                logger.info(f"Retrieved and persisted {len(factor_dict)} real factors for {segment}")
+            else:
+                # No real factors available, use fallback
+                logger.warning(f"No real factor calculations found for {segment}, using fallback")
+                factor_dict = await self._generate_fallback_factors(session_id, topic, segment)
+                self.persistence.persist_factors(session_id, topic, segment, factor_dict)
             
         except Exception as e:
-            logger.warning(f"Factor calculation failed for {segment}: {str(e)}")
+            logger.warning(f"Factor retrieval failed for {segment}: {str(e)}")
             # Use fallback factors from market share data
             factor_dict = await self._generate_fallback_factors(session_id, topic, segment)
             self.persistence.persist_factors(session_id, topic, segment, factor_dict)

@@ -47,21 +47,21 @@ export const useDataDrivenResults = (sessionId: string, segment: string) => {
         
         // First check generation status
         const statusResponse = await apiService.getResultsStatus(sessionId);
-        setStatus(statusResponse.data);
+        setStatus(statusResponse);
         
-        console.log(`[Data-Driven Results] Status: ${statusResponse.data.status}`);
+        console.log(`[Data-Driven Results] Status: ${statusResponse.status}`);
         
-        if (statusResponse.data.status === 'completed') {
+        if (statusResponse.status === 'completed') {
           // Load results from database
           const response = await apiService.getSegmentResults(sessionId, segment);
-          setData(response.data);
-          console.log(`[Data-Driven Results] Loaded ${segment} results:`, response.data);
-        } else if (statusResponse.data.status === 'processing') {
+          setData(response);
+          console.log(`[Data-Driven Results] Loaded ${segment} results:`, response);
+        } else if (statusResponse.status === 'processing') {
           // Poll for completion
-          console.log(`[Data-Driven Results] Results generation in progress: ${statusResponse.data.progress_percentage}%`);
+          console.log(`[Data-Driven Results] Results generation in progress: ${statusResponse.progress_percentage}%`);
           setTimeout(fetchResults, 3000); // Check again in 3 seconds
-        } else if (statusResponse.data.status === 'failed') {
-          setError(`Results generation failed: ${statusResponse.data.error_message || 'Unknown error'}`);
+        } else if (statusResponse.status === 'failed') {
+          setError(`Results generation failed: ${statusResponse.error_message || 'Unknown error'}`);
         } else {
           // Results not generated yet
           setError('Results not yet generated. Please wait for scoring to complete.');
@@ -82,8 +82,8 @@ export const useDataDrivenResults = (sessionId: string, segment: string) => {
     try {
       console.log(`[Data-Driven Results] Triggering generation for session ${sessionId}, topic ${topic}`);
         const response = await apiService.triggerResultsGeneration(sessionId, topic);
-      console.log(`[Data-Driven Results] Generation triggered:`, response.data);
-      return response.data;
+      console.log(`[Data-Driven Results] Generation triggered:`, response);
+      return response;
     } catch (err: any) {
       console.error(`[Data-Driven Results] Error triggering generation:`, err);
       throw new Error(err.response?.data?.detail || err.message || 'Failed to trigger generation');

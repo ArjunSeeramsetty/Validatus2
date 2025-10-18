@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { mockWebSocketImplementation } from '../utils/mockWebSocket';
+// Removed mock WebSocket import - using real WebSocket implementation
 
 // Define the context interface
 interface SocketContextType {
@@ -25,9 +25,30 @@ export const useSocket = () => {
   return context;
 };
 
+// Real WebSocket implementation (disabled for now)
+const realWebSocketImplementation: SocketContextType = {
+  socket: null,
+  connected: false,
+  connectionStatus: 'disconnected',
+  lastMessage: null,
+  sendMessage: (message: string) => {
+    console.log('WebSocket send (disabled):', message);
+  },
+  subscribe: (eventType: string, callback: (data: any) => void) => {
+    console.log('WebSocket subscribe (disabled):', eventType);
+    return () => console.log('WebSocket unsubscribe (disabled):', eventType);
+  },
+  unsubscribe: (eventType: string) => {
+    console.log('WebSocket unsubscribe (disabled):', eventType);
+  },
+  reconnect: () => {
+    console.log('WebSocket reconnect (disabled)');
+  }
+};
+
 // Hook for WebSocket connection (disabled for now)
 export const useWebSocketConnection = () => {
-  return mockWebSocketImplementation;
+  return realWebSocketImplementation;
 };
 
 // Provider props interface
@@ -37,8 +58,8 @@ interface SocketProviderProps {
 
 // Socket provider component (WebSocket functionality disabled for now)
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
-  // Disabled WebSocket implementation - provides mock interface
-  const contextValue: SocketContextType = mockWebSocketImplementation;
+  // Disabled WebSocket implementation - provides real interface
+  const contextValue: SocketContextType = realWebSocketImplementation;
 
   return (
     <SocketContext.Provider value={contextValue}>

@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import ExpandableTile from '../Common/ExpandableTile';
 import axios from 'axios';
-import { generateMockSegmentData } from '../../services/mockSegmentData';
+// Removed mock data import - using real API data only
 
 // WCAG AAA Compliant Color Palette (7:1+ contrast ratios)
 const SEGMENT_COLORS = {
@@ -59,7 +59,7 @@ interface EnhancedSegmentPageProps {
 
 // Transform existing API data to component structure
 function transformResultsData(apiData: any, topicId: string, segment: string) {
-  const mockData = generateMockSegmentData(topicId, segment);
+  // No mock data - use real API data only
   
   // Extract real growth/demand data for Market segment
   const extractMarketSize = (data: any) => {
@@ -95,8 +95,8 @@ function transformResultsData(apiData: any, topicId: string, segment: string) {
     return 0.5;
   };
   
-  // Update factors with real data where available
-  let factors = { ...mockData.factors };
+  // Create factors from real data
+  let factors: Record<string, any> = {};
   if (segment === 'market' && apiData.growth_demand) {
     factors.F16 = { 
       value: extractMarketSize(apiData), 
@@ -110,7 +110,7 @@ function transformResultsData(apiData: any, topicId: string, segment: string) {
     };
   }
   
-  // Use real API data where available, fallback to mock for missing fields
+  // Use real API data only - no mock data fallback
   return {
     topic_id: topicId,
     topic_name: apiData.topic_name || `Analysis for ${topicId}`,
@@ -120,17 +120,17 @@ function transformResultsData(apiData: any, topicId: string, segment: string) {
     // Use real factors where available
     factors: factors,
     
-    // Use mock patterns and Monte Carlo for now (until pattern matching is available)
-    matched_patterns: mockData.matched_patterns,
-    monte_carlo_scenarios: mockData.monte_carlo_scenarios,
+    // Use real patterns and scenarios from API data
+    matched_patterns: apiData.matched_patterns || [],
+    monte_carlo_scenarios: apiData.monte_carlo_scenarios || [],
     
     // Use real API data for segment-specific content
-    personas: segment === 'consumer' ? mockData.personas : undefined,
+    personas: segment === 'consumer' ? (apiData.personas || []) : undefined,
     rich_content: apiData, // Pass through all API data as rich_content
     
-    scenario_count: mockData.scenario_count,
-    required_scenarios: mockData.required_scenarios,
-    patterns_matched: mockData.patterns_matched,
+    scenario_count: apiData.monte_carlo_scenarios?.length || 0,
+    required_scenarios: 5, // Standard requirement
+    patterns_matched: apiData.matched_patterns?.length || 0,
     content_items_analyzed: Object.keys(apiData).length
   };
 }

@@ -1,7 +1,7 @@
 // frontend/src/hooks/useDataDrivenResults.ts
 
 import { useState, useEffect } from 'react';
-import { apiClient } from '../services/apiClient';
+import apiService from '../services/api';
 
 interface ResultsStatus {
   status: 'pending' | 'processing' | 'completed' | 'failed';
@@ -46,14 +46,14 @@ export const useDataDrivenResults = (sessionId: string, segment: string) => {
         console.log(`[Data-Driven Results] Fetching results for session ${sessionId}, segment ${segment}`);
         
         // First check generation status
-        const statusResponse = await apiClient.get(`/api/v3/data-driven-results/status/${sessionId}`);
+        const statusResponse = await apiService.getResultsStatus(sessionId);
         setStatus(statusResponse.data);
         
         console.log(`[Data-Driven Results] Status: ${statusResponse.data.status}`);
         
         if (statusResponse.data.status === 'completed') {
           // Load results from database
-          const response = await apiClient.get(`/api/v3/data-driven-results/segment/${sessionId}/${segment}`);
+          const response = await apiService.getSegmentResults(sessionId, segment);
           setData(response.data);
           console.log(`[Data-Driven Results] Loaded ${segment} results:`, response.data);
         } else if (statusResponse.data.status === 'processing') {
@@ -81,7 +81,7 @@ export const useDataDrivenResults = (sessionId: string, segment: string) => {
   const triggerGeneration = async (topic: string) => {
     try {
       console.log(`[Data-Driven Results] Triggering generation for session ${sessionId}, topic ${topic}`);
-      const response = await apiClient.post(`/api/v3/data-driven-results/generate/${sessionId}/${topic}`);
+        const response = await apiService.triggerResultsGeneration(sessionId, topic);
       console.log(`[Data-Driven Results] Generation triggered:`, response.data);
       return response.data;
     } catch (err: any) {
@@ -93,7 +93,7 @@ export const useDataDrivenResults = (sessionId: string, segment: string) => {
   const clearResults = async () => {
     try {
       console.log(`[Data-Driven Results] Clearing results for session ${sessionId}`);
-      const response = await apiClient.delete(`/api/v3/data-driven-results/clear/${sessionId}`);
+        const response = await apiService.axiosClient.delete(`/api/v3/data-driven-results/clear/${sessionId}`);
       console.log(`[Data-Driven Results] Results cleared:`, response.data);
       setData(null);
       setStatus(null);

@@ -21,7 +21,7 @@ class ResultsGenerationOrchestrator:
     def __init__(self, db_session: Session):
         self.db = db_session
         self.persistence = ResultsPersistenceService(db_session)
-        self.formula_engine = PDFFormulaEngine(db_session)
+        self.formula_engine = PDFFormulaEngine()
         self.pattern_library = PatternLibrary()
         self.monte_carlo = SegmentMonteCarloEngine()
         self.gemini_client = GeminiClient()

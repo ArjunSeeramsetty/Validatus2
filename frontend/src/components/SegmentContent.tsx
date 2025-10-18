@@ -10,7 +10,12 @@ interface SegmentContentProps {
 }
 
 const SegmentContent: React.FC<SegmentContentProps> = ({ segment, data }) => {
-  const { factors, matched_patterns, monte_carlo_scenarios, personas, rich_content } = data;
+  // Map API response properties to expected names
+  const factors = data.factors || {};
+  const matched_patterns = data.patterns || data.matched_patterns || [];
+  const monte_carlo_scenarios = data.scenarios || data.monte_carlo_scenarios || [];
+  const personas = data.personas || [];
+  const rich_content = data.rich_content || {};
 
   // Validate data exists
   if (!data) {
@@ -95,15 +100,106 @@ const SegmentContent: React.FC<SegmentContentProps> = ({ segment, data }) => {
         </Box>
       )}
 
-      {/* Rich Content (Product/Brand/Experience) */}
+      {/* Rich Content - Formatted Display */}
       {rich_content && Object.keys(rich_content).length > 0 && (
         <Box sx={{ mb: 4 }}>
           <Typography variant="h6" gutterBottom>
             📊 {segment.charAt(0).toUpperCase() + segment.slice(1)} Intelligence
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {JSON.stringify(rich_content, null, 2)}
-          </Typography>
+          
+          {/* Opportunities */}
+          {rich_content.opportunities && rich_content.opportunities.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                🎯 Opportunities ({rich_content.opportunities.length})
+              </Typography>
+              <Grid container spacing={2}>
+                {rich_content.opportunities.map((opportunity: any, index: number) => (
+                  <Grid item xs={12} md={6} key={index}>
+                    <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        {opportunity.title || `Opportunity ${index + 1}`}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {opportunity.description || opportunity}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
+
+          {/* Market Share */}
+          {rich_content.market_share && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                📈 Market Share Analysis
+              </Typography>
+              <Grid container spacing={2}>
+                {Object.entries(rich_content.market_share).map(([key, value]: [string, any]) => (
+                  <Grid item xs={12} sm={6} md={4} key={key}>
+                    <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        {key}
+                      </Typography>
+                      <Typography variant="h6" color="primary">
+                        {typeof value === 'number' ? `${(value * 100).toFixed(1)}%` : value}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            </Box>
+          )}
+
+          {/* Insights */}
+          {rich_content.insights && rich_content.insights.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                💡 Key Insights
+              </Typography>
+              {rich_content.insights.map((insight: any, index: number) => (
+                <Box key={index} sx={{ mb: 1, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="body2">
+                    {insight}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+
+          {/* Recommendations */}
+          {rich_content.recommendations && rich_content.recommendations.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                🎯 Recommendations
+              </Typography>
+              {rich_content.recommendations.map((recommendation: any, index: number) => (
+                <Box key={index} sx={{ mb: 1, p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="body2">
+                    {recommendation}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+
+          {/* Competitor Analysis */}
+          {rich_content.competitor_analysis && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                🏆 Competitor Analysis
+              </Typography>
+              <Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="body2">
+                  {typeof rich_content.competitor_analysis === 'string' 
+                    ? rich_content.competitor_analysis 
+                    : JSON.stringify(rich_content.competitor_analysis, null, 2)}
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </Box>
       )}
 

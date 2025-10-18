@@ -127,10 +127,16 @@ class ResultsGenerationOrchestrator:
                 return {}
             
             # Convert factor calculations to our format
+            # Get segment-specific factors
+            segment_factors = self._get_segment_factors(segment)
+            logger.info(f"Segment {segment} should have factors: {segment_factors}")
+            
             factor_dict = {}
             for factor_calc in factor_calculations:
                 factor_id = factor_calc.get('factor_id', '')
-                if factor_id:
+                
+                # Only include factors relevant to this segment
+                if factor_id and factor_id in segment_factors:
                     calculated_value = float(factor_calc.get('calculated_value', 0.0))
                     confidence_score = float(factor_calc.get('confidence_score', 0.0))
                     
@@ -160,6 +166,8 @@ class ResultsGenerationOrchestrator:
                             'source': 'v2_analysis_results' if calculation_method == 'v2_scoring' else 'formula_engine'
                         }
                     }
+                else:
+                    logger.debug(f"Skipping factor {factor_id} - not relevant to segment {segment}")
             
             logger.info(f"Retrieved {len(factor_dict)} real factor calculations for {segment}")
             return factor_dict
@@ -382,6 +390,19 @@ Reasoning: [brief explanation]
         
         return factor_info.get(factor_id, (f'Factor {factor_id}', f'Strategic assessment for {factor_id}'))
     
+    def _get_segment_factors(self, segment: str) -> List[str]:
+        """Get the list of factors relevant to a specific segment"""
+        
+        segment_factor_mapping = {
+            'market': ['F1', 'F2', 'F3', 'F4', 'F5', 'F6'],  # Market factors
+            'consumer': ['F7', 'F8', 'F9', 'F10', 'F11', 'F12'],  # Consumer factors
+            'product': ['F13', 'F14', 'F15', 'F16', 'F17', 'F18'],  # Product factors
+            'brand': ['F19', 'F20', 'F21', 'F22', 'F23', 'F24'],  # Brand factors
+            'experience': ['F25', 'F26', 'F27', 'F28']  # Experience factors
+        }
+        
+        return segment_factor_mapping.get(segment, [])
+    
     async def _calculate_segment_score(self, factor_scores: Dict[str, float], segment: str) -> float:
         """Calculate segment score using formula engine"""
         try:
@@ -566,7 +587,13 @@ Reasoning: [brief explanation]
         
         logger.info(f"Generating fallback factors for {segment}")
         
-        # Get market share data from existing API
+        # Get segment-specific factors
+        segment_factors = self._get_segment_factors(segment)
+        logger.info(f"Generating fallback factors for segment {segment}: {segment_factors}")
+        
+        factor_dict = {}
+        
+        # Get market share data from existing API for market segment
         try:
             from app.api.v3.results import get_market_results
             market_data = await get_market_results(topic, session_id)
@@ -576,28 +603,57 @@ Reasoning: [brief explanation]
                 current_market = market_share.get('Current Market', 0.2667)
                 addressable_market = market_share.get('Addressable Market', 0.365)
                 
-                return {
-                    'F16': {
-                        'value': min(1.0, addressable_market * 2),  # Market Size
-                        'confidence': 0.7,
-                        'formula_applied': 'Fallback: Addressable Market × 2',
-                        'metadata': {'source': 'market_share_data', 'addressable_market': addressable_market}
-                    },
-                    'F19': {
-                        'value': min(1.0, (addressable_market - current_market) * 6.5),  # Growth Rate
-                        'confidence': 0.7,
-                        'formula_applied': 'Fallback: Growth Potential × 6.5',
-                        'metadata': {'source': 'market_share_data', 'growth_potential': addressable_market - current_market}
-                    }
-                }
+                # Generate market-specific factors
+                for factor_id in segment_factors:
+                    factor_name, factor_description = self._get_factor_info(factor_id)
+                    
+                    if factor_id == 'F1':  # Market Size
+                        factor_dict[factor_id] = {
+                            'value': min(1.0, addressable_market * 2),
+                            'confidence': 0.7,
+                            'name': factor_name,
+                            'description': factor_description,
+                            'formula_applied': 'Fallback: Addressable Market × 2',
+                            'metadata': {'source': 'market_share_data', 'addressable_market': addressable_market}
+                        }
+                    elif factor_id == 'F2':  # Market Growth
+                        factor_dict[factor_id] = {
+                            'value': min(1.0, (addressable_market - current_market) * 6.5),
+                            'confidence': 0.7,
+                            'name': factor_name,
+                            'description': factor_description,
+                            'formula_applied': 'Fallback: Growth Potential × 6.5',
+                            'metadata': {'source': 'market_share_data', 'growth_potential': addressable_market - current_market}
+                        }
+                    else:
+                        # Other market factors
+                        factor_dict[factor_id] = {
+                            'value': self._get_fallback_factor_value(factor_id),
+                            'confidence': 0.6,
+                            'name': factor_name,
+                            'description': factor_description,
+                            'formula_applied': 'Fallback calculation',
+                            'metadata': {'source': 'fallback_generation'}
+                        }
+                
+                return factor_dict
+                
         except Exception as e:
-            logger.warning(f"Fallback factor generation failed: {str(e)}")
+            logger.warning(f"Market data fallback generation failed: {str(e)}")
         
-        # Default fallback factors
-        return {
-            'F16': {'value': 0.5, 'confidence': 0.5, 'formula_applied': 'Default fallback', 'metadata': {}},
-            'F19': {'value': 0.5, 'confidence': 0.5, 'formula_applied': 'Default fallback', 'metadata': {}}
-        }
+        # Default fallback factors for all segments
+        for factor_id in segment_factors:
+            factor_name, factor_description = self._get_factor_info(factor_id)
+            factor_dict[factor_id] = {
+                'value': self._get_fallback_factor_value(factor_id),
+                'confidence': 0.6,
+                'name': factor_name,
+                'description': factor_description,
+                'formula_applied': 'Default fallback',
+                'metadata': {'source': 'fallback_generation'}
+            }
+        
+        return factor_dict
     
     def load_persisted_results(self, session_id: str, segment: str) -> Dict[str, Any]:
         """Load pre-computed results from database (instant load)"""

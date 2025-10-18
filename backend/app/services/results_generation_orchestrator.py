@@ -3,7 +3,7 @@
 from typing import Dict, List, Any
 from sqlalchemy.orm import Session
 from app.services.results_persistence_service import ResultsPersistenceService
-from app.services.enhanced_pdf_formula_engine import AdvancedFormulaEngine
+from app.services.enhanced_analytical_engines.pdf_formula_engine import AdvancedFormulaEngine
 from app.services.enhanced_analytical_engines.pattern_library import PatternLibrary
 from app.services.segment_monte_carlo_engine import SegmentMonteCarloEngine
 from app.services.segment_content_generator import SegmentContentGenerator

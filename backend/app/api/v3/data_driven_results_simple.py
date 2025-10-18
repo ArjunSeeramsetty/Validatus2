@@ -130,30 +130,31 @@ async def get_generation_status(
         try:
             conn = await db_manager.get_connection()
             
-            # Check if session has v2 scoring results
+            # Check if session has any analysis results (more flexible)
             query = """
-                SELECT COUNT(*) as count 
+                SELECT COUNT(*) as count, 
+                       array_agg(DISTINCT analysis_type) as types
                 FROM analysis_results 
                 WHERE session_id = $1 
-                AND analysis_type = 'validatus_v2_complete'
                 AND result_data IS NOT NULL
             """
             
             result = await conn.fetchrow(query, session_id)
             
             if result and result['count'] > 0:
-                logger.info(f"[Data-Driven Bridge] Found v2 results for {session_id}")
+                analysis_types = result['types'] or []
+                logger.info(f"[Data-Driven Bridge] Found {result['count']} analysis results for {session_id}: {analysis_types}")
                 return {
                     "session_id": session_id,
                     "status": "completed",
-                    "message": "Results available",
+                    "message": f"Results available ({result['count']} analysis types: {', '.join(analysis_types)})",
                     "progress_percentage": 100,
                     "current_stage": "completed",
                     "completed_segments": 5,
                     "total_segments": 5
                 }
             else:
-                logger.info(f"[Data-Driven Bridge] No v2 results found for {session_id}")
+                logger.info(f"[Data-Driven Bridge] No analysis results found for {session_id}")
                 return {
                     "session_id": session_id,
                     "status": "pending",
